@@ -59,12 +59,8 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody ChangePasswordRequest request) {
         
-        try {
-            userService.changePassword(userDetails.getUser(), request);
-            return ResponseEntity.ok(translate("success.user.password_changed"));
-        } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
-        }
+        userService.changePassword(userDetails.getUser(), request);
+        return ResponseEntity.ok(translate("success.user.password_changed"));
     }
 
     // Lấy danh sách địa chỉ giao hàng
@@ -89,12 +85,8 @@ public class UserController {
             @PathVariable Long id,
             @Valid @RequestBody AddressRequest request) {
         
-        try {
-            addressService.updateAddress(userDetails.getUser(), id, request);
-            return ResponseEntity.ok(translate("success.address.updated"));
-        } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
-        }
+        addressService.updateAddress(userDetails.getUser(), id, request);
+        return ResponseEntity.ok(translate("success.address.updated"));
     }
 
     // Nâng địa chỉ lên làm Mặc định nhanh chóng
@@ -103,12 +95,8 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
         
-        try {
-            addressService.setDefaultAddress(userDetails.getUser(), id);
-            return ResponseEntity.ok(translate("success.address.default_set"));
-        } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
-        }
+        addressService.setDefaultAddress(userDetails.getUser(), id);
+        return ResponseEntity.ok(translate("success.address.default_set"));
     }
 
     // Xoá địa chỉ thiết lập
@@ -117,11 +105,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long id) {
         
-        try {
-            addressService.deleteAddress(userDetails.getUser(), id);
-            return ResponseEntity.ok(translate("success.address.deleted"));
-        } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
-        }
+        addressService.deleteAddress(userDetails.getUser(), id);
+        return ResponseEntity.ok(translate("success.address.deleted"));
     }
 }

@@ -34,41 +34,28 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            return ResponseEntity.ok(translate(authService.register(request)));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(translate(e.getMessage()));
-        }
+        return ResponseEntity.ok(translate(authService.register(request)));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        try {
-            AuthResponse response = authService.login(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            String translatedPrefix = translate("error.auth.login_failed");
-            return ResponseEntity.badRequest().body(translatedPrefix.replace("{0}", translate(e.getMessage())));
-        }
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        AuthResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
-        try {
-            AuthResponse response = authService.refreshToken(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(translate(e.getMessage()));
-        }
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        AuthResponse response = authService.refreshToken(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(Authentication authentication) {
+    public ResponseEntity<String> logout(Authentication authentication) {
         // Lấy thông tin email từ Authentication context mà JWT mang lại hợp lệ
         if (authentication != null && authentication.getName() != null) {
             authService.logout(authentication.getName());
             return ResponseEntity.ok(translate("success.auth.logout"));
         }
-        return ResponseEntity.badRequest().body(translate("error.auth.not_logged_in"));
+        throw new RuntimeException("error.auth.not_logged_in");
     }
 }

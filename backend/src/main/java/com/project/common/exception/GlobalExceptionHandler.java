@@ -4,6 +4,9 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -21,12 +24,16 @@ public class GlobalExceptionHandler {
         this.messageSource = messageSource;
     }
 
-    private String translate(String key) {
+    private String translate(String key, Object[] args) {
         try {
-            return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+            return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
         } catch (org.springframework.context.NoSuchMessageException ex) {
             return key; // Không tìm thấy trong kho từ điển thì nén String gốc ra luôn
         }
+    }
+
+    private String translate(String key) {
+        return translate(key, null);
     }
 
     // Bắt lỗi Validation từ các tham số @Valid trong Controller
@@ -42,6 +49,24 @@ public class GlobalExceptionHandler {
         });
         
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    // Bắt các lỗi xác thực (Auth Failures)
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<String> handleAuthenticationExceptions(AuthenticationException ex) {
+        String messageKey = ex.getMessage();
+        String translatedMessage;
+
+        if (ex instanceof BadCredentialsException) {
+            // Bao bọc lỗi đăng nhập thất bại với prefix "Sai thông tin đăng nhập: {0}"
+            translatedMessage = translate("error.auth.login_failed", new Object[]{translate(messageKey)});
+        } else if (ex instanceof LockedException) {
+            translatedMessage = translate("error.auth.account_locked");
+        } else {
+            translatedMessage = translate(messageKey);
+        }
+
+        return new ResponseEntity<>(translatedMessage, HttpStatus.BAD_REQUEST);
     }
 
     // Bắt các RuntimeException tùy chỉnh khác

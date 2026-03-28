@@ -9,6 +9,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -30,10 +31,12 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         String localizedMessage = "Unauthorized";
         try {
             localizedMessage = messageSource.getMessage("error.auth.unauthorized", null, request.getLocale());
-        } catch (org.springframework.context.NoSuchMessageException e) {}
+        } catch (org.springframework.context.NoSuchMessageException e) {
+            // Nếu không tìm thấy key dịch, giữ nguyên message mặc định là Unauthorized
+        }
         
         // Trả format chuẩn cho AXIOS
         String jsonFormat = String.format("{\"error\": \"Unauthorized\", \"message\": \"%s\"}", localizedMessage.replace("\"", "\\\""));
-        response.getOutputStream().write(jsonFormat.getBytes("UTF-8"));
+        response.getOutputStream().write(jsonFormat.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -6,6 +6,8 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.project.auth.entity.UserStatus;
 import com.project.auth.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
@@ -13,7 +15,8 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class LoginAttemptService {
 
-    private final int MAX_ATTEMPT = 5;
+    private static final Logger logger = LoggerFactory.getLogger(LoginAttemptService.class);
+    private static final int MAX_ATTEMPT = 5;
     
     // Lưu số lần thử, hết hạn sau 12 tiếng nếu không thử tiếp
     private final Cache<String, Integer> attemptsCache;
@@ -37,7 +40,7 @@ public class LoginAttemptService {
                 userRepository.findByEmail(email).ifPresent(u -> {
                     u.setStatus(UserStatus.ACTIVE);
                     userRepository.save(u);
-                    System.out.println("[AUTO-HEALING] Gỡ khoá tự động rào cản Brute Force cho: " + email);
+                    logger.info("[AUTO-HEALING] Gỡ khoá tự động rào cản Brute Force cho: {}", email);
                 });
             }
         };
@@ -68,7 +71,7 @@ public class LoginAttemptService {
             userRepository.findByEmail(email).ifPresent(u -> {
                 u.setStatus(UserStatus.INACTIVE);
                 userRepository.save(u);
-                System.out.println("[AUTO-HEALING] Kích hoạt rào cản Database (INACTIVE) do có biến cố ngầm tại: " + email);
+                logger.info("[AUTO-HEALING] Kích hoạt rào cản Database (INACTIVE) do có biến cố ngầm tại: {}", email);
             });
         }
     }
