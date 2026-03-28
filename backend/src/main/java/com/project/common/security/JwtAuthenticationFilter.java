@@ -16,15 +16,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+import org.springframework.web.servlet.HandlerExceptionResolver;
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final HandlerExceptionResolver resolver;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService,
+                                   @org.springframework.beans.factory.annotation.Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.resolver = resolver;
     }
 
     // Xử lý bộ lọc JWT cho mọi Request
@@ -64,8 +69,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (Exception e) {
-            // Lỗi JWT có thể được bắt ở đây (Hết hạn, sai chữ ký, v.v)
+        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException | org.springframework.security.core.userdetails.UsernameNotFoundException e) {
+            // Ném lỗi JWT (Expired, Malformed) cho HandlerExceptionResolver phân hồi 401
+            resolver.resolveException(request, response, null, e);
+            return; // Cắt đức luồng HTTP yêu cầu client refresh ngay
         }
 
         filterChain.doFilter(request, response);

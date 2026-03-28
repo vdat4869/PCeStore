@@ -1,5 +1,7 @@
 package com.project.common.exception;
 
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +15,20 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private final MessageSource messageSource;
+
+    public GlobalExceptionHandler(MessageSource messageSource) {
+        this.messageSource = messageSource;
+    }
+
+    private String translate(String key) {
+        try {
+            return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+        } catch (org.springframework.context.NoSuchMessageException ex) {
+            return key; // Không tìm thấy trong kho từ điển thì nén String gốc ra luôn
+        }
+    }
+
     // Bắt lỗi Validation từ các tham số @Valid trong Controller
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -20,6 +36,7 @@ public class GlobalExceptionHandler {
         
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
+            // Validation Message đã được LocalValidatorFactoryBean dịch tự động tại mức DTO!
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
@@ -30,6 +47,19 @@ public class GlobalExceptionHandler {
     // Bắt các RuntimeException tùy chỉnh khác
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeExceptions(RuntimeException ex) {
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(translate(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+    
+    // Auto bắt Exception Security AccessDenied
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<String> handleAccessDeniedExceptions(org.springframework.security.access.AccessDeniedException ex) {
+        return new ResponseEntity<>(translate(ex.getMessage()), HttpStatus.FORBIDDEN);
+    }
+
+    // Bắt riêng nhánh lỗi chứng thực (Auto-healing báo cho FE biết 401 Expired Token)
+    @ExceptionHandler(io.jsonwebtoken.JwtException.class)
+    public ResponseEntity<String> handleJwtExceptions(io.jsonwebtoken.JwtException ex) {
+        String baseMsg = translate("error.jwt.invalid");
+        return new ResponseEntity<>(baseMsg.replace("{0}", ex.getMessage()), HttpStatus.UNAUTHORIZED);
     }
 }
