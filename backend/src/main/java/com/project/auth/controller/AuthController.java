@@ -56,6 +56,6 @@ public class AuthController {
             authService.logout(authentication.getName());
             return ResponseEntity.ok(translate("success.auth.logout"));
         }
-        throw new RuntimeException("error.auth.not_logged_in");
+        throw new IllegalArgumentException("error.auth.not_logged_in");
     }
 }
