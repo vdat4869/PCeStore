@@ -1,0 +1,31 @@
+server:
+  port: 8080
+
+spring:
+  # Cấu hình kết nối cơ sở dữ liệu PostgreSQL
+  datasource:
+    url: jdbc:postgresql://localhost:5432/pcestore
+    username: postgres
+    password: password # Đổi thông tin này theo cấu hình local của bạn
+    driver-class-name: org.postgresql.Driver
+
+  # Cấu hình JPA / Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: update # Tự động tạo hoặc cập nhật cấu trúc database dựa theo Entity
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Cấu hình JWT cho Token
+application:
+  security:
+    jwt:
+      # Key bí mật để sinh chữ ký token (Ít nhất 256 bits/32 ký tự đối với thuật toán HS256)
+      secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      # Thời gian sống của JWT Access Token (VD: 1 ngày = 86400000 ms)
+      expiration: 86400000
+      # Thời gian sống của JWT Refresh Token (VD: 7 ngày = 604800000 ms)
+      refresh-token:
+        expiration: 604800000
