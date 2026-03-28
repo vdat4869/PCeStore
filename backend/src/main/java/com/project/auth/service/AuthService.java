@@ -16,7 +16,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import java.sql.SQLException;
 
 @Service
 public class AuthService {
@@ -26,25 +28,29 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final RefreshTokenService refreshTokenService;
+    private final com.project.common.security.LoginAttemptService loginAttemptService;
 
     // Tiêm các dependency dùng thủ công không nhờ lombok
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
-                       RefreshTokenService refreshTokenService) {
+                       RefreshTokenService refreshTokenService,
+                       com.project.common.security.LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.refreshTokenService = refreshTokenService;
+        this.loginAttemptService = loginAttemptService;
     }
 
     // Đăng ký người dùng
+    @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public String register(RegisterRequest request) {
         // Kiểm tra email tồn tại
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email đã được sử dụng");
+            throw new IllegalArgumentException("error.auth.email_used");
         }
 
         User user = new User(
@@ -56,21 +62,35 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return "Đăng ký tải khoản thành công";
+        return "success.auth.registered";
     }
 
     // Đăng nhập
+    @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public AuthResponse login(LoginRequest request) {
-        // Xác thực người dùng bằng Spring Security Manager
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        String email = request.getEmail();
+        if (loginAttemptService.isBlocked(email)) {
+            throw new org.springframework.security.authentication.LockedException("error.auth.account_locked");
+        }
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
+        try {
+            // Xác thực người dùng bằng Spring Security Manager
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            email,
+                            request.getPassword()
+                    )
+            );
+        } catch (org.springframework.security.core.AuthenticationException ex) {
+            loginAttemptService.loginFailed(email);
+            throw new org.springframework.security.authentication.BadCredentialsException("error.auth.bad_credentials");
+        }
+
+        // Kiểm tra đúng pass -> Cập nhật xoá bộ nhớ đếm sai
+        loginAttemptService.loginSucceeded(email);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
 
         // Tạo JWT qua CustomUserDetails
         CustomUserDetails userDetails = new CustomUserDetails(user);
@@ -94,7 +114,7 @@ public class AuthService {
                     String accessToken = jwtService.generateToken(userDetails);
                     return new AuthResponse(accessToken, token);
                 })
-                .orElseThrow(() -> new RuntimeException("Refresh token không hợp lệ"));
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.refresh_invalid"));
     }
 
     // Đăng xuất: Xoá refresh token của người dùng (nếu có context xác thực)
@@ -102,7 +122,7 @@ public class AuthService {
     // Thông thường AccessToken hết hạn client ko gửi thì logout. Nhưng xoá refresh Token triệt rể
     public void logout(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
+                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
         
         refreshTokenService.deleteByUserId(user.getId());
     }

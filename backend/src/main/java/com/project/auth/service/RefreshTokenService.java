@@ -32,7 +32,7 @@ public class RefreshTokenService {
 
     public RefreshToken createRefreshToken(Long userId) {
         // Tìm User từ database
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new org.springframework.security.core.userdetails.UsernameNotFoundException("error.auth.user_not_found"));
         
         // Chuỗi token random duy nhất
         String token = UUID.randomUUID().toString();
@@ -49,7 +49,7 @@ public class RefreshTokenService {
         // Nếu ngày hết hạn nằm trước thời điểm hiện tại
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(token);
-            throw new RuntimeException("Refresh token đã hết hạn. Vui lòng đăng nhập lại!");
+            throw new IllegalArgumentException("error.auth.refresh_expired");
         }
         return token;
     }
@@ -57,7 +57,7 @@ public class RefreshTokenService {
     @Transactional
     public int deleteByUserId(Long userId) {
         // Cần truyền User entity cho repository
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new org.springframework.security.core.userdetails.UsernameNotFoundException("error.auth.user_not_found"));
         return refreshTokenRepository.deleteByUser(user);
     }
 }

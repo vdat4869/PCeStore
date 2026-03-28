@@ -17,4 +17,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     // Xóa tất cả Refresh Token của một người dùng (hữu ích khi Logout hoặc đăng nhập lại ở thiết bị khác)
     @Modifying
     int deleteByUser(User user);
+
+    // Xóa hàng loạt các Token đã quá hạn ngày (Dọn rác DB)
+    @Modifying
+    int deleteByExpiryDateBefore(java.time.LocalDateTime now);
 }

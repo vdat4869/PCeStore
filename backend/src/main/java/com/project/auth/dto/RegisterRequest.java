@@ -6,13 +6,13 @@ import jakarta.validation.constraints.Pattern;
 
 public class RegisterRequest {
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Định dạng email không hợp lệ")
+    @NotBlank(message = "{validation.email.empty}")
+    @Email(message = "{validation.email.invalid}")
     private String email;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
+    @NotBlank(message = "{validation.password.empty}")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{9,}$", 
-             message = "Mật khẩu phải dài hơn 8 ký tự (ít nhất 9 ký tự), bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt")
+             message = "{validation.password.invalid}")
     private String password;
 
     public RegisterRequest() {
