@@ -12,4 +12,7 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
 
     // Lấy danh sách địa chỉ của một user
     List<Address> findByUser(User user);
+
+    // Kích hoạt càn quét cấu trúc string giống nhau do user gởi lên
+    boolean existsByUserAndStreetAndCityAndDistrict(User user, String street, String city, String district);
 }

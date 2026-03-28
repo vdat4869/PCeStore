@@ -5,12 +5,12 @@ import jakarta.validation.constraints.Pattern;
 
 public class ChangePasswordRequest {
 
-    @NotBlank(message = "Mật khẩu cũ không được trống")
+    @NotBlank(message = "{validation.password.old_empty}")
     private String oldPassword;
 
-    @NotBlank(message = "Mật khẩu mới không được trống")
+    @NotBlank(message = "{validation.password.new_empty}")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{9,}$", 
-             message = "Mật khẩu phải dài hơn 8 ký tự (ít nhất 9 ký tự), bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt")
+             message = "{validation.password.invalid}")
     private String newPassword;
 
     public ChangePasswordRequest() {

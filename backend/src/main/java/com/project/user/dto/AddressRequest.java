@@ -4,13 +4,13 @@ import jakarta.validation.constraints.NotBlank;
 
 public class AddressRequest {
 
-    @NotBlank(message = "Tên đường không được trống")
+    @NotBlank(message = "{validation.address.street_empty}")
     private String street;
 
-    @NotBlank(message = "Thành phố không được trống")
+    @NotBlank(message = "{validation.address.city_empty}")
     private String city;
 
-    @NotBlank(message = "Quận/huyện không được trống")
+    @NotBlank(message = "{validation.address.district_empty}")
     private String district;
 
     private Boolean isDefault;

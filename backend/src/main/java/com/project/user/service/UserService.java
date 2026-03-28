@@ -67,12 +67,12 @@ public class UserService {
     public void changePassword(User user, ChangePasswordRequest request) {
         // Kiểm tra xem mật khẩu cũ có đúng không
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu cũ không chính xác");
+            throw new IllegalArgumentException("error.user.old_password_incorrect");
         }
 
         // Kiểm tra xem mật khẩu mới có trùng với mật khẩu cũ không
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu mới không được trùng với mật khẩu cũ");
+            throw new IllegalArgumentException("error.user.new_password_same");
         }
 
         // Cập nhật mật khẩu mới 

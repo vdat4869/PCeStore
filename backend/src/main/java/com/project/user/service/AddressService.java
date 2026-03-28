@@ -7,12 +7,16 @@ import com.project.user.entity.Address;
 import com.project.user.repository.AddressRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import java.sql.SQLException;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class AddressService {
+
+    private static final String ADDRESS_NOT_FOUND_MSG = "error.address.not_found";
 
     private final AddressRepository addressRepository;
 
@@ -21,6 +25,7 @@ public class AddressService {
     }
 
     // Lấy toàn bộ địa chỉ của một User
+    @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public List<AddressResponse> getUserAddresses(User user) {
         return addressRepository.findByUser(user).stream()
                 .map(addr -> new AddressResponse(
@@ -29,23 +34,30 @@ public class AddressService {
                         addr.getCity(),
                         addr.getDistrict(),
                         addr.getIsDefault()
-                )).collect(Collectors.toList());
+                )).toList();
     }
 
     // Thêm địa chỉ mới
     @Transactional
+    @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public AddressResponse addAddress(User user, AddressRequest request) {
+        // Càn quét chống rác DB 
+        if (addressRepository.existsByUserAndStreetAndCityAndDistrict(
+                user, request.getStreet(), request.getCity(), request.getDistrict())) {
+            throw new IllegalArgumentException("error.address.duplicate");
+        }
+
         List<Address> existingAddresses = addressRepository.findByUser(user);
 
         // Nếu đây là địa chỉ đầu tiên, tự động set làm mặc định bất chấp cờ
-        Boolean isDefault = request.getIsDefault() != null ? request.getIsDefault() : false;
+        boolean isDefault = Boolean.TRUE.equals(request.getIsDefault());
         
         if (existingAddresses.isEmpty()) {
             isDefault = true;
         } else if (isDefault) {
             // Nếu đánh set là mặc định, phải huỷ mặc định của tất cả địa chỉ cũ
             for (Address oldAddr : existingAddresses) {
-                if (oldAddr.getIsDefault()) {
+                if (Boolean.TRUE.equals(oldAddr.getIsDefault())) {
                     oldAddr.setIsDefault(false);
                     addressRepository.save(oldAddr); // Lưu đè cái cũ
                 }
@@ -71,15 +83,91 @@ public class AddressService {
         );
     }
 
+    // Sửa chữa, cập nhật chỉnh tả và vị trí của một địa chỉ cũ
+    @Transactional
+    @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    public AddressResponse updateAddress(User user, Long addressId, AddressRequest request) {
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException(ADDRESS_NOT_FOUND_MSG));
+
+        if (!address.getUser().getId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("error.address.denied_edit");
+        }
+
+        // Check Duplicate nếu chuỗi bị thay đổi sang nhà hàng xóm
+        boolean isChanged = !address.getStreet().equals(request.getStreet()) || 
+                            !address.getCity().equals(request.getCity()) || 
+                            !address.getDistrict().equals(request.getDistrict());
+        
+        if (isChanged && addressRepository.existsByUserAndStreetAndCityAndDistrict(
+                user, request.getStreet(), request.getCity(), request.getDistrict())) {
+            throw new IllegalArgumentException("error.address.duplicate");
+        }
+
+        address.setStreet(request.getStreet());
+        address.setCity(request.getCity());
+        address.setDistrict(request.getDistrict());
+
+        // Cơ chế lật cờ
+        boolean shouldBeDefault = Boolean.TRUE.equals(request.getIsDefault());
+        
+        if (shouldBeDefault && !Boolean.TRUE.equals(address.getIsDefault())) {
+            List<Address> existingAddresses = addressRepository.findByUser(user);
+            for (Address oldAddr : existingAddresses) {
+                if (Boolean.TRUE.equals(oldAddr.getIsDefault())) {
+                    oldAddr.setIsDefault(false);
+                    addressRepository.save(oldAddr);
+                }
+            }
+            address.setIsDefault(true);
+        } else if (!shouldBeDefault && Boolean.TRUE.equals(address.getIsDefault())) {
+            address.setIsDefault(false);
+        }
+
+        addressRepository.save(address);
+
+        return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), address.getIsDefault());
+    }
+
+    // Lật cờ mặc định nhanh chóng bằng mốc ID không cần body JSON
+    @Transactional
+    @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    public AddressResponse setDefaultAddress(User user, Long addressId) {
+        Address address = addressRepository.findById(addressId)
+                .orElseThrow(() -> new IllegalArgumentException(ADDRESS_NOT_FOUND_MSG));
+
+        if (!address.getUser().getId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("error.address.denied_change");
+        }
+
+        if (Boolean.TRUE.equals(address.getIsDefault())) {
+            return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), true);
+        }
+
+        // Tắt hết cờ đang chớp cũ
+        List<Address> existingAddresses = addressRepository.findByUser(user);
+        for (Address oldAddr : existingAddresses) {
+            if (Boolean.TRUE.equals(oldAddr.getIsDefault())) {
+                oldAddr.setIsDefault(false);
+                addressRepository.save(oldAddr);
+            }
+        }
+
+        address.setIsDefault(true);
+        addressRepository.save(address);
+
+        return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), true);
+    }
+
     // Xoá địa chỉ
     @Transactional
     public void deleteAddress(User user, Long addressId) {
         Address address = addressRepository.findById(addressId)
-                .orElseThrow(() -> new RuntimeException("Địa chỉ không tồn tại"));
+                .orElseThrow(() -> new IllegalArgumentException(ADDRESS_NOT_FOUND_MSG));
 
         // Xác minh xem địa chỉ này có thuộc về user đang tạo req ko
         if (!address.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Bạn không có quyền xoá địa chỉ này");
+            throw new org.springframework.security.access.AccessDeniedException("error.address.denied_delete");
         }
 
         addressRepository.delete(address);

@@ -12,7 +12,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import java.util.List;
 
 @RestController
@@ -21,10 +22,20 @@ public class UserController {
 
     private final UserService userService;
     private final AddressService addressService;
+    private final MessageSource messageSource;
 
-    public UserController(UserService userService, AddressService addressService) {
+    public UserController(UserService userService, AddressService addressService, MessageSource messageSource) {
         this.userService = userService;
         this.addressService = addressService;
+        this.messageSource = messageSource;
+    }
+
+    private String translate(String key) {
+        try {
+            return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+        } catch (org.springframework.context.NoSuchMessageException e) {
+            return key;
+        }
     }
 
     // Lấy thông tin tài khoản người dùng
@@ -50,9 +61,9 @@ public class UserController {
         
         try {
             userService.changePassword(userDetails.getUser(), request);
-            return ResponseEntity.ok("Đổi mật khẩu thành công!");
+            return ResponseEntity.ok(translate("success.user.password_changed"));
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
         }
     }
 
@@ -71,6 +82,35 @@ public class UserController {
         return ResponseEntity.ok(addressService.addAddress(userDetails.getUser(), request));
     }
 
+    // Chỉnh sửa thông tin một địa chỉ
+    @PutMapping("/address/{id}")
+    public ResponseEntity<String> updateAddress(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id,
+            @Valid @RequestBody AddressRequest request) {
+        
+        try {
+            addressService.updateAddress(userDetails.getUser(), id, request);
+            return ResponseEntity.ok(translate("success.address.updated"));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
+        }
+    }
+
+    // Nâng địa chỉ lên làm Mặc định nhanh chóng
+    @PutMapping("/address/{id}/default")
+    public ResponseEntity<String> setDefaultAddress(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        
+        try {
+            addressService.setDefaultAddress(userDetails.getUser(), id);
+            return ResponseEntity.ok(translate("success.address.default_set"));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
+        }
+    }
+
     // Xoá địa chỉ thiết lập
     @DeleteMapping("/address/{id}")
     public ResponseEntity<String> deleteAddress(
@@ -79,9 +119,9 @@ public class UserController {
         
         try {
             addressService.deleteAddress(userDetails.getUser(), id);
-            return ResponseEntity.ok("Đã xoá địa chỉ thành công!");
+            return ResponseEntity.ok(translate("success.address.deleted"));
         } catch (Exception ex) {
-            return ResponseEntity.badRequest().body(ex.getMessage());
+            return ResponseEntity.badRequest().body(translate(ex.getMessage()));
         }
     }
 }
