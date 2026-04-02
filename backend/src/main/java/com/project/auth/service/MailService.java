@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StreamUtils;
 import jakarta.annotation.PostConstruct;
+import org.springframework.context.MessageSource;
+import java.util.Locale;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,30 +33,34 @@ public class MailService {
     private String frontendUrl;
 
     private final Map<String, String> emailTemplates = new HashMap<>();
+    private final MessageSource messageSource;
 
-    public MailService(JavaMailSender mailSender) {
+    public MailService(JavaMailSender mailSender, MessageSource messageSource) {
         this.mailSender = mailSender;
+        this.messageSource = messageSource;
     }
 
     @PostConstruct
     public void initTemplates() {
         try {
-            String verifyHtml = StreamUtils.copyToString(new ClassPathResource("templates/email/verify-email.html").getInputStream(), StandardCharsets.UTF_8);
-            String resetHtml = StreamUtils.copyToString(new ClassPathResource("templates/email/reset-password.html").getInputStream(), StandardCharsets.UTF_8);
-            emailTemplates.put("verify-email", verifyHtml);
-            emailTemplates.put("reset-password", resetHtml);
+            emailTemplates.put("verify-email-vi", StreamUtils.copyToString(new ClassPathResource("templates/email/verify-email-vi.html").getInputStream(), StandardCharsets.UTF_8));
+            emailTemplates.put("verify-email-en", StreamUtils.copyToString(new ClassPathResource("templates/email/verify-email-en.html").getInputStream(), StandardCharsets.UTF_8));
+            emailTemplates.put("reset-password-vi", StreamUtils.copyToString(new ClassPathResource("templates/email/reset-password-vi.html").getInputStream(), StandardCharsets.UTF_8));
+            emailTemplates.put("reset-password-en", StreamUtils.copyToString(new ClassPathResource("templates/email/reset-password-en.html").getInputStream(), StandardCharsets.UTF_8));
             logger.info("Email templates loaded successfully into RAM cache.");
         } catch (Exception e) {
             logger.error("Lỗi không thể tải giao diện Email HTML: ", e);
+            throw new IllegalStateException("Mất file HTML Email! Dừng hệ thống.", e);
         }
     }
 
     @Async
-    public void sendVerificationEmail(String toEmail, String token) {
-        String subject = "Xác nhận tài khoản PCeStore";
+    public void sendVerificationEmail(String toEmail, String token, Locale locale) {
+        String subject = messageSource.getMessage("email.subject.verify", null, locale);
         String link = frontendUrl + "/verify-email?token=" + token;
         
-        String html = emailTemplates.getOrDefault("verify-email", "")
+        String key = "verify-email-" + locale.getLanguage();
+        String html = emailTemplates.getOrDefault(key, emailTemplates.get("verify-email-en"))
                 .replace("{{link}}", link)
                 .replace("{{token}}", token);
 
@@ -62,11 +68,12 @@ public class MailService {
     }
 
     @Async
-    public void sendPasswordResetEmail(String toEmail, String token) {
-        String subject = "Khôi phục mật khẩu PCeStore";
+    public void sendPasswordResetEmail(String toEmail, String token, Locale locale) {
+        String subject = messageSource.getMessage("email.subject.pwd_reset", null, locale);
         String link = frontendUrl + "/reset-password?token=" + token;
         
-        String html = emailTemplates.getOrDefault("reset-password", "")
+        String key = "reset-password-" + locale.getLanguage();
+        String html = emailTemplates.getOrDefault(key, emailTemplates.get("reset-password-en"))
                 .replace("{{link}}", link);
 
         sendHtmlMail(toEmail, subject, html);

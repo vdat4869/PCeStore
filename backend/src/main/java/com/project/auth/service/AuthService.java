@@ -1,18 +1,15 @@
 package com.project.auth.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import com.project.auth.dto.*;
-import com.project.auth.entity.*;
-import com.project.auth.repository.EmailVerificationTokenRepository;
-import com.project.auth.repository.PasswordResetTokenRepository;
-import com.project.auth.repository.UserRepository;
-import com.project.common.security.CustomUserDetails;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,12 +18,25 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.UUID;
-import java.security.GeneralSecurityException;
-import java.io.IOException;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import com.project.auth.dto.AuthResponse;
+import com.project.auth.dto.LoginRequest;
+import com.project.auth.dto.RefreshTokenRequest;
+import com.project.auth.dto.RegisterRequest;
+import com.project.auth.entity.AuthProvider;
+import com.project.auth.entity.EmailVerificationToken;
+import com.project.auth.entity.PasswordResetToken;
+import com.project.auth.entity.RefreshToken;
+import com.project.auth.entity.User;
+import com.project.auth.entity.UserRole;
+import com.project.auth.entity.UserStatus;
+import com.project.auth.repository.EmailVerificationTokenRepository;
+import com.project.auth.repository.PasswordResetTokenRepository;
+import com.project.auth.repository.UserRepository;
+import com.project.common.security.CustomUserDetails;
 
 @Service
 public class AuthService {
@@ -93,18 +103,18 @@ public class AuthService {
         emailTokenRepository.save(verificationToken);
 
         // Gửi mail
-        mailService.sendVerificationEmail(user.getEmail(), token);
+        mailService.sendVerificationEmail(user.getEmail(), token, LocaleContextHolder.getLocale());
 
         return translate("success.auth.register_verify");
     }
 
     public String verifyEmail(String token) {
         EmailVerificationToken verificationToken = emailTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay token."));
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.token_not_found"));
 
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             emailTokenRepository.delete(verificationToken);
-            throw new IllegalArgumentException("Token da het han.");
+            throw new IllegalArgumentException("error.auth.token_expired");
         }
 
         User user = verificationToken.getUser();
@@ -130,7 +140,7 @@ public class AuthService {
         EmailVerificationToken verificationToken = new EmailVerificationToken(user, token, LocalDateTime.now().plusHours(24));
         emailTokenRepository.save(verificationToken);
 
-        mailService.sendVerificationEmail(user.getEmail(), token);
+        mailService.sendVerificationEmail(user.getEmail(), token, LocaleContextHolder.getLocale());
         return translate("success.auth.email_resend");
     }
 
@@ -144,7 +154,7 @@ public class AuthService {
         PasswordResetToken resetToken = new PasswordResetToken(user, token, LocalDateTime.now().plusMinutes(15));
         passwordResetTokenRepository.save(resetToken);
 
-        mailService.sendPasswordResetEmail(user.getEmail(), token);
+        mailService.sendPasswordResetEmail(user.getEmail(), token, LocaleContextHolder.getLocale());
         return translate("success.auth.pwd_link_sent");
     }
 
@@ -175,7 +185,7 @@ public class AuthService {
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.getPassword()));
         } catch (org.springframework.security.core.AuthenticationException ex) {
-            loginAttemptService.loginFailed(email, ipAddress, "Sai thông tin đăng nhập");
+            loginAttemptService.loginFailed(email, ipAddress, "error.auth.bad_credentials");
             throw new org.springframework.security.authentication.BadCredentialsException("error.auth.bad_credentials");
         }
 
@@ -226,7 +236,7 @@ public class AuthService {
             return new AuthResponse(jwtToken, refreshToken.getToken());
 
         } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
-            loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "Lỗi xác thực Google ID Token / Database");
+            loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "error.auth.google_failed");
             throw new IllegalArgumentException("error.auth.google_failed", e);
         }
     }

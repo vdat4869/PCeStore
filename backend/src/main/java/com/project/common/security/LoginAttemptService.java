@@ -40,7 +40,7 @@ public class LoginAttemptService {
         });
 
         // Ghi Audit
-        logLoginAudit(email, ipAddress, true, "Đăng nhập thành công");
+        logLoginAudit(email, ipAddress, true, "success.auth.login");
     }
 
     @Transactional
