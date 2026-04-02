@@ -38,8 +38,10 @@ public class Product {
     @Column(nullable = false)
     private String brand;
 
-    @Column(nullable = false, columnDefinition = "integer default 0")
-    private Integer stock;
+    // Liên kết 1-1 ngược lại với Inventory để lấy thông tin tồn kho.
+    // Dùng mappedBy vì 'product' đã được định nghĩa là chủ sở hữu (Owner) bên phía Inventory.
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private com.project.inventory.entity.Inventory inventory;
 
     private String imageUrl;
 
