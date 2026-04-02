@@ -37,6 +37,7 @@ import com.project.auth.repository.EmailVerificationTokenRepository;
 import com.project.auth.repository.PasswordResetTokenRepository;
 import com.project.auth.repository.UserRepository;
 import com.project.common.security.CustomUserDetails;
+import com.project.notification.service.MailService;
 
 @Service
 public class AuthService {

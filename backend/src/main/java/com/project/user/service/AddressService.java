@@ -56,12 +56,7 @@ public class AddressService {
             isDefault = true;
         } else if (isDefault) {
             // Nếu đánh set là mặc định, phải huỷ mặc định của tất cả địa chỉ cũ
-            for (Address oldAddr : existingAddresses) {
-                if (Boolean.TRUE.equals(oldAddr.getIsDefault())) {
-                    oldAddr.setIsDefault(false);
-                    addressRepository.save(oldAddr); // Lưu đè cái cũ
-                }
-            }
+            addressRepository.clearDefaultAddressesForUser(user);
         }
 
         Address newAddr = new Address(
@@ -112,13 +107,7 @@ public class AddressService {
         boolean shouldBeDefault = Boolean.TRUE.equals(request.getIsDefault());
         
         if (shouldBeDefault && !Boolean.TRUE.equals(address.getIsDefault())) {
-            List<Address> existingAddresses = addressRepository.findByUser(user);
-            for (Address oldAddr : existingAddresses) {
-                if (Boolean.TRUE.equals(oldAddr.getIsDefault())) {
-                    oldAddr.setIsDefault(false);
-                    addressRepository.save(oldAddr);
-                }
-            }
+            addressRepository.clearDefaultAddressesForUser(user);
             address.setIsDefault(true);
         } else if (!shouldBeDefault && Boolean.TRUE.equals(address.getIsDefault())) {
             address.setIsDefault(false);
@@ -145,13 +134,7 @@ public class AddressService {
         }
 
         // Tắt hết cờ đang chớp cũ
-        List<Address> existingAddresses = addressRepository.findByUser(user);
-        for (Address oldAddr : existingAddresses) {
-            if (Boolean.TRUE.equals(oldAddr.getIsDefault())) {
-                oldAddr.setIsDefault(false);
-                addressRepository.save(oldAddr);
-            }
-        }
+        addressRepository.clearDefaultAddressesForUser(user);
 
         address.setIsDefault(true);
         addressRepository.save(address);
