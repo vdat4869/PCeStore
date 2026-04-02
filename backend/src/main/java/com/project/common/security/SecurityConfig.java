@@ -45,6 +45,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // Cho phép tất cả thực hiện đăng nhập, đăng ký mà không yêu cầu token
                 .requestMatchers("/api/auth/**").permitAll()
+                // Cho phép xem sản phẩm, category dưới tư cách khách hoăc User
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
                 // Cho phép Swagger UI và API Docs công khai để kiểm thử
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Mọi Request còn lại cần xác thực
