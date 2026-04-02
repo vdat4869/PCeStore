@@ -25,6 +25,25 @@ public class User {
     @Column(nullable = false)
     private UserStatus status;
 
+    @Column(name = "full_name")
+    private String fullName;
+
+    @Column(name = "phone", unique = true)
+    private String phone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column(name = "failed_attempts", nullable = false, columnDefinition = "integer default 0")
+    private int failedAttempts = 0;
+
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
+
+    @Column(name = "account_non_locked", nullable = false, columnDefinition = "boolean default true")
+    private boolean accountNonLocked = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -38,7 +57,10 @@ public class User {
         this.password = password;
         this.role = role;
         this.status = status;
+        this.authProvider = AuthProvider.LOCAL;
         this.createdAt = LocalDateTime.now(); // Ghi nhận thời điểm tạo
+        this.failedAttempts = 0;
+        this.accountNonLocked = true;
     }
 
     // --- GETTER VÀ SETTER THỦ CÔNG --- //
@@ -89,5 +111,53 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public AuthProvider getAuthProvider() {
+        return authProvider;
+    }
+
+    public void setAuthProvider(AuthProvider authProvider) {
+        this.authProvider = authProvider;
+    }
+
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
+
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    public LocalDateTime getLockTime() {
+        return lockTime;
+    }
+
+    public void setLockTime(LocalDateTime lockTime) {
+        this.lockTime = lockTime;
+    }
+
+    public boolean isAccountNonLocked() {
+        return accountNonLocked;
+    }
+
+    public void setAccountNonLocked(boolean accountNonLocked) {
+        this.accountNonLocked = accountNonLocked;
     }
 }

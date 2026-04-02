@@ -46,12 +46,16 @@ public class RefreshTokenService {
     }
 
     public RefreshToken verifyExpiration(RefreshToken token) {
-        // Nếu ngày hết hạn nằm trước thời điểm hiện tại
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             refreshTokenRepository.delete(token);
             throw new IllegalArgumentException("error.auth.refresh_expired");
         }
         return token;
+    }
+
+    @Transactional
+    public void deleteToken(RefreshToken token) {
+        refreshTokenRepository.delete(token);
     }
 
     @Transactional

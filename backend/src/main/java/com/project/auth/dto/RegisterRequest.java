@@ -15,12 +15,32 @@ public class RegisterRequest {
              message = "{validation.password.invalid}")
     private String password;
 
+    @NotBlank(message = "Confirm password cannot be empty")
+    private String confirmPassword;
+
+    private String fullName;
+
+    @Pattern(regexp = "^(0|\\+84)(\\s|\\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\\d)(\\s|\\.)?(\\d{3})(\\s|\\.)?(\\d{3})$", message = "Số điện thoại không hợp lệ")
+    private String phone;
+
+    @jakarta.validation.constraints.AssertTrue(message = "Passwords do not match")
+    public boolean isPasswordsMatch() {
+        if (password == null || confirmPassword == null) {
+            return false;
+        }
+        return password.equals(confirmPassword);
+    }
+
+
     public RegisterRequest() {
     }
 
-    public RegisterRequest(String email, String password) {
+    public RegisterRequest(String email, String password, String confirmPassword, String fullName, String phone) {
         this.email = email;
         this.password = password;
+        this.confirmPassword = confirmPassword;
+        this.fullName = fullName;
+        this.phone = phone;
     }
 
     public String getEmail() {
@@ -37,6 +57,30 @@ public class RegisterRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getConfirmPassword() {
+        return confirmPassword;
+    }
+
+    public void setConfirmPassword(String confirmPassword) {
+        this.confirmPassword = confirmPassword;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }
 

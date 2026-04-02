@@ -1,83 +1,83 @@
 package com.project.common.security;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.RemovalListener;
-import com.project.auth.entity.UserStatus;
+import com.project.auth.entity.LoginLog;
+import com.project.auth.repository.LoginLogRepository;
 import com.project.auth.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.concurrent.TimeUnit;
+import java.time.LocalDateTime;
 
 @Service
 public class LoginAttemptService {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginAttemptService.class);
     private static final int MAX_ATTEMPT = 5;
-    
-    // Lưu số lần thử, hết hạn sau 12 tiếng nếu không thử tiếp
-    private final Cache<String, Integer> attemptsCache;
-    
-    // Lưu trạng thái Lock (Key=email, Value=true). Tự xoá sau đúng 5 phút
-    private final Cache<String, Boolean> lockCache;
+    private static final int LOCK_DURATION_MINUTES = 15;
 
     private final UserRepository userRepository;
+    private final LoginLogRepository loginLogRepository;
 
-    public LoginAttemptService(UserRepository userRepository) {
+    public LoginAttemptService(UserRepository userRepository, LoginLogRepository loginLogRepository) {
         this.userRepository = userRepository;
+        this.loginLogRepository = loginLogRepository;
+    }
 
-        this.attemptsCache = Caffeine.newBuilder()
-                .expireAfterWrite(12, TimeUnit.HOURS)
-                .build();
+    public void logLoginAudit(String email, String ipAddress, boolean isSuccess, String reason) {
+        LoginLog log = new LoginLog(email, ipAddress, isSuccess ? "SUCCESS" : "FAILED", reason);
+        loginLogRepository.save(log);
+    }
 
-        // Xây dựng Listener bắt sự kiện khi đối tượng bị văng khỏi Cache do hết 5 phút
-        RemovalListener<String, Boolean> unlockListener = (String email, Boolean value, RemovalCause cause) -> {
-            if (cause.wasEvicted() || cause == RemovalCause.EXPIRED) {
-                // Phục hồi lại trạng thái ACTIVE trên Database một cách thầm lặng
-                userRepository.findByEmail(email).ifPresent(u -> {
-                    u.setStatus(UserStatus.ACTIVE);
-                    userRepository.save(u);
-                    logger.info("[AUTO-HEALING] Gỡ khoá tự động rào cản Brute Force cho: {}", email);
-                });
+    @Transactional
+    public void loginSucceeded(String email, String ipAddress) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setFailedAttempts(0);
+            user.setLockTime(null);
+            user.setAccountNonLocked(true);
+            userRepository.save(user);
+        });
+
+        // Ghi Audit
+        logLoginAudit(email, ipAddress, true, "Đăng nhập thành công");
+    }
+
+    @Transactional
+    public void loginFailed(String email, String ipAddress, String reason) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            int attempts = user.getFailedAttempts() + 1;
+            user.setFailedAttempts(attempts);
+
+            if (attempts >= MAX_ATTEMPT) {
+                user.setAccountNonLocked(false);
+                user.setLockTime(LocalDateTime.now());
+                logger.warn("[SECURITY] Tài khoản {} đã bị khóa do đăng nhập sai quá {} lần.", email, MAX_ATTEMPT);
             }
-        };
+            userRepository.save(user);
+        });
 
-        this.lockCache = Caffeine.newBuilder()
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .evictionListener(unlockListener)
-                .build();
+        // Ghi Audit
+        logLoginAudit(email, ipAddress, false, reason);
     }
 
-    // Login thành công
-    public void loginSucceeded(String email) {
-        attemptsCache.invalidate(email);
-        lockCache.invalidate(email);
+    @Transactional
+    public boolean isAccountLocked(String email) {
+        return userRepository.findByEmail(email).map(user -> {
+            if (!user.isAccountNonLocked()) {
+                if (user.getLockTime() != null && user.getLockTime().plusMinutes(LOCK_DURATION_MINUTES).isBefore(LocalDateTime.now())) {
+                    // Auto-healing: Hết hạn khóa, tự động mở
+                    user.setAccountNonLocked(true);
+                    user.setLockTime(null);
+                    user.setFailedAttempts(0);
+                    userRepository.save(user);
+                    logger.info("[AUTO-HEALING] Gỡ khóa chống dò mật khẩu cho tài khoản: {}", email);
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }).orElse(false);
     }
 
-    // Login thất bại
-    public void loginFailed(String email) {
-        int attempts = attemptsCache.get(email, k -> 0);
-        attempts++;
-        attemptsCache.put(email, attempts);
-
-        if (attempts >= MAX_ATTEMPT) {
-            lockCache.put(email, true);
-            attemptsCache.invalidate(email); // Reset đếm để chuẩn bị cho chu trình khóa kế tiếp nếu tiếp tục dò
-            
-            // Auto Update trạng thái INACTIVE tạm thời xuống DB ngăn chặn hoàn toàn
-            userRepository.findByEmail(email).ifPresent(u -> {
-                u.setStatus(UserStatus.INACTIVE);
-                userRepository.save(u);
-                logger.info("[AUTO-HEALING] Kích hoạt rào cản Database (INACTIVE) do có biến cố ngầm tại: {}", email);
-            });
-        }
-    }
-
-    // Check account đã bị khoá ảo trên cache chưa
-    public boolean isBlocked(String email) {
-        return lockCache.getIfPresent(email) != null;
-    }
 }

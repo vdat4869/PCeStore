@@ -1,9 +1,6 @@
 package com.project.auth.controller;
 
-import com.project.auth.dto.AuthResponse;
-import com.project.auth.dto.LoginRequest;
-import com.project.auth.dto.RefreshTokenRequest;
-import com.project.auth.dto.RegisterRequest;
+import com.project.auth.dto.*;
 import com.project.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +8,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+
+import jakarta.servlet.http.HttpServletRequest;
+import com.project.common.util.IpAddressUtil;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -38,8 +38,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        AuthResponse response = authService.login(request);
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String ipAddress = IpAddressUtil.getClientIpAddress(httpRequest);
+        AuthResponse response = authService.login(request, ipAddress);
         return ResponseEntity.ok(response);
     }
 
@@ -57,5 +58,31 @@ public class AuthController {
             return ResponseEntity.ok(translate("success.auth.logout"));
         }
         throw new IllegalArgumentException("error.auth.not_logged_in");
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        return ResponseEntity.ok(translate(authService.verifyEmail(request.getToken())));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@RequestParam String email) {
+        return ResponseEntity.ok(translate(authService.resendVerificationEmail(email)));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        return ResponseEntity.ok(translate(authService.forgotPassword(request.getEmail())));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return ResponseEntity.ok(translate(authService.resetPassword(request.getToken(), request.getNewPassword())));
+    }
+
+    @PostMapping("/google-login")
+    public ResponseEntity<AuthResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request, HttpServletRequest httpRequest) {
+        String ipAddress = IpAddressUtil.getClientIpAddress(httpRequest);
+        return ResponseEntity.ok(authService.googleLogin(request.getIdToken(), ipAddress));
     }
 }
