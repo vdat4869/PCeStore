@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 
 @Service
 public class MailService {
@@ -48,6 +49,7 @@ public class MailService {
         }
     }
 
+    @Async
     public void sendVerificationEmail(String toEmail, String token) {
         String subject = "Xác nhận tài khoản PCeStore";
         String link = frontendUrl + "/verify-email?token=" + token;
@@ -59,6 +61,7 @@ public class MailService {
         sendHtmlMail(toEmail, subject, html);
     }
 
+    @Async
     public void sendPasswordResetEmail(String toEmail, String token) {
         String subject = "Khôi phục mật khẩu PCeStore";
         String link = frontendUrl + "/reset-password?token=" + token;
