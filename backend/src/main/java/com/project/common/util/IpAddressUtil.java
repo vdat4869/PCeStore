@@ -4,6 +4,10 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class IpAddressUtil {
 
+    private IpAddressUtil() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static String getClientIpAddress(HttpServletRequest request) {
         if (request == null) {
             return "UNKNOWN";
@@ -25,7 +29,7 @@ public class IpAddressUtil {
         
         for (String header : headersToCheck) {
             String ip = request.getHeader(header);
-            if (ip != null && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
                 // X-Forwarded-For có thể trả về chuỗi IP dạng: client, proxy1, proxy2. Ta chỉ lấy cái đầu tiên.
                 if (ip.contains(",")) {
                     return ip.split(",")[0].trim();

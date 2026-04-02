@@ -3,7 +3,7 @@ package com.project.auth.dto;
 import jakarta.validation.constraints.NotBlank;
 
 public class VerifyEmailRequest {
-    @NotBlank(message = "Token cannot be empty")
+    @NotBlank(message = "{validation.token.empty}")
     private String token;
 
     public String getToken() {

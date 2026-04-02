@@ -10,6 +10,8 @@ import com.project.auth.repository.EmailVerificationTokenRepository;
 import com.project.auth.repository.PasswordResetTokenRepository;
 import com.project.auth.repository.UserRepository;
 import com.project.common.security.CustomUserDetails;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -23,6 +25,8 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.UUID;
+import java.security.GeneralSecurityException;
+import java.io.IOException;
 
 @Service
 public class AuthService {
@@ -36,6 +40,7 @@ public class AuthService {
     private final EmailVerificationTokenRepository emailTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final MailService mailService;
+    private final MessageSource messageSource;
 
     @Value("${custom.security.google.client-id:}")
     private String googleClientId;
@@ -48,7 +53,8 @@ public class AuthService {
                        com.project.common.security.LoginAttemptService loginAttemptService,
                        EmailVerificationTokenRepository emailTokenRepository,
                        PasswordResetTokenRepository passwordResetTokenRepository,
-                       MailService mailService) {
+                       MailService mailService,
+                       MessageSource messageSource) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -58,6 +64,11 @@ public class AuthService {
         this.emailTokenRepository = emailTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.mailService = mailService;
+        this.messageSource = messageSource;
+    }
+
+    private String translate(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 
     @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
@@ -84,7 +95,7 @@ public class AuthService {
         // Gửi mail
         mailService.sendVerificationEmail(user.getEmail(), token);
 
-        return "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.";
+        return translate("success.auth.register_verify");
     }
 
     public String verifyEmail(String token) {
@@ -101,15 +112,15 @@ public class AuthService {
         userRepository.save(user);
 
         emailTokenRepository.delete(verificationToken);
-        return "Xac thuc email thanh cong.";
+        return translate("success.auth.email_verified");
     }
 
     public String resendVerificationEmail(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
 
         if (user.getStatus() == UserStatus.ACTIVE) {
-            return "Tai khoan da duoc kich hoat.";
+            return translate("success.auth.account_active");
         }
 
         // Xóa token cũ
@@ -120,12 +131,12 @@ public class AuthService {
         emailTokenRepository.save(verificationToken);
 
         mailService.sendVerificationEmail(user.getEmail(), token);
-        return "Da gui lai email xac thuc.";
+        return translate("success.auth.email_resend");
     }
 
     public String forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
 
         passwordResetTokenRepository.deleteByUser(user);
 
@@ -134,16 +145,16 @@ public class AuthService {
         passwordResetTokenRepository.save(resetToken);
 
         mailService.sendPasswordResetEmail(user.getEmail(), token);
-        return "Da gui link dat lai mat khau toi email.";
+        return translate("success.auth.pwd_link_sent");
     }
 
     public String resetPassword(String token, String newPassword) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Token dat lai mat khau khong hop le"));
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.reset_token_invalid"));
 
         if (resetToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             passwordResetTokenRepository.delete(resetToken);
-            throw new IllegalArgumentException("Token dat lai mat khau da het han");
+            throw new IllegalArgumentException("error.auth.token_expired");
         }
 
         User user = resetToken.getUser();
@@ -151,7 +162,7 @@ public class AuthService {
         userRepository.save(user);
 
         passwordResetTokenRepository.delete(resetToken);
-        return "Dat lai mat khau thanh cong.";
+        return translate("success.auth.pwd_reset");
     }
 
     @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
@@ -174,7 +185,7 @@ public class AuthService {
                 .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new org.springframework.security.authentication.DisabledException("Tai khoan chua xac thuc hoac bi khoa.");
+            throw new org.springframework.security.authentication.DisabledException("error.auth.disabled");
         }
 
         CustomUserDetails userDetails = new CustomUserDetails(user);
@@ -192,7 +203,7 @@ public class AuthService {
 
             GoogleIdToken idToken = verifier.verify(idTokenString);
             if (idToken == null) {
-                throw new IllegalArgumentException("Invalid ID token.");
+                throw new IllegalArgumentException("error.auth.google_invalid");
             }
 
             GoogleIdToken.Payload payload = idToken.getPayload();
@@ -214,9 +225,9 @@ public class AuthService {
 
             return new AuthResponse(jwtToken, refreshToken.getToken());
 
-        } catch (Exception e) {
-            loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "Lỗi xác thực Google ID Token");
-            throw new IllegalArgumentException("Google login failed.", e);
+        } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
+            loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "Lỗi xác thực Google ID Token / Database");
+            throw new IllegalArgumentException("error.auth.google_failed", e);
         }
     }
 
@@ -237,9 +248,10 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("error.auth.refresh_invalid"));
     }
 
-    public void logout(String email) {
+    public String logout(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
         refreshTokenService.deleteByUserId(user.getId());
+        return translate("success.auth.logout");
     }
 }

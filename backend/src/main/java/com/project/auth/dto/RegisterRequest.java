@@ -15,15 +15,15 @@ public class RegisterRequest {
              message = "{validation.password.invalid}")
     private String password;
 
-    @NotBlank(message = "Confirm password cannot be empty")
+    @NotBlank(message = "{validation.password.confirm_empty}")
     private String confirmPassword;
 
     private String fullName;
 
-    @Pattern(regexp = "^(0|\\+84)(\\s|\\.)?((3[2-9])|(5[689])|(7[06-9])|(8[1-689])|(9[0-46-9]))(\\d)(\\s|\\.)?(\\d{3})(\\s|\\.)?(\\d{3})$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^(?:0|\\+84)[\\s.]?(?:3[2-9]|5[689]|7[06-9]|8[1-689]|9[0-46-9])\\d[\\s.]?\\d{3}[\\s.]?\\d{3}$", message = "{validation.phone.invalid}")
     private String phone;
 
-    @jakarta.validation.constraints.AssertTrue(message = "Passwords do not match")
+    @jakarta.validation.constraints.AssertTrue(message = "{validation.password.mismatch}")
     public boolean isPasswordsMatch() {
         if (password == null || confirmPassword == null) {
             return false;

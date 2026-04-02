@@ -15,13 +15,13 @@ spring:
 
   # Cấu hình JPA / Hibernate
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update # Tự động tạo hoặc cập nhật cấu trúc database dựa theo Entity
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   # Cấu hình Spring Mail
   mail:
