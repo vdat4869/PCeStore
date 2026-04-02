@@ -37,7 +37,7 @@ import com.project.auth.repository.EmailVerificationTokenRepository;
 import com.project.auth.repository.PasswordResetTokenRepository;
 import com.project.auth.repository.UserRepository;
 import com.project.common.security.CustomUserDetails;
-import com.project.notification.service.MailService;
+import com.project.notification.service.NotificationService;
 
 @Service
 public class AuthService {
@@ -52,7 +52,7 @@ public class AuthService {
     private final com.project.common.security.LoginAttemptService loginAttemptService;
     private final EmailVerificationTokenRepository emailTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final MailService mailService;
+    private final NotificationService notificationService;
     private final MessageSource messageSource;
 
     @Value("${custom.security.google.client-id:}")
@@ -66,7 +66,7 @@ public class AuthService {
                        com.project.common.security.LoginAttemptService loginAttemptService,
                        EmailVerificationTokenRepository emailTokenRepository,
                        PasswordResetTokenRepository passwordResetTokenRepository,
-                       MailService mailService,
+                       NotificationService notificationService,
                        MessageSource messageSource) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -76,7 +76,7 @@ public class AuthService {
         this.loginAttemptService = loginAttemptService;
         this.emailTokenRepository = emailTokenRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.mailService = mailService;
+        this.notificationService = notificationService;
         this.messageSource = messageSource;
     }
 
@@ -105,8 +105,8 @@ public class AuthService {
         EmailVerificationToken verificationToken = new EmailVerificationToken(user, token, LocalDateTime.now().plusHours(24));
         emailTokenRepository.save(verificationToken);
 
-        // Gửi mail
-        mailService.sendVerificationEmail(user.getEmail(), token, LocaleContextHolder.getLocale());
+        // Ghi nhận và Gửi thư
+        notificationService.sendVerification(user, token, LocaleContextHolder.getLocale());
 
         return translate("success.auth.register_verify");
     }
@@ -143,7 +143,7 @@ public class AuthService {
         EmailVerificationToken verificationToken = new EmailVerificationToken(user, token, LocalDateTime.now().plusHours(24));
         emailTokenRepository.save(verificationToken);
 
-        mailService.sendVerificationEmail(user.getEmail(), token, LocaleContextHolder.getLocale());
+        notificationService.sendVerification(user, token, LocaleContextHolder.getLocale());
         return translate("success.auth.email_resend");
     }
 
@@ -157,7 +157,7 @@ public class AuthService {
         PasswordResetToken resetToken = new PasswordResetToken(user, token, LocalDateTime.now().plusMinutes(15));
         passwordResetTokenRepository.save(resetToken);
 
-        mailService.sendPasswordResetEmail(user.getEmail(), token, LocaleContextHolder.getLocale());
+        notificationService.sendPasswordReset(user, token, LocaleContextHolder.getLocale());
         return translate("success.auth.pwd_link_sent");
     }
 
