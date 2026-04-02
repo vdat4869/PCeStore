@@ -48,8 +48,7 @@ public class MailService {
             emailTemplates.put("reset-password-vi", StreamUtils.copyToString(new ClassPathResource("templates/email/reset-password-vi.html").getInputStream(), StandardCharsets.UTF_8));
             emailTemplates.put("reset-password-en", StreamUtils.copyToString(new ClassPathResource("templates/email/reset-password-en.html").getInputStream(), StandardCharsets.UTF_8));
             logger.info("Email templates loaded successfully into RAM cache.");
-        } catch (Exception e) {
-            logger.error("Lỗi không thể tải giao diện Email HTML: ", e);
+        } catch (java.io.IOException e) {
             throw new IllegalStateException("Mất file HTML Email! Dừng hệ thống.", e);
         }
     }

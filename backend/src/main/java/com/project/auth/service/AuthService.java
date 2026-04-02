@@ -41,6 +41,8 @@ import com.project.common.security.CustomUserDetails;
 @Service
 public class AuthService {
 
+    private static final String ERROR_USER_NOT_FOUND = "error.auth.user_not_found";
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -127,7 +129,7 @@ public class AuthService {
 
     public String resendVerificationEmail(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
 
         if (user.getStatus() == UserStatus.ACTIVE) {
             return translate("success.auth.account_active");
@@ -146,7 +148,7 @@ public class AuthService {
 
     public String forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
 
         passwordResetTokenRepository.deleteByUser(user);
 
@@ -192,7 +194,7 @@ public class AuthService {
         loginAttemptService.loginSucceeded(email, ipAddress);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new org.springframework.security.authentication.DisabledException("error.auth.disabled");
@@ -260,7 +262,7 @@ public class AuthService {
 
     public String logout(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
         refreshTokenService.deleteByUserId(user.getId());
         return translate("success.auth.logout");
     }
