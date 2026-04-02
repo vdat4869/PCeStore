@@ -1,10 +1,18 @@
 package com.project.auth.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StreamUtils;
+import jakarta.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,59 +26,60 @@ public class MailService {
     @Value("${custom.mail.from:noreply@pcestore.com}")
     private String fromEmail;
 
+    @Value("${custom.frontend.url:http://localhost:3000}")
+    private String frontendUrl;
+
+    private final Map<String, String> emailTemplates = new HashMap<>();
+
     public MailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    public void sendVerificationEmail(String toEmail, String token) {
-        // Trong môi trường thưc tế, token có thể ghép vào link http://localhost:8080/api/auth/verify?token=...
-        // Hoặc gửi link cho frontend xử lý. Ở đây giả định FE có trang verify.
-        String subject = "Xác nhận tài khoản PCeStore";
-        String message = """
-                Xin chào,
-                
-                Vui lòng sử dụng mã xác nhận sau để kích hoạt tài khoản của bạn:
-                
-                %s
-                
-                Mã này sẽ hết hạn sau 24 giờ.
-                
-                Cảm ơn,
-                PCeStore Team""".formatted(token);
+    @PostConstruct
+    public void initTemplates() {
+        try {
+            String verifyHtml = StreamUtils.copyToString(new ClassPathResource("templates/email/verify-email.html").getInputStream(), StandardCharsets.UTF_8);
+            String resetHtml = StreamUtils.copyToString(new ClassPathResource("templates/email/reset-password.html").getInputStream(), StandardCharsets.UTF_8);
+            emailTemplates.put("verify-email", verifyHtml);
+            emailTemplates.put("reset-password", resetHtml);
+            logger.info("Email templates loaded successfully into RAM cache.");
+        } catch (Exception e) {
+            logger.error("Lỗi không thể tải giao diện Email HTML: ", e);
+        }
+    }
 
-        sendSimpleMail(toEmail, subject, message);
+    public void sendVerificationEmail(String toEmail, String token) {
+        String subject = "Xác nhận tài khoản PCeStore";
+        String link = frontendUrl + "/verify-email?token=" + token;
+        
+        String html = emailTemplates.getOrDefault("verify-email", "")
+                .replace("{{link}}", link)
+                .replace("{{token}}", token);
+
+        sendHtmlMail(toEmail, subject, html);
     }
 
     public void sendPasswordResetEmail(String toEmail, String token) {
         String subject = "Khôi phục mật khẩu PCeStore";
-        String message = """
-                Xin chào,
-                
-                Bạn đã yêu cầu đặt lại mật khẩu. Vui lòng sử dụng mã sau (hoặc link) để đặt lại:
-                
-                %s
-                
-                Mã này sẽ hết hạn sau 15 phút.
-                
-                Nếu bạn không yêu cầu, vui lòng bỏ qua email này.
-                
-                Cảm ơn,
-                PCeStore Team""".formatted(token);
+        String link = frontendUrl + "/reset-password?token=" + token;
+        
+        String html = emailTemplates.getOrDefault("reset-password", "")
+                .replace("{{link}}", link);
 
-        sendSimpleMail(toEmail, subject, message);
+        sendHtmlMail(toEmail, subject, html);
     }
 
-    private void sendSimpleMail(String to, String subject, String text) {
+    private void sendHtmlMail(String to, String subject, String htmlContent) {
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
             mailSender.send(message);
-        } catch (MailException e) {
-            // Trong thực tế cần retry hoặc logging chi tiết
-            logger.error("Gửi email thất bại: {}", e.getMessage(), e);
+        } catch (MailException | MessagingException e) {
+            logger.error("Gửi email HTML thất bại: {}", e.getMessage(), e);
         }
     }
 }
