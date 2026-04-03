@@ -76,15 +76,25 @@ public class ProductServiceImpl implements ProductService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
 
+        // Khởi tạo đối tượng Product (không còn trường stock trực tiếp)
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .price(request.getPrice())
-                .stock(request.getStock() != null ? request.getStock() : 0)
                 .category(category)
                 .brand(request.getBrand())
                 .imageUrl(request.getImageUrl())
                 .build();
+
+        // Tạo bản ghi Inventory tương ứng và liên kết với Product
+        com.project.inventory.entity.Inventory inventory = com.project.inventory.entity.Inventory.builder()
+                .product(product)
+                .quantity(request.getStock() != null ? request.getStock() : 0)
+                .reserved(0)
+                .build();
+        
+        // Thiết lập liên kết xuôi-ngược để Cascade hoạt động
+        product.setInventory(inventory);
 
         Product savedProduct = productRepository.save(product);
         return mapToResponse(savedProduct);
@@ -105,10 +115,15 @@ public class ProductServiceImpl implements ProductService {
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
-        product.setStock(request.getStock() != null ? request.getStock() : product.getStock());
         product.setCategory(category);
         product.setBrand(request.getBrand());
         product.setImageUrl(request.getImageUrl());
+
+        // Lưu ý: Việc cập nhật số lượng tồn kho (stock) nên được thực hiện qua InventoryService
+        // để đảm bảo tính nhất quán và cơ chế Locking. Ở đây ta chỉ cập nhật thông tin cơ bản.
+        if (request.getStock() != null && product.getInventory() != null) {
+            product.getInventory().setQuantity(request.getStock());
+        }
 
         Product updatedProduct = productRepository.save(product);
         return mapToResponse(updatedProduct);
@@ -130,12 +145,15 @@ public class ProductServiceImpl implements ProductService {
      * Hàm tiện ích (Utility): Chuyển đổi đối tượng Product (Entity) sang ProductResponse (DTO trả về)
      */
     private ProductResponse mapToResponse(Product product) {
+        // Lấy số lượng từ Inventory liên kết (nếu có)
+        Integer currentStock = (product.getInventory() != null) ? product.getInventory().getQuantity() : 0;
+
         return ProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .description(product.getDescription())
                 .price(product.getPrice())
-                .stock(product.getStock())
+                .stock(currentStock)
                 .categoryId(product.getCategory().getId())
                 .categoryName(product.getCategory().getName())
                 .brand(product.getBrand())
