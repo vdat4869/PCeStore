@@ -38,22 +38,22 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            if (product.getStockQuantity() < itemDto.getQuantity()) {
+            if (product.getInventory() == null || product.getInventory().getQuantity() < itemDto.getQuantity()) {
                 throw new RuntimeException("Not enough stock for product: " + product.getName());
             }
 
             // Deduct stock
-            product.setStockQuantity(product.getStockQuantity() - itemDto.getQuantity());
+            product.getInventory().setQuantity(product.getInventory().getQuantity() - itemDto.getQuantity());
             productRepository.save(product);
 
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
                     .quantity(itemDto.getQuantity())
-                    .price(product.getPrice())
+                    .price(BigDecimal.valueOf(product.getPrice()))
                     .build();
 
             order.addOrderItem(orderItem);
-            total = total.add(product.getPrice().multiply(new BigDecimal(itemDto.getQuantity())));
+            total = total.add(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(itemDto.getQuantity())));
         }
 
         order.setTotalAmount(total);
@@ -90,7 +90,9 @@ public class OrderServiceImpl implements OrderService {
         // Restore stock
         for(OrderItem item : order.getOrderItems()) {
             Product product = item.getProduct();
-            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            if (product.getInventory() != null) {
+                product.getInventory().setQuantity(product.getInventory().getQuantity() + item.getQuantity());
+            }
             productRepository.save(product);
         }
         
