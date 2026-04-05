@@ -57,6 +57,24 @@ public class NotificationService {
     }
 
     @Transactional
+    public void sendOrderConfirmation(User user, String orderId, String totalAmount, Locale locale) {
+        String content = messageSource.getMessage("notification.order_confirm.content", new Object[]{orderId}, locale);
+        Notification notif = new Notification(user, NotificationType.ORDER_CONFIRMATION, content);
+        notif = notificationRepository.save(notif);
+        String username = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        emailService.sendOrderConfirmationEmail(user.getEmail(), username, orderId, totalAmount, locale, notif.getId());
+    }
+
+    @Transactional
+    public void sendOrderStatusUpdate(User user, String orderId, String status, Locale locale) {
+        String content = messageSource.getMessage("notification.order_status.content", new Object[]{orderId, status}, locale);
+        Notification notif = new Notification(user, NotificationType.ORDER_STATUS_UPDATE, content);
+        notif = notificationRepository.save(notif);
+        String username = user.getFullName() != null ? user.getFullName() : user.getEmail();
+        emailService.sendOrderStatusUpdateEmail(user.getEmail(), username, orderId, status, locale, notif.getId());
+    }
+
+    @Transactional
     public void markAsSent(Long notifId) {
         notificationRepository.findById(notifId).ifPresent(n -> {
             n.setStatus(NotificationStatus.SENT);
@@ -79,6 +97,25 @@ public class NotificationService {
     @Scheduled(cron = "0 0 2 * * ?") // Mỗi ngày 02:00 AM quyét những thư lag hỏng
     public void sweepFailedNotifications() {
         List<Notification> failedNotifs = notificationRepository.findByStatus(NotificationStatus.FAILED);
-        logger.warn("[AUTO-HEALING] Phát hiện {} thư thất bại trong DB.", failedNotifs.size());
+        if (failedNotifs.isEmpty()) {
+            return;
+        }
+        logger.warn("[AUTO-HEALING] Phát hiện {} thư thất bại trong DB. Bắt đầu khôi phục...", failedNotifs.size());
+        
+        for (Notification n : failedNotifs) {
+            try {
+                String fallbackHtml = "<div style=\"font-family: Arial, sans-serif; padding: 20px;\"><h3 style=\"color: #e53935;\">Thông báo quan trọng / Important Notice</h3><p>" 
+                        + n.getContent() 
+                        + "</p><hr/><p style=\"font-size: 12px; color: #999;\">PCeStore Automated Fallback System</p></div>";
+                emailService.sendRawEmailSync(n.getUser().getEmail(), "PCeStore Notification Fallback", fallbackHtml);
+                
+                n.setStatus(NotificationStatus.SENT);
+                n.setSentAt(LocalDateTime.now());
+                notificationRepository.save(n);
+                logger.info("[AUTO-HEALING] Đã phục hồi và gửi thành công thư ID: {}", n.getId());
+            } catch (Exception e) {
+                logger.error("[AUTO-HEALING] Không thể khôi phục thư ID: {} - Lỗi: {}", n.getId(), e.getMessage());
+            }
+        }
     }
 }
