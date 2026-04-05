@@ -45,6 +45,9 @@ public class Order extends BaseEntity {
     @Builder.Default
     private List<OrderItem> orderItems = new ArrayList<>();
 
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private com.project.shipping.entity.Shipping shipping;
+
     public void addOrderItem(OrderItem orderItem) {
         orderItems.add(orderItem);
         orderItem.setOrder(this);

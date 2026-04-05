@@ -8,6 +8,8 @@ import com.project.order.entity.OrderStatus;
 import com.project.order.repository.OrderRepository;
 import com.project.product.entity.Product;
 import com.project.product.repository.ProductRepository;
+import com.project.shipping.service.ShippingService;
+import com.project.shipping.entity.Shipping;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final ShippingService shippingService;
+    private final com.project.payment.repository.PaymentRepository paymentRepository;
 
     @Override
     @Transactional
@@ -56,6 +60,11 @@ public class OrderServiceImpl implements OrderService {
             total = total.add(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(itemDto.getQuantity())));
         }
 
+        // Create Shipping details
+        Shipping shipping = shippingService.createShippingForOrder(order, requestDTO.getShippingAddress());
+        order.setShipping(shipping);
+        total = total.add(shipping.getShippingCost());
+
         order.setTotalAmount(total);
         return orderRepository.save(order);
     }
@@ -76,6 +85,9 @@ public class OrderServiceImpl implements OrderService {
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
         Order order = getOrderById(orderId);
         order.setStatus(status);
+        if (status == OrderStatus.PAID && order.getShipping() != null) {
+            order.getShipping().setStatus(com.project.shipping.entity.ShippingStatus.IN_TRANSIT);
+        }
         return orderRepository.save(order);
     }
 
@@ -123,5 +135,15 @@ public class OrderServiceImpl implements OrderService {
         order.getOrderItems().forEach(item -> item.setDeleted(false));
         
         orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllOrders(Long userId) {
+        List<Order> orders = orderRepository.findByUserId(userId);
+        for (Order o : orders) {
+            paymentRepository.findByOrderId(o.getId()).ifPresent(p -> paymentRepository.delete(p));
+        }
+        orderRepository.deleteAll(orders);
     }
 }

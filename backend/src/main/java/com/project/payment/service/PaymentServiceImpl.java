@@ -3,7 +3,7 @@ package com.project.payment.service;
 import com.project.payment.entity.Payment;
 import com.project.payment.entity.PaymentStatus;
 import com.project.payment.repository.PaymentRepository;
-import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,16 +12,27 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import org.springframework.beans.factory.annotation.Value;
 import com.project.payment.dto.SePayIpnRequest;
 import com.project.payment.utils.SecurityUtils;
+import com.project.order.service.OrderService;
+import com.project.order.entity.OrderStatus;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
-@RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+    private final OrderService orderService;
+
+    @Autowired
+    public PaymentServiceImpl(PaymentRepository paymentRepository, @Lazy OrderService orderService) {
+        this.paymentRepository = paymentRepository;
+        this.orderService = orderService;
+    }
 
     @Value("${sepay.merchant-id}")
     private String merchantId;
@@ -52,6 +63,8 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setTransactionId(UUID.randomUUID().toString());
         payment.setPaymentDate(LocalDateTime.now());
         
+        orderService.updateOrderStatus(payment.getOrderId(), OrderStatus.PAID);
+        
         return paymentRepository.save(payment);
     }
 
@@ -81,7 +94,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
-        Map<String, String> fields = new HashMap<>();
+        Map<String, String> fields = new LinkedHashMap<>();
         fields.put("merchant", merchantId);
         fields.put("operation", "PURCHASE");
         fields.put("payment_method", "BANK_TRANSFER");
@@ -90,10 +103,10 @@ public class PaymentServiceImpl implements PaymentService {
         fields.put("order_invoice_number", "INV-" + payment.getOrderId());
         fields.put("order_description", "Thanh toan don hang D" + payment.getOrderId());
         
-        // Cấu hình các URL call back (Giả định host là localhost:8080 cho môi trường local)
-        fields.put("success_url", "http://localhost:8080/api/v1/payments/callback?status=success");
-        fields.put("error_url", "http://localhost:8080/api/v1/payments/callback?status=error");
-        fields.put("cancel_url", "http://localhost:8080/api/v1/payments/callback?status=cancel");
+        // Cấu hình các URL về thẳng Frontend React (localhost:5173) để render UI xịn xò
+        fields.put("success_url", "http://localhost:5173/?status=success");
+        fields.put("error_url", "http://localhost:5173/?status=error");
+        fields.put("cancel_url", "http://localhost:5173/?status=cancel");
 
         String signature = SecurityUtils.generateSePaySignature(fields, secretKey);
         fields.put("signature", signature);
@@ -117,6 +130,8 @@ public class PaymentServiceImpl implements PaymentService {
                     }
                     payment.setPaymentDate(LocalDateTime.now());
                     paymentRepository.save(payment);
+                    
+                    orderService.updateOrderStatus(orderId, OrderStatus.PAID);
                 });
             }
         }
