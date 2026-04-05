@@ -71,10 +71,7 @@ export default function Login() {
             </div>
 
             <div className="mb-4">
-              <div className="d-flex justify-content-between">
-                <label className="form-label text-secondary small fw-medium" htmlFor="password">Mật khẩu</label>
-                <a href="#" className="text-decoration-none small" style={{ color: '#0d6efd' }}>Quên mật khẩu?</a>
-              </div>
+              <label className="form-label text-secondary small fw-medium" htmlFor="password">Mật khẩu</label>
               <div className="input-group">
                 <span className="input-group-text bg-light border-end-0">
                   <i className="bi bi-lock text-muted"></i>
@@ -101,9 +98,10 @@ export default function Login() {
             </button>
 
             <div className="text-center mt-4 pt-2 border-top">
-              <p className="small text-muted mb-0">
-                Chưa có tài khoản? <Link to="/signup" className="text-decoration-none fw-semibold">Đăng ký ngay</Link>
+              <p className="small text-muted mb-2">
+                Chưa có tài khoản? <Link to="/register" className="text-decoration-none fw-semibold text-danger">Đăng ký ngay</Link>
               </p>
+              <Link to="/forgot-password" className="text-decoration-underline small text-muted">Quên mật khẩu?</Link>
             </div>
           </form>
         </div>
