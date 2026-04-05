@@ -3,8 +3,9 @@ package com.project.inventory.entity;
 import com.project.common.entity.BaseEntity;
 import com.project.product.entity.Product;
 import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
+
+import java.util.Objects;
 
 /**
  * Thực thể quản lý kho của một sản phẩm.
@@ -15,11 +16,6 @@ import org.hibernate.annotations.SQLRestriction;
     @Index(name = "idx_inventory_product", columnList = "product_id")
 })
 @SQLRestriction("is_deleted = false")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode(callSuper = true)
 public class Inventory extends BaseEntity {
 
     @Id
@@ -39,4 +35,94 @@ public class Inventory extends BaseEntity {
     // Available = quantity - reserved.
     @Column(nullable = false, columnDefinition = "integer default 0")
     private Integer reserved;
+
+    public Inventory() {
+    }
+
+    public Inventory(Long id, Product product, Integer quantity, Integer reserved) {
+        this.id = id;
+        this.product = product;
+        this.quantity = quantity;
+        this.reserved = reserved;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public Integer getReserved() {
+        return reserved;
+    }
+
+    public void setReserved(Integer reserved) {
+        this.reserved = reserved;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Inventory inventory = (Inventory) o;
+        return Objects.equals(id, inventory.id) && Objects.equals(product, inventory.product) && Objects.equals(quantity, inventory.quantity) && Objects.equals(reserved, inventory.reserved);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, product, quantity, reserved);
+    }
+
+    public static InventoryBuilder builder() {
+        return new InventoryBuilder();
+    }
+
+    public static class InventoryBuilder {
+        private Long id;
+        private Product product;
+        private Integer quantity;
+        private Integer reserved;
+
+        public InventoryBuilder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public InventoryBuilder product(Product product) {
+            this.product = product;
+            return this;
+        }
+
+        public InventoryBuilder quantity(Integer quantity) {
+            this.quantity = quantity;
+            return this;
+        }
+
+        public InventoryBuilder reserved(Integer reserved) {
+            this.reserved = reserved;
+            return this;
+        }
+
+        public Inventory build() {
+            return new Inventory(id, product, quantity, reserved);
+        }
+    }
 }
