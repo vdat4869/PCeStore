@@ -66,6 +66,22 @@ public class EmailService {
                     StreamUtils.copyToString(
                             new ClassPathResource("templates/email/reset-password-en.html").getInputStream(),
                             StandardCharsets.UTF_8));
+            emailTemplates.put("order-confirm-vi",
+                    StreamUtils.copyToString(
+                            new ClassPathResource("templates/email/order-confirm-vi.html").getInputStream(),
+                            StandardCharsets.UTF_8));
+            emailTemplates.put("order-confirm-en",
+                    StreamUtils.copyToString(
+                            new ClassPathResource("templates/email/order-confirm-en.html").getInputStream(),
+                            StandardCharsets.UTF_8));
+            emailTemplates.put("order-status-vi",
+                    StreamUtils.copyToString(
+                            new ClassPathResource("templates/email/order-status-vi.html").getInputStream(),
+                            StandardCharsets.UTF_8));
+            emailTemplates.put("order-status-en",
+                    StreamUtils.copyToString(
+                            new ClassPathResource("templates/email/order-status-en.html").getInputStream(),
+                            StandardCharsets.UTF_8));
             logger.info("Email templates loaded successfully into RAM cache.");
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Mất file HTML Email! Dừng hệ thống.", e);
@@ -123,6 +139,66 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_pwd_reset", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
+    }
+
+    @Async
+    @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    public void sendOrderConfirmationEmail(String toEmail, String username, String orderId, String totalAmount, Locale locale, Long notifId) {
+        try {
+            String subject = messageSource.getMessage("email.subject.order_confirm", new Object[]{orderId}, locale);
+            String key = "order-confirm-" + locale.getLanguage();
+            String html = emailTemplates.getOrDefault(key, emailTemplates.get("order-confirm-en"))
+                    .replace("{{username}}", username)
+                    .replace("{{orderId}}", orderId)
+                    .replace("{{totalAmount}}", totalAmount);
+
+            sendHtmlMail(toEmail, subject, html);
+            notificationService.markAsSent(notifId);
+        } catch (MailException | MessagingException | org.springframework.context.NoSuchMessageException e) {
+            String msg = messageSource.getMessage("notification.error.send_order_confirm", new Object[]{orderId, notifId}, locale);
+            throw new NotificationException(msg, e);
+        }
+    }
+
+    @Recover
+    public void recoverOrderConfirmationEmail(NotificationException e, String toEmail, String username, String orderId, String totalAmount, Locale locale, Long notifId) {
+        String logMsg = messageSource.getMessage("notification.error.exhausted_order_confirm", new Object[]{notifId}, locale);
+        logger.error(logMsg);
+        notificationService.markAsFailed(notifId);
+    }
+
+    @Async
+    @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    public void sendOrderStatusUpdateEmail(String toEmail, String username, String orderId, String orderStatus, Locale locale, Long notifId) {
+        try {
+            String subject = messageSource.getMessage("email.subject.order_status", new Object[]{orderId}, locale);
+            String key = "order-status-" + locale.getLanguage();
+            String html = emailTemplates.getOrDefault(key, emailTemplates.get("order-status-en"))
+                    .replace("{{username}}", username)
+                    .replace("{{orderId}}", orderId)
+                    .replace("{{orderStatus}}", orderStatus);
+
+            sendHtmlMail(toEmail, subject, html);
+            notificationService.markAsSent(notifId);
+        } catch (MailException | MessagingException | org.springframework.context.NoSuchMessageException e) {
+            String msg = messageSource.getMessage("notification.error.send_order_status", new Object[]{orderId, notifId}, locale);
+            throw new NotificationException(msg, e);
+        }
+    }
+
+    @Recover
+    public void recoverOrderStatusUpdateEmail(NotificationException e, String toEmail, String username, String orderId, String orderStatus, Locale locale, Long notifId) {
+        String logMsg = messageSource.getMessage("notification.error.exhausted_order_status", new Object[]{notifId}, locale);
+        logger.error(logMsg);
+        notificationService.markAsFailed(notifId);
+    }
+
+    public void sendRawEmailSync(String toEmail, String subject, String htmlContent) {
+        try {
+            sendHtmlMail(toEmail, subject, htmlContent);
+        } catch (MessagingException e) {
+            logger.error("Failed to send sync email to {}: {}", toEmail, e.getMessage());
+        }
     }
 
     private void sendHtmlMail(String to, String subject, String htmlContent) throws MessagingException {

@@ -5,7 +5,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", indexes = {
+    @Index(name = "idx_notification_user", columnList = "user_id"),
+    @Index(name = "idx_notification_status", columnList = "status"),
+    @Index(name = "idx_notification_created", columnList = "created_at")
+})
 public class Notification {
 
     @Id
@@ -27,7 +31,7 @@ public class Notification {
     @Column(nullable = false)
     private NotificationStatus status = NotificationStatus.PENDING;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private final LocalDateTime createdAt = LocalDateTime.now();
 
     private LocalDateTime sentAt;
