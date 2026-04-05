@@ -3,15 +3,11 @@ package com.project.user.entity;
 import com.project.auth.entity.User;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "addresses")
 @SQLRestriction("is_deleted = false")
-@Getter
-@Setter
 public class Address extends BaseEntity {
 
     @Id
@@ -44,5 +40,55 @@ public class Address extends BaseEntity {
         this.city = city;
         this.district = district;
         this.isDefault = isDefault;
+    }
+
+    // --- Getters and Setters ---
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public void setDistrict(String district) {
+        this.district = district;
+    }
+
+    public Boolean getIsDefault() {
+        return isDefault;
+    }
+
+    public void setIsDefault(Boolean aDefault) {
+        isDefault = aDefault;
     }
 }

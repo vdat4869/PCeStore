@@ -3,8 +3,6 @@ package com.project.notification.entity;
 import com.project.auth.entity.User;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
@@ -15,8 +13,6 @@ import java.time.LocalDateTime;
     @Index(name = "idx_notification_created", columnList = "created_at")
 })
 @SQLRestriction("is_deleted = false")
-@Getter
-@Setter
 public class Notification extends BaseEntity {
 
     @Id
@@ -46,5 +42,55 @@ public class Notification extends BaseEntity {
         this.user = user;
         this.type = type;
         this.content = content;
+    }
+
+    // --- Getters and Setters ---
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public NotificationType getType() {
+        return type;
+    }
+
+    public void setType(NotificationType type) {
+        this.type = type;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public NotificationStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(NotificationStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getSentAt() {
+        return sentAt;
+    }
+
+    public void setSentAt(LocalDateTime sentAt) {
+        this.sentAt = sentAt;
     }
 }
