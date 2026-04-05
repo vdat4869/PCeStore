@@ -11,7 +11,9 @@ import org.hibernate.annotations.SQLRestriction;
  * Tách biệt khỏi bảng Product để tối ưu việc cập nhật số lượng và khóa dòng (locking).
  */
 @Entity
-@Table(name = "inventories")
+@Table(name = "inventories", indexes = {
+    @Index(name = "idx_inventory_product", columnList = "product_id")
+})
 @SQLRestriction("is_deleted = false")
 @Data
 @NoArgsConstructor
@@ -38,4 +40,3 @@ public class Inventory extends BaseEntity {
     @Column(nullable = false, columnDefinition = "integer default 0")
     private Integer reserved;
 }
-
