@@ -50,7 +50,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    @Retryable(value = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public InventoryResponse updateStock(InventoryRequest request) {
         log.info("ADMIN cập nhật tồn kho [ProductID: {}, Qty: {}]", request.getProductId(), request.getQuantity());
         Product product = productRepository.findById(request.getProductId())
@@ -69,7 +69,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    @Retryable(value = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 500))
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 500))
     public InventoryResponse decreaseStock(InventoryRequest request) {
         log.info("Trừ kho trực tiếp [ProductID: {}, Qty: {}]", request.getProductId(), request.getQuantity());
         Inventory inventory = getInventoryWithLock(request.getProductId());
@@ -98,7 +98,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    @Retryable(value = Exception.class, maxAttempts = 3)
+    @Retryable(retryFor = Exception.class, maxAttempts = 3)
     public InventoryResponse reserveStock(InventoryRequest request) {
         log.info("Giữ hàng tạm thời [ProductID: {}, Qty: {}]", request.getProductId(), request.getQuantity());
         Inventory inventory = getInventoryWithLock(request.getProductId());

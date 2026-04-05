@@ -1,11 +1,14 @@
 package com.project.auth.entity;
 
+import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users") // Tránh dùng 'user' vì là từ khoá trong PostgreSQL
-public class User {
+@Table(name = "users")
+@SQLRestriction("is_deleted = false")
+public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -44,9 +47,6 @@ public class User {
     @Column(name = "account_non_locked", nullable = false, columnDefinition = "boolean default true")
     private boolean accountNonLocked = true;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     // Default constructor (bắt buộc bởi JPA)
     public User() {
     }
@@ -58,12 +58,11 @@ public class User {
         this.role = role;
         this.status = status;
         this.authProvider = AuthProvider.LOCAL;
-        this.createdAt = LocalDateTime.now(); // Ghi nhận thời điểm tạo
         this.failedAttempts = 0;
         this.accountNonLocked = true;
     }
 
-    // --- GETTER VÀ SETTER THỦ CÔNG --- //
+    // --- Getters and Setters ---
 
     public Long getId() {
         return id;
@@ -103,14 +102,6 @@ public class User {
 
     public void setStatus(UserStatus status) {
         this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public String getFullName() {

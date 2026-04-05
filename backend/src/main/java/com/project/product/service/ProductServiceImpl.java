@@ -133,15 +133,42 @@ public class ProductServiceImpl implements ProductService {
     }
 
     /**
-     * Xóa một sản phẩm khỏi cơ sở dữ liệu
+     * Xóa một sản phẩm (Soft Delete)
      */
     @Override
     @Transactional
     public void deleteProduct(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new RuntimeException("Product not found with id: " + id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        // Đánh dấu xóa mềm cho sản phẩm
+        product.setDeleted(true);
+        
+        // Luôn đánh dấu xóa mềm cho kho hàng đi kèm
+        if (product.getInventory() != null) {
+            product.getInventory().setDeleted(true);
         }
-        productRepository.deleteById(id);
+        
+        productRepository.save(product);
+    }
+
+    /**
+     * Khôi phục sản phẩm đã xóa mềm (Restore)
+     */
+    @Override
+    @Transactional
+    public void restoreProduct(Long id) {
+        Product product = productRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> new RuntimeException("Product not found (including deleted) with id: " + id));
+
+        product.setDeleted(false);
+        
+        // Khôi phục luôn kho hàng
+        if (product.getInventory() != null) {
+            product.getInventory().setDeleted(false);
+        }
+
+        productRepository.save(product);
     }
 
     /**

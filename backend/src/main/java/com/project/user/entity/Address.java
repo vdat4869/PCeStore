@@ -1,11 +1,14 @@
 package com.project.user.entity;
 
 import com.project.auth.entity.User;
+import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "addresses")
-public class Address {
+@SQLRestriction("is_deleted = false")
+public class Address extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,6 +41,8 @@ public class Address {
         this.district = district;
         this.isDefault = isDefault;
     }
+
+    // --- Getters and Setters ---
 
     public Long getId() {
         return id;

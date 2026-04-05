@@ -54,6 +54,7 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final NotificationService notificationService;
     private final MessageSource messageSource;
+    private final JwtBlacklistService blacklistService;
 
     @Value("${custom.security.google.client-id:}")
     private String googleClientId;
@@ -67,7 +68,8 @@ public class AuthService {
                        EmailVerificationTokenRepository emailTokenRepository,
                        PasswordResetTokenRepository passwordResetTokenRepository,
                        NotificationService notificationService,
-                       MessageSource messageSource) {
+                       MessageSource messageSource,
+                       JwtBlacklistService blacklistService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -78,6 +80,7 @@ public class AuthService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.notificationService = notificationService;
         this.messageSource = messageSource;
+        this.blacklistService = blacklistService;
     }
 
     private String translate(String key) {
@@ -261,10 +264,30 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("error.auth.refresh_invalid"));
     }
 
-    public String logout(String email) {
+    public String logout(String email, String jwt) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
+        
+        // Vô hiệu hóa token hiện tại
+        if (jwt != null && jwt.startsWith("Bearer ")) {
+            blacklistService.blacklistToken(jwt.substring(7));
+        }
+
+        // Xóa Refresh Token tương ứng (trong bản này ta xóa theo User ID để đơn giản)
         refreshTokenService.deleteByUserId(user.getId());
         return translate("success.auth.logout");
+    }
+
+    public String logoutAllDevices(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
+        
+        // Xóa toàn bộ Refresh Token của User
+        refreshTokenService.deleteByUserId(user.getId());
+        
+        // Ghi chú: JWT hiện tại vẫn còn hiệu lực cho đến khi hết hạn tự nhiên 
+        // trừ khi ta có cơ chế blacklist toàn bộ token của User (phức tạp hơn).
+        
+        return translate("success.auth.logout_all");
     }
 }

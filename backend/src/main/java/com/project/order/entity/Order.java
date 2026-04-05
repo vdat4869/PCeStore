@@ -1,7 +1,9 @@
 package com.project.order.entity;
 
+import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,12 +12,14 @@ import java.util.List;
 
 @Entity
 @Table(name = "orders")
+@SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Order {
+@EqualsAndHashCode(callSuper = true)
+public class Order extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

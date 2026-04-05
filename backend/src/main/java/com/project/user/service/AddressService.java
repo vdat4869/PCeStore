@@ -142,17 +142,44 @@ public class AddressService {
         return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), true);
     }
 
-    // Xoá địa chỉ
+    // Xoá địa chỉ (Soft Delete)
     @Transactional
     public void deleteAddress(User user, Long addressId) {
         Address address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new IllegalArgumentException(ADDRESS_NOT_FOUND_MSG));
 
         // Xác minh xem địa chỉ này có thuộc về user đang tạo req ko
-        if (!address.getUser().getId().equals(user.getId())) {
+        if (!user.getRole().equals(com.project.auth.entity.UserRole.ADMIN) && 
+            !address.getUser().getId().equals(user.getId())) {
             throw new org.springframework.security.access.AccessDeniedException("error.address.denied_delete");
         }
 
-        addressRepository.delete(address);
+        // Đánh dấu xóa mềm
+        address.setDeleted(true);
+        addressRepository.save(address);
+    }
+
+    // Khôi phục địa chỉ (Restore) - Chỉ dành cho Admin hoặc chủ sở hữu
+    @Transactional
+    public AddressResponse restoreAddress(User user, Long addressId) {
+        Address address = addressRepository.findByIdIncludingDeleted(addressId)
+                .orElseThrow(() -> new IllegalArgumentException(ADDRESS_NOT_FOUND_MSG));
+
+        // Kiểm tra quyền: Admin hoặc đúng chủ sở hữu
+        if (!user.getRole().equals(com.project.auth.entity.UserRole.ADMIN) && 
+            !address.getUser().getId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("error.address.denied_restore");
+        }
+
+        address.setDeleted(false);
+        addressRepository.save(address);
+
+        return new AddressResponse(
+                address.getId(),
+                address.getStreet(),
+                address.getCity(),
+                address.getDistrict(),
+                address.getIsDefault()
+        );
     }
 }

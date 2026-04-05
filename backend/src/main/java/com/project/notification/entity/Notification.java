@@ -1,7 +1,9 @@
 package com.project.notification.entity;
 
 import com.project.auth.entity.User;
+import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
@@ -10,7 +12,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_notification_status", columnList = "status"),
     @Index(name = "idx_notification_created", columnList = "created_at")
 })
-public class Notification {
+@SQLRestriction("is_deleted = false")
+public class Notification extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,9 +34,6 @@ public class Notification {
     @Column(nullable = false)
     private NotificationStatus status = NotificationStatus.PENDING;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private final LocalDateTime createdAt = LocalDateTime.now();
-
     private LocalDateTime sentAt;
 
     public Notification() {}
@@ -44,22 +44,53 @@ public class Notification {
         this.content = content;
     }
 
-    public Long getId() { return id; }
-    
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    // --- Getters and Setters ---
 
-    public NotificationType getType() { return type; }
-    public void setType(NotificationType type) { this.type = type; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public NotificationStatus getStatus() { return status; }
-    public void setStatus(NotificationStatus status) { this.status = status; }
+    public User getUser() {
+        return user;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setUser(User user) {
+        this.user = user;
+    }
 
-    public LocalDateTime getSentAt() { return sentAt; }
-    public void setSentAt(LocalDateTime sentAt) { this.sentAt = sentAt; }
+    public NotificationType getType() {
+        return type;
+    }
+
+    public void setType(NotificationType type) {
+        this.type = type;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public NotificationStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(NotificationStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getSentAt() {
+        return sentAt;
+    }
+
+    public void setSentAt(LocalDateTime sentAt) {
+        this.sentAt = sentAt;
+    }
 }

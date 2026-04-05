@@ -12,4 +12,6 @@ public interface OrderService {
     List<Order> getOrderHistory(Long userId);
     Order updateOrderStatus(Long orderId, OrderStatus status);
     void cancelOrder(Long orderId);
+    void deleteOrder(Long orderId);
+    void restoreOrder(Long orderId);
 }
