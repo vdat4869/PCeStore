@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "timestamp(6) default CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     @LastModifiedDate
@@ -34,7 +34,7 @@ public abstract class BaseEntity {
     @Column(name = "updated_by")
     private String updatedBy;
 
-    @Column(name = "is_deleted", nullable = false)
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
     private boolean isDeleted = false;
 
     // --- Getters and Setters ---

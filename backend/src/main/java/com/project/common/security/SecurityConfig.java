@@ -32,9 +32,9 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, 
-                          UserDetailsService userDetailsService,
-                          CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
+            UserDetailsService userDetailsService,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
         this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
@@ -44,28 +44,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì sử dụng token stateless
-            .exceptionHandling(ex -> ex
-                .authenticationEntryPoint(customAuthenticationEntryPoint) // Bắn lỗi 401 khi rớt phân quyền
-            )
-            .authorizeHttpRequests(authz -> authz
-                // Cho phép tất cả thực hiện đăng nhập, đăng ký mà không yêu cầu token
-                .requestMatchers("/api/auth/**").permitAll()
-                // Cho phép xem sản phẩm, category dưới tư cách khách hoăc User
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
-                // Cho phép Swagger UI và API Docs công khai để kiểm thử
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // Mọi Request còn lại cần xác thực
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session
-                // Stateless: Không lưu trạng thái xác thực trên session server (dùng hoàn toàn cho JWT)
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .authenticationProvider(authenticationProvider())
-            // Kích hoạt JWT filter ưu tiên trước UsernamePasswordAuthenticationFilter
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì sử dụng token stateless
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(customAuthenticationEntryPoint) // Bắn lỗi 401 khi rớt phân quyền
+                )
+                .authorizeHttpRequests(authz -> authz
+                        // Cho phép tất cả thực hiện đăng nhập, đăng ký mà không yêu cầu token
+                        .requestMatchers("/api/auth/**").permitAll()
+                        // Cho phép xem sản phẩm, category dưới tư cách khách hoăc User
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
+                        // Cho phép Swagger UI và API Docs công khai để kiểm thử
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // Mọi Request còn lại cần xác thực
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session
+                        // Stateless: Không lưu trạng thái xác thực trên session server (dùng hoàn toàn
+                        // cho JWT)
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider())
+                // Kích hoạt JWT filter ưu tiên trước UsernamePasswordAuthenticationFilter
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -94,7 +93,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://127.0.0.1:5173",
+                "http://localhost:3000", "http://127.0.0.1:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);
