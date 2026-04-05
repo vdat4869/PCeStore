@@ -7,6 +7,7 @@ import Cart from './pages/Cart';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import AdminApp from './admin/App'; // Import the dashboard template
+import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute guard
 
 // Component Layout Chung cho luồng Khách Hàng
 const MainLayout = () => {
@@ -36,7 +37,14 @@ function App() {
           </Route>
           
           {/* Admin Dashboard Route (Isolates styling & layout) */}
-          <Route path="/admin/*" element={<AdminApp />} />
+          <Route 
+            path="/admin/*" 
+            element={
+              <ProtectedRoute>
+                <AdminApp />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </div>
     </Router>

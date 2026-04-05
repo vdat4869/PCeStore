@@ -1,11 +1,18 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export default function Sidebar({ isCollapsed, isMobileShow }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const getNavLinkClass = (path) => {
     return `nav-link ${location.pathname === path ? 'active' : ''}`;
+  };
+
+  const handleLogout = (e) => {
+    e.preventDefault();
+    localStorage.removeItem('isAdminAuthenticated');
+    navigate('/login');
   };
 
   return (
@@ -23,8 +30,8 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
           </Link>
         </li>
         <li>
-          <Link className={getNavLinkClass('/admin/inventory')} to="/admin/inventory">
-            <i className="ti ti-box-seam"></i><span className="nav-text">Inventory</span>
+          <Link className={getNavLinkClass('/admin/products')} to="/admin/products">
+            <i className="ti ti-box-seam"></i><span className="nav-text">Products</span>
           </Link>
         </li>
         <li>
@@ -33,26 +40,25 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
           </Link>
         </li>
         <li>
+          <Link className={getNavLinkClass('/admin/orders')} to="/admin/orders">
+            <i className="ti ti-shopping-cart"></i><span className="nav-text">Orders</span>
+          </Link>
+        </li>
+        <li>
+          <Link className={getNavLinkClass('/admin/users')} to="/admin/users">
+            <i className="ti ti-users"></i><span className="nav-text">Users</span>
+          </Link>
+        </li>
+        <li>
           <Link className={getNavLinkClass('/admin/reports')} to="/admin/reports">
             <i className="ti ti-receipt"></i><span className="nav-text">Reports</span>
           </Link>
         </li>
-        <li>
-          <Link className={getNavLinkClass('/admin/docs')} to="/admin/docs">
-            <i className="ti ti-file-text"></i><span className="nav-text">Docs</span>
-          </Link>
-        </li>
 
-        <li className="px-4 pt-4 pb-2"><small className="nav-text">Account</small></li>
         <li>
-          <Link className={getNavLinkClass('/admin/signin')} to="/admin/signin">
-            <i className="ti ti-logout"></i><span className="nav-text">Log in</span>
-          </Link>
-        </li>
-        <li>
-          <Link className={getNavLinkClass('/admin/signup')} to="/admin/signup">
-            <i className="ti ti-user-plus"></i><span className="nav-text">Sign up</span>
-          </Link>
+          <a className="nav-link text-danger mt-4" href="#" onClick={handleLogout}>
+            <i className="ti ti-logout"></i><span className="nav-text">Log Out</span>
+          </a>
         </li>
       </ul>
     </aside>

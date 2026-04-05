@@ -8,9 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import CreateProduct from './pages/CreateProduct';
 import Reports from './pages/Reports';
+import Orders from './pages/Orders';
+import Users from './pages/Users';
 import Docs from './pages/Docs';
-import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -19,13 +19,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="inventory" element={<Inventory />} />
+          <Route path="products" element={<Inventory />} />
           <Route path="create-product" element={<CreateProduct />} />
           <Route path="reports" element={<Reports />} />
-          <Route path="docs" element={<Docs />} />
+          <Route path="users" element={<Users />} />
+          <Route path="orders" element={<Orders />} />
         </Route>
-        <Route path="signin" element={<SignIn />} />
-        <Route path="signup" element={<SignUp />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     

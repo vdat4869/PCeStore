@@ -8,11 +8,11 @@ export default function Inventory() {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div className="">
-              <h1 className="fs-3 mb-1">Inventory</h1>
-              <p className="mb-0">Manage your product inventory</p>
+              <h1 className="fs-3 mb-1">Sản phẩm</h1>
+              <p className="mb-0">Quản lý kho sản phẩm của bạn</p>
             </div>
             <div>
-              <Link to="/admin/create-product" className="btn btn-primary">Add Product</Link>
+              <Link to="/admin/create-product" className="btn btn-primary">Thêm sản phẩm</Link>
             </div>
           </div>
         </div>
@@ -21,10 +21,10 @@ export default function Inventory() {
         <div className="col-12">
           <div>
             <div className="d-flex gap-2 mb-3 flex-wrap justify-content-between">
-              <input type="text" className="form-control" placeholder="Search products..." style={{ maxWidth: '250px' }} />
+              <input type="text" className="form-control" placeholder="Tìm kiếm sản phẩm..." style={{ maxWidth: '250px' }} />
               <div className="d-flex gap-2">
                 <button className="btn btn-outline-secondary">
-                  <i className="ti ti-filter"></i> Filter
+                  <i className="ti ti-filter"></i> Lọc
                 </button>
                 <button className="btn btn-outline-secondary">
                   <i className="ti ti-file-excel"></i> Excel
@@ -39,14 +39,14 @@ export default function Inventory() {
             <table className="table mb-0 text-nowrap table-hover">
               <thead className="table-light border-light">
                 <tr>
-                  <th>Image</th>
-                  <th>Code</th>
-                  <th>Category</th>
-                  <th>Brand</th>
-                  <th>Price</th>
-                  <th>Unit</th>
-                  <th>Quantity</th>
-                  <th>Action</th>
+                  <th>Hình ảnh</th>
+                  <th>Mã SP</th>
+                  <th>Danh mục</th>
+                  <th>Thương hiệu</th>
+                  <th>Giá</th>
+                  <th>ĐVT</th>
+                  <th>Số lượng</th>
+                  <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -57,7 +57,7 @@ export default function Inventory() {
                   <td>Electronics</td>
                   <td>Brand Name</td>
                   <td>$99.99</td>
-                  <td>pcs</td>
+                  <td>cái</td>
                   <td>150</td>
                   <td className="">
                     <a href="#!" className=""><i className="ti ti-edit "></i></a>
@@ -71,7 +71,7 @@ export default function Inventory() {
                   <td>Electronics</td>
                   <td>Tech Pro</td>
                   <td>$89.99</td>
-                  <td>pcs</td>
+                  <td>cái</td>
                   <td>320</td>
                   <td className="">
                     <a href="#!" className=""><i className="ti ti-edit "></i></a>
@@ -85,7 +85,7 @@ export default function Inventory() {
                   <td>Electronics</td>
                   <td>Tech Pro</td>
                   <td>$98.00</td>
-                  <td>pcs</td>
+                  <td>cái</td>
                   <td>200</td>
                   <td className="">
                     <a href="#!" className=""><i className="ti ti-edit "></i></a>
@@ -99,7 +99,7 @@ export default function Inventory() {
                   <td>Electronics</td>
                   <td>Tech Pro</td>
                   <td>$86.00</td>
-                  <td>pcs</td>
+                  <td>cái</td>
                   <td>80</td>
                   <td className="">
                     <a href="#!" className=""><i className="ti ti-edit "></i></a>
@@ -113,7 +113,7 @@ export default function Inventory() {
                   <td>Electronics</td>
                   <td>Tech Pro</td>
                   <td>$32.00</td>
-                  <td>pcs</td>
+                  <td>cái</td>
                   <td>110</td>
                   <td className="">
                     <a href="#!" className=""><i className="ti ti-edit "></i></a>
@@ -127,7 +127,7 @@ export default function Inventory() {
                   <td>Electronics</td>
                   <td>Tech Pro</td>
                   <td>$49.00</td>
-                  <td>pcs</td>
+                  <td>cái</td>
                   <td>10</td>
                   <td className="">
                     <a href="#!" className=""><i className="ti ti-edit "></i></a>
@@ -137,18 +137,18 @@ export default function Inventory() {
               </tbody>
               <tfoot className="">
                 <tr>
-                  <td className="border-bottom-0">Showing product per page</td>
+                  <td className="border-bottom-0">Hiển thị sản phẩm mỗi trang</td>
                   <td colSpan="7" className="border-bottom-0">
                     <nav aria-label="Page navigation" className="d-flex justify-content-end">
                       <ul className="pagination mb-0">
                         <li className="page-item disabled">
-                          <a className="page-link" href="#!" tabIndex="-1">Previous</a>
+                          <a className="page-link" href="#!" tabIndex="-1">Trước</a>
                         </li>
                         <li className="page-item active"><a className="page-link" href="#!">1</a></li>
                         <li className="page-item"><a className="page-link" href="#!">2</a></li>
                         <li className="page-item"><a className="page-link" href="#!">3</a></li>
                         <li className="page-item">
-                          <a className="page-link" href="#!">Next</a>
+                          <a className="page-link" href="#!">Sau</a>
                         </li>
                       </ul>
                     </nav>

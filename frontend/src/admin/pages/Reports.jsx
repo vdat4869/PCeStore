@@ -5,8 +5,8 @@ export default function Reports() {
   const [showingBoth, setShowingBoth] = useState(true);
 
   // Data
-  const salesThisYear = [42000, 53000, 48000, 61000, 72000, 69000, 74000, 82000, 78000, 86000, 91000, 97000];
-  const salesLastYear = [38000, 45000, 47000, 56000, 65000, 63000, 68000, 70000, 69000, 75000, 80000, 84000];
+  const salesThisYear = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const salesLastYear = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   // Series based on state
@@ -31,7 +31,7 @@ export default function Reports() {
     },
     yaxis: {
       labels: { formatter: (val) => '₹' + Number(val).toLocaleString('en-IN', { maximumFractionDigits: 0 }) },
-      title: { text: 'Sales (INR)' }
+      title: { text: 'Doanh thu ($)' }
     },
     xaxis: { categories: months, tickPlacement: 'on' },
     tooltip: {
@@ -51,8 +51,8 @@ export default function Reports() {
         <div className="col-12">
             <div className="d-flex justify-content-between align-items-center mb-4">
           <div className="">
-            <h1 className="fs-3 mb-1">Reports</h1>
-            <p className="mb-0">View your inventory analytics and reports</p>
+            <h1 className="fs-3 mb-1">Báo cáo</h1>
+            <p className="mb-0">Xem phân tích và báo cáo kho hàng của bạn</p>
           </div>
           </div>
         </div>
@@ -63,9 +63,9 @@ export default function Reports() {
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card h-100">
             <div className="card-body p-4">
-              <h6 className="mb-4 ">Total Revenue</h6>
-              <h3 className="mb-1 fw-bold">$45,231</h3>
-              <p className="mb-0 text-success small"><i className="ti ti-arrow-up"> </i>12% from last month</p>
+              <h6 className="mb-4 ">Tổng doanh thu</h6>
+              <h3 className="mb-1 fw-bold">$0</h3>
+              <p className="mb-0 text-secondary small">0% so với tháng trước</p>
             </div>
           </div>
         </div>
@@ -73,9 +73,9 @@ export default function Reports() {
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card h-100">
             <div className="card-body p-4">
-              <h6 className="mb-4 ">Products Sold</h6>
-              <h3 className="mb-1 fw-bold">1,234</h3>
-              <p className="mb-0 text-success small"><i className="ti ti-arrow-up"> </i> 8% from last month</p>
+              <h6 className="mb-4 ">Sản phẩm đã bán</h6>
+              <h3 className="mb-1 fw-bold">0</h3>
+              <p className="mb-0 text-secondary small">0% so với tháng trước</p>
             </div>
           </div>
         </div>
@@ -83,9 +83,9 @@ export default function Reports() {
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card h-100">
             <div className="card-body p-4">
-              <h6 className="mb-4 ">Low Stock Items</h6>
-              <h3 className="mb-1 fw-bold">23</h3>
-              <p className="mb-0 text-danger small"><i className="ti ti-arrow-down"> </i> 3% from last month</p>
+              <h6 className="mb-4 ">Mặt hàng sắp hết</h6>
+              <h3 className="mb-1 fw-bold">0</h3>
+              <p className="mb-0 text-secondary small">0% so với tháng trước</p>
             </div>
           </div>
         </div>
@@ -93,9 +93,9 @@ export default function Reports() {
         <div className="col-12 col-sm-6 col-md-3">
           <div className="card h-100">
             <div className="card-body p-4">
-              <h6 className="mb-4 ">Out of Stock</h6>
-              <h3 className="mb-1 fw-bold">5</h3>
-              <p className="mb-0 text-danger small"><i className="ti ti-arrow-down"> </i> 2% from last month</p>
+              <h6 className="mb-4 ">Hết hàng</h6>
+              <h3 className="mb-1 fw-bold">0</h3>
+              <p className="mb-0 text-secondary small">0% so với tháng trước</p>
             </div>
           </div>
         </div>
@@ -108,12 +108,12 @@ export default function Reports() {
             <div className="card-body p-4">
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-start mb-3 gap-2">
                 <div>
-                  <h2 className="mb-0 fs-5">Sales Overview</h2>
+                  <h2 className="mb-0 fs-5">Tổng quan doanh thu</h2>
                 </div>
                 <div className="controls">
-                  <button className="btn btn-light btn-sm me-2">Randomize Data</button>
+                  <button className="btn btn-light btn-sm me-2">Dữ liệu ngẫu nhiên</button>
                   <button className="btn btn-primary btn-sm" onClick={toggleSeries}>
-                    {showingBoth ? 'Show This Year Only' : 'Show Comparison'}
+                    {showingBoth ? 'Chỉ xem năm nay' : 'Xem so sánh'}
                   </button>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export default function Reports() {
               </div>
 
               <div className="d-flex justify-content-end mt-3">
-                <a href="#!" className="small">View detailed report</a>
+                <a href="#!" className="small">Xem báo cáo chi tiết</a>
               </div>
             </div>
           </div>
@@ -138,62 +138,13 @@ export default function Reports() {
             <div className="card-body p-4">
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <div>
-                  <h2 className="mb-0 fs-5">Top Products</h2>
+                  <h2 className="mb-0 fs-5">Sản phẩm hàng đầu</h2>
                 </div>
               </div>
 
               {/* Product rows */}
-              <div className="list-group list-group-flush">
-                <div className="list-group-item p-3 d-flex align-items-center">
-                  <div className="me-3">
-                    <img src="/src/admin/assets/images/product-1.png" alt="Product A" className="rounded" style={{ width:'48px', height:'48px', objectFit:'cover' }} />
-                  </div>
-                  <div className="flex-grow-1">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="mb-0">Gaming Joy Stick</h6>
-                        <small className="text-secondary">156 units sold</small>
-                      </div>
-                      <div className="text-end">
-                        <strong>$3,120</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="list-group-item p-3 d-flex align-items-center">
-                  <div className="me-3">
-                    <img src="/src/admin/assets/images/product-2.png" alt="Product B" className="rounded" style={{ width:'48px', height:'48px', objectFit:'cover' }} />
-                  </div>
-                  <div className="flex-grow-1">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="mb-0">Wireless Headphones</h6>
-                        <small className="text-secondary">134 units sold</small>
-                      </div>
-                      <div className="text-end">
-                        <strong>$2,680</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="list-group-item p-3 d-flex align-items-center">
-                  <div className="me-3">
-                    <img src="/src/admin/assets/images/product-3.png" alt="Product C" className="rounded" style={{ width:'48px', height:'48px', objectFit:'cover' }} />
-                  </div>
-                  <div className="flex-grow-1">
-                    <div className="d-flex justify-content-between align-items-center">
-                      <div>
-                        <h6 className="mb-0">Smartwatch</h6>
-                        <small className="text-secondary">98 units sold</small>
-                      </div>
-                      <div className="text-end">
-                        <strong>$1,960</strong>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="text-center p-4 text-muted">
+                <p className="mb-0">Chưa có dữ liệu</p>
               </div>
 
             </div>
