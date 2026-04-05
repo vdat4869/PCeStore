@@ -23,12 +23,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final com.project.auth.service.JwtBlacklistService blacklistService;
     private final HandlerExceptionResolver resolver;
 
     public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService,
+                                   com.project.auth.service.JwtBlacklistService blacklistService,
                                    @org.springframework.beans.factory.annotation.Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.blacklistService = blacklistService;
         this.resolver = resolver;
     }
 
@@ -53,6 +56,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Bỏ qua chữ "Bearer " (7 ký tự)
         jwt = authHeader.substring(7);
         try {
+            // Kiểm tra xem token có trong danh sách đen không
+            if (blacklistService.isBlacklisted(jwt)) {
+                throw new io.jsonwebtoken.JwtException("error.auth.token_blacklisted");
+            }
+
             userEmail = jwtService.extractUsername(jwt);
             
             // Nếu context chưa có thông tin xác thực, xác nhận user & đẩy vào trong Context

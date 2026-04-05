@@ -1,14 +1,10 @@
 package com.project.inventory.entity;
 
+import com.project.common.entity.BaseEntity;
 import com.project.product.entity.Product;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.time.LocalDateTime;
+import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 /**
  * Thực thể quản lý kho của một sản phẩm.
@@ -16,11 +12,13 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "inventories")
+@SQLRestriction("is_deleted = false")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Inventory {
+@EqualsAndHashCode(callSuper = true)
+public class Inventory extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,9 +37,5 @@ public class Inventory {
     // Available = quantity - reserved.
     @Column(nullable = false, columnDefinition = "integer default 0")
     private Integer reserved;
-
-    // Tự động ghi lại thời điểm cập nhật kho cuối cùng.
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
 }
 

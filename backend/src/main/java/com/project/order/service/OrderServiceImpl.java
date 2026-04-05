@@ -99,4 +99,29 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         orderRepository.save(order);
     }
+
+    @Override
+    @Transactional
+    public void deleteOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+        
+        order.setDeleted(true);
+        // Soft delete items as well
+        order.getOrderItems().forEach(item -> item.setDeleted(true));
+        
+        orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public void restoreOrder(Long orderId) {
+        Order order = orderRepository.findByIdIncludingDeleted(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+        
+        order.setDeleted(false);
+        order.getOrderItems().forEach(item -> item.setDeleted(false));
+        
+        orderRepository.save(order);
+    }
 }

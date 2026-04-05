@@ -1,7 +1,11 @@
 package com.project.notification.entity;
 
 import com.project.auth.entity.User;
+import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
@@ -10,7 +14,10 @@ import java.time.LocalDateTime;
     @Index(name = "idx_notification_status", columnList = "status"),
     @Index(name = "idx_notification_created", columnList = "created_at")
 })
-public class Notification {
+@SQLRestriction("is_deleted = false")
+@Getter
+@Setter
+public class Notification extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,9 +38,6 @@ public class Notification {
     @Column(nullable = false)
     private NotificationStatus status = NotificationStatus.PENDING;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private final LocalDateTime createdAt = LocalDateTime.now();
-
     private LocalDateTime sentAt;
 
     public Notification() {}
@@ -43,23 +47,4 @@ public class Notification {
         this.type = type;
         this.content = content;
     }
-
-    public Long getId() { return id; }
-    
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
-
-    public NotificationType getType() { return type; }
-    public void setType(NotificationType type) { this.type = type; }
-
-    public String getContent() { return content; }
-    public void setContent(String content) { this.content = content; }
-
-    public NotificationStatus getStatus() { return status; }
-    public void setStatus(NotificationStatus status) { this.status = status; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    public LocalDateTime getSentAt() { return sentAt; }
-    public void setSentAt(LocalDateTime sentAt) { this.sentAt = sentAt; }
 }

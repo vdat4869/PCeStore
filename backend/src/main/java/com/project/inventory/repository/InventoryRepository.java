@@ -28,5 +28,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId")
     Optional<Inventory> findByProductIdWithLock(@Param("productId") Long productId);
+
+    // Tìm kiếm thông tin kho bất kể trạng thái sản phẩm bị xóa mềm hay chưa (Dùng cho Admin)
+    @Query(value = "SELECT * FROM inventories WHERE product_id = :productId", nativeQuery = true)
+    Optional<Inventory> findByProductIdIncludingDeleted(@Param("productId") Long productId);
 }
 

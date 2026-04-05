@@ -79,4 +79,32 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user); // Lưu Entity User vào DB
     }
+
+    // Xoá người dùng (Soft Delete)
+    public void deleteUser(User currentUser, Long targetUserId) {
+        // Chỉ ADMIN hoặc chính chủ mới được xóa (thường là Admin xóa người dùng khác)
+        if (!currentUser.getRole().equals(com.project.auth.entity.UserRole.ADMIN) && 
+            !currentUser.getId().equals(targetUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException("error.user.denied_delete");
+        }
+
+        User targetUser = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
+
+        targetUser.setDeleted(true);
+        userRepository.save(targetUser);
+    }
+
+    // Khôi phục người dùng (Restore) - Chỉ ADMIN
+    public void restoreUser(User currentUser, Long targetUserId) {
+        if (!currentUser.getRole().equals(com.project.auth.entity.UserRole.ADMIN)) {
+            throw new org.springframework.security.access.AccessDeniedException("error.user.denied_restore");
+        }
+
+        User targetUser = userRepository.findByIdIncludingDeleted(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
+
+        targetUser.setDeleted(false);
+        userRepository.save(targetUser);
+    }
 }

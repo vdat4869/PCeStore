@@ -39,10 +39,19 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(Authentication authentication) {
-        // Lấy thông tin email từ Authentication context mà JWT mang lại hợp lệ
+    public ResponseEntity<String> logout(Authentication authentication, HttpServletRequest request) {
         if (authentication != null && authentication.getName() != null) {
-            String message = authService.logout(authentication.getName());
+            String jwt = request.getHeader("Authorization");
+            String message = authService.logout(authentication.getName(), jwt);
+            return ResponseEntity.ok(message);
+        }
+        throw new IllegalArgumentException("error.auth.not_logged_in");
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<String> logoutAll(Authentication authentication) {
+        if (authentication != null && authentication.getName() != null) {
+            String message = authService.logoutAllDevices(authentication.getName());
             return ResponseEntity.ok(message);
         }
         throw new IllegalArgumentException("error.auth.not_logged_in");
