@@ -14,4 +14,5 @@ public interface OrderService {
     void cancelOrder(Long orderId);
     void deleteOrder(Long orderId);
     void restoreOrder(Long orderId);
+    void deleteAllOrders(Long userId);
 }
