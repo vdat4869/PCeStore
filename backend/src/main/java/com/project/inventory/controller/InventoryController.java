@@ -6,7 +6,6 @@ import com.project.inventory.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,11 +16,14 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/api/inventory")
-@RequiredArgsConstructor
 @Tag(name = "Inventory", description = "Quản lý tồn kho sản phẩm")
 public class InventoryController {
 
     private final InventoryService inventoryService;
+
+    public InventoryController(InventoryService inventoryService) {
+        this.inventoryService = inventoryService;
+    }
 
     @Operation(summary = "Lấy thông tin tồn kho", description = "Truy xuất số lượng thực tế và số lượng có sẵn cho một sản phẩm.")
     @GetMapping("/{productId}")
@@ -49,6 +51,37 @@ public class InventoryController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
     public ResponseEntity<InventoryResponse> increaseStock(@Valid @RequestBody InventoryRequest request) {
         return ResponseEntity.ok(inventoryService.increaseStock(request));
+    }
+
+    @Operation(summary = "Giữ hàng tạm thời", description = "Tăng số lượng reserved để giữ hàng khi khách đang trong luồng thanh toán.")
+    @PostMapping("/reserve")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    public ResponseEntity<InventoryResponse> reserveStock(@Valid @RequestBody InventoryRequest request) {
+        return ResponseEntity.ok(inventoryService.reserveStock(request));
+    }
+
+    @Operation(summary = "Xác nhận trừ kho", description = "Được gọi sau khi thanh toán thành công. Trừ cả quantity và reserved.")
+    @PostMapping("/confirm")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    public ResponseEntity<InventoryResponse> confirmStock(@Valid @RequestBody InventoryRequest request) {
+        return ResponseEntity.ok(inventoryService.confirmStock(request));
+    }
+
+    @Operation(summary = "Huỷ giữ hàng", description = "Được gọi nếu đơn hàng bị timeout hoặc huỷ khi chưa thanh toán. Trừ reserved.")
+    @PostMapping("/cancel-reservation")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    public ResponseEntity<InventoryResponse> cancelReservation(@Valid @RequestBody InventoryRequest request) {
+        return ResponseEntity.ok(inventoryService.cancelReservation(request));
+    }
+
+    @Operation(summary = "Xem lịch sử biến động kho", description = "Truy xuất danh sách các lần thay đổi kho của một sản phẩm.")
+    @GetMapping("/history/{productId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<org.springframework.data.domain.Page<com.project.inventory.entity.InventoryHistory>> getHistory(
+            @PathVariable Long productId,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(inventoryService.getHistory(productId, org.springframework.data.domain.PageRequest.of(page, size)));
     }
 }
 

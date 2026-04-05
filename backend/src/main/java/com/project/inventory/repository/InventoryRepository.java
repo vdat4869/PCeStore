@@ -20,6 +20,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     // Tìm kiếm thông tin kho thông thường dựa trên Product ID.
     Optional<Inventory> findByProductId(Long productId);
 
+    // Kiểm tra xem sản phẩm đã có inventory hay chưa
+    boolean existsByProductId(Long productId);
+
     /**
      * Tìm kiếm thông tin kho và áp dụng PESSIMISTIC_WRITE lock.
      * Lock này ngăn chặn các transaction khác đọc/ghi vào dòng này cho đến khi transaction hiện tại kết thúc.

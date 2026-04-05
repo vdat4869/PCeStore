@@ -6,18 +6,21 @@ import com.project.product.entity.Category;
 import com.project.product.entity.Product;
 import com.project.product.repository.CategoryRepository;
 import com.project.product.repository.ProductRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+
+    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+    }
 
     /**
      * Lấy danh sách tất cả sản phẩm (Có hỗ trợ phân trang)
