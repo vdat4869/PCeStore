@@ -23,8 +23,11 @@ public class EmailTemplate extends BaseEntity {
     @Column(nullable = false)
     private String subject;
 
+    /**
+     * HTML content with placeholders like {{link}}
+     */
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String content; // HTML content with placeholders like {{link}}
+    private String content;
 
     public EmailTemplate() {}
 

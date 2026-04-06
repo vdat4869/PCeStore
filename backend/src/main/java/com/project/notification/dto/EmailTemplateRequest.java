@@ -18,7 +18,9 @@ public class EmailTemplateRequest {
     @NotBlank(message = "{validation.notification.content_empty}")
     private String content;
 
-    public EmailTemplateRequest() {}
+    public EmailTemplateRequest() {
+        // Required for JSON deserialization
+    }
 
     public NotificationType getType() { return type; }
     public void setType(NotificationType type) { this.type = type; }

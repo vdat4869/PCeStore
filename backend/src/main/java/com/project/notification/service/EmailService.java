@@ -22,6 +22,11 @@ import com.project.notification.exception.NotificationException;
 public class EmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+    private static final String LOG_TAG_NOTIFICATION = "NOTIFICATION";
+    private static final String PLACEHOLDER_LINK = "{{link}}";
+    private static final String PLACEHOLDER_ORDER_ID = "{{orderId}}";
+    private static final String PLACEHOLDER_TOKEN = "{{token}}";
+    private static final String PLACEHOLDER_USERNAME = "{{username}}";
 
     private final JavaMailSender mailSender;
 
@@ -44,6 +49,13 @@ public class EmailService {
         this.templateRepository = templateRepository;
     }
 
+    private EmailService self;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setSelf(@Lazy EmailService self) {
+        this.self = self;
+    }
+
     @org.springframework.cache.annotation.Cacheable(value = "emailTemplates", key = "#type + '-' + #locale")
     public com.project.notification.entity.EmailTemplate getTemplate(com.project.notification.entity.NotificationType type, String locale) {
         return templateRepository.findByTypeAndLocale(type, locale)
@@ -64,19 +76,19 @@ public class EmailService {
         template.setSubject(request.getSubject());
         template.setContent(request.getContent());
         templateRepository.save(template);
-        logger.info("[NOTIFICATION] Đã cập nhật mẫu Email: {} - {}", request.getType(), request.getLocale());
+        logger.info("[{}] Đã cập nhật mẫu Email: {} - {}", LOG_TAG_NOTIFICATION, request.getType(), request.getLocale());
     }
 
     @Async
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendVerificationEmail(String toEmail, String token, Locale locale, Long notifId) {
         try {
-            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.EMAIL_VERIFICATION, locale.getLanguage());
+            com.project.notification.entity.EmailTemplate template = self.getTemplate(com.project.notification.entity.NotificationType.EMAIL_VERIFICATION, locale.getLanguage());
             String subject = template.getSubject();
             String link = frontendUrl + "/verify-email?token=" + token;
             String html = template.getContent()
-                    .replace("{{link}}", link)
-                    .replace("{{token}}", token);
+                    .replace(PLACEHOLDER_LINK, link)
+                    .replace(PLACEHOLDER_TOKEN, token);
 
             sendHtmlMail(toEmail, subject, html);
             notificationService.markAsSent(notifId);
@@ -91,7 +103,7 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_verify", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
-        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+        alertService.createAlert(LOG_TAG_NOTIFICATION, com.project.common.entity.SystemLogSeverity.CRITICAL, 
             "Gửi mail xác thực thất bại hoàn toàn sau 3 lần thử: " + toEmail, e);
     }
 
@@ -99,11 +111,11 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendPasswordResetEmail(String toEmail, String token, Locale locale, Long notifId) {
         try {
-            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.PASSWORD_RESET, locale.getLanguage());
+            com.project.notification.entity.EmailTemplate template = self.getTemplate(com.project.notification.entity.NotificationType.PASSWORD_RESET, locale.getLanguage());
             String subject = template.getSubject();
             String link = frontendUrl + "/reset-password?token=" + token;
             String html = template.getContent()
-                    .replace("{{link}}", link);
+                    .replace(PLACEHOLDER_LINK, link);
 
             sendHtmlMail(toEmail, subject, html);
             notificationService.markAsSent(notifId);
@@ -118,7 +130,7 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_pwd_reset", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
-        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+        alertService.createAlert(LOG_TAG_NOTIFICATION, com.project.common.entity.SystemLogSeverity.CRITICAL, 
             "Gửi mail reset mật khẩu thất bại hoàn toàn sau 3 lần thử: " + toEmail, e);
     }
 
@@ -126,11 +138,11 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendOrderConfirmationEmail(String toEmail, String username, String orderId, String totalAmount, Locale locale, Long notifId) {
         try {
-            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.ORDER_CONFIRMATION, locale.getLanguage());
-            String subject = template.getSubject().replace("{{orderId}}", orderId);
+            com.project.notification.entity.EmailTemplate template = self.getTemplate(com.project.notification.entity.NotificationType.ORDER_CONFIRMATION, locale.getLanguage());
+            String subject = template.getSubject().replace(PLACEHOLDER_ORDER_ID, orderId);
             String html = template.getContent()
-                    .replace("{{username}}", username)
-                    .replace("{{orderId}}", orderId)
+                    .replace(PLACEHOLDER_USERNAME, username)
+                    .replace(PLACEHOLDER_ORDER_ID, orderId)
                     .replace("{{totalAmount}}", totalAmount);
 
             sendHtmlMail(toEmail, subject, html);
@@ -146,7 +158,7 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_order_confirm", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
-        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+        alertService.createAlert(LOG_TAG_NOTIFICATION, com.project.common.entity.SystemLogSeverity.CRITICAL, 
             "Gửi mail xác nhận đơn hàng thất bại: " + orderId + " (Notif: " + notifId + ")", e);
     }
 
@@ -154,11 +166,11 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendOrderStatusUpdateEmail(String toEmail, String username, String orderId, String orderStatus, Locale locale, Long notifId) {
         try {
-            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.ORDER_STATUS_UPDATE, locale.getLanguage());
-            String subject = template.getSubject().replace("{{orderId}}", orderId);
+            com.project.notification.entity.EmailTemplate template = self.getTemplate(com.project.notification.entity.NotificationType.ORDER_STATUS_UPDATE, locale.getLanguage());
+            String subject = template.getSubject().replace(PLACEHOLDER_ORDER_ID, orderId);
             String html = template.getContent()
-                    .replace("{{username}}", username)
-                    .replace("{{orderId}}", orderId)
+                    .replace(PLACEHOLDER_USERNAME, username)
+                    .replace(PLACEHOLDER_ORDER_ID, orderId)
                     .replace("{{orderStatus}}", orderStatus);
 
             sendHtmlMail(toEmail, subject, html);
@@ -174,7 +186,7 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_order_status", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
-        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+        alertService.createAlert(LOG_TAG_NOTIFICATION, com.project.common.entity.SystemLogSeverity.CRITICAL, 
             "Gửi mail cập nhật trạng thái đơn hàng thất bại: " + orderId + " (Status: " + orderStatus + ")", e);
     }
 
@@ -182,12 +194,12 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendEmailChangeEmail(String toEmail, String token, Locale locale, Long notifId) {
         try {
-            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.EMAIL_CHANGE, locale.getLanguage());
+            com.project.notification.entity.EmailTemplate template = self.getTemplate(com.project.notification.entity.NotificationType.EMAIL_CHANGE, locale.getLanguage());
             String subject = template.getSubject();
             String link = frontendUrl + "/confirm-email-change?token=" + token;
             String html = template.getContent()
-                    .replace("{{link}}", link)
-                    .replace("{{token}}", token);
+                    .replace(PLACEHOLDER_LINK, link)
+                    .replace(PLACEHOLDER_TOKEN, token);
 
             sendHtmlMail(toEmail, subject, html);
             notificationService.markAsSent(notifId);
@@ -201,7 +213,7 @@ public class EmailService {
     public void recoverEmailChangeEmail(NotificationException e, String toEmail, String token, Locale locale, Long notifId) {
         logger.error("Cạn kiệt lần thử lại gửi mail xác nhận đổi Email tới: {}", toEmail);
         notificationService.markAsFailed(notifId);
-        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+        alertService.createAlert(LOG_TAG_NOTIFICATION, com.project.common.entity.SystemLogSeverity.CRITICAL, 
             "Gửi mail xác nhận đổi Email thất bại hoàn toàn tới: " + toEmail, e);
     }
 
