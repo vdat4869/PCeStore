@@ -13,7 +13,9 @@ public class VerifyMfaRequest {
     @Min(value = 100000, message = "{validation.mfa.code_invalid}")
     private int code;
 
-    public VerifyMfaRequest() {}
+    public VerifyMfaRequest() {
+        // Required for JSON deserialization
+    }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

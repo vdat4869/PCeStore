@@ -61,8 +61,6 @@ public class TokenManagementService {
 
     @Transactional
     public void deleteRefreshTokensByEmail(String email) {
-        refreshTokenService.findByUserEmail(email).ifPresent(rt -> {
-            refreshTokenService.deleteToken(rt);
-        });
+        refreshTokenService.findByUserEmail(email).ifPresent(refreshTokenService::deleteToken);
     }
 }

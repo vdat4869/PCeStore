@@ -31,6 +31,8 @@ import java.util.UUID;
 @Service
 public class UserAuthenticationService {
 
+    private static final String ERROR_USER_NOT_FOUND = "error.auth.user_not_found";
+
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final TokenManagementService tokenManagementService;
@@ -68,7 +70,7 @@ public class UserAuthenticationService {
         }
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
 
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new DisabledException("error.auth.disabled");
@@ -92,7 +94,7 @@ public class UserAuthenticationService {
     @Transactional
     public AuthResponse verifyMfaAndLogin(String email, int code, String ipAddress) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
 
         if (!user.isMfaEnabled()) {
             throw new IllegalArgumentException("error.auth.mfa_not_enabled");
@@ -117,7 +119,7 @@ public class UserAuthenticationService {
     @Transactional
     public String generateMfaSecret(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
         
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         final GoogleAuthenticatorKey key = gAuth.createCredentials();
@@ -132,7 +134,7 @@ public class UserAuthenticationService {
     @Transactional
     public void enableMfa(String email, int code) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("error.auth.user_not_found"));
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
         
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         if (gAuth.authorize(user.getMfaSecret(), code)) {
