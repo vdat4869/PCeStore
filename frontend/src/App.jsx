@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import Profile from './pages/Profile';
 import AdminApp from './admin/App'; // Import the dashboard template
+import EmployeeApp from './employee/EmployeeApp'; // Import employee dashboard
 import ProtectedRoute from './components/ProtectedRoute'; // Import ProtectedRoute guard
 
 // Component Layout Chung cho luồng Khách Hàng
@@ -49,12 +50,22 @@ function App() {
             <Route path="/profile" element={<Profile />} />
           </Route>
           
-          {/* Admin Dashboard Route (Isolates styling & layout) */}
+          {/* Admin Dashboard Route */}
           <Route 
             path="/admin/*" 
             element={
               <ProtectedRoute>
                 <AdminApp />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Employee Dashboard Route */}
+          <Route 
+            path="/employee/*" 
+            element={
+              <ProtectedRoute>
+                <EmployeeApp />
               </ProtectedRoute>
             } 
           />

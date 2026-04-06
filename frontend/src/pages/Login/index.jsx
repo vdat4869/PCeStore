@@ -21,11 +21,29 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
-        // Cập nhật token và xác thực
-        localStorage.setItem('adminToken', data.accessToken);
-        localStorage.setItem('isAdminAuthenticated', 'true');
         setError('');
-        navigate('/admin');
+
+        if (data.role === 'ADMIN') {
+          // Token cho Admin
+          localStorage.setItem('adminToken', data.accessToken);
+          localStorage.setItem('refreshToken', data.refreshToken);
+          localStorage.setItem('isAdminAuthenticated', 'true');
+          localStorage.setItem('userRole', data.role);
+          window.location.href = '/admin';
+        } else if (data.role === 'EMPLOYEE') {
+          // Token cho Nhân Viên
+          localStorage.setItem('adminToken', data.accessToken); 
+          localStorage.setItem('refreshToken', data.refreshToken);
+          localStorage.setItem('isAdminAuthenticated', 'true'); // Dùng guard của Admin tạm
+          localStorage.setItem('userRole', data.role);
+          window.location.href = '/employee';
+        } else {
+          // Token cho User Khách hàng (Về giao diện gốc)
+          localStorage.setItem('userToken', data.accessToken);
+          localStorage.setItem('refreshToken', data.refreshToken);
+          localStorage.removeItem('isAdminAuthenticated'); 
+          window.location.href = '/';
+        }
       } else {
         setError('Email hoặc mật khẩu không chính xác!');
       }
@@ -62,7 +80,7 @@ export default function Login() {
                   type="email"
                   className="form-control bg-light border-start-0 ps-0"
                   id="email"
-                  placeholder="admin123@gmail.com"
+                  placeholder="Nhập Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

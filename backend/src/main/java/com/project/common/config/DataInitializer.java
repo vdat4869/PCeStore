@@ -25,7 +25,7 @@ public class DataInitializer {
             if (!userRepository.existsByEmail(adminEmail)) {
                 logger.info("Initializing default Admin account...");
                 
-                String adminPassword = UUID.randomUUID().toString().substring(0, 12);
+                String adminPassword = "Admin@123";
                 User admin = new User(
                         adminEmail,
                         passwordEncoder.encode(adminPassword),
@@ -38,8 +38,7 @@ public class DataInitializer {
                 
                 logger.info("✅ Default Admin account created successfully!");
                 logger.info("Email: {}", adminEmail);
-                logger.info("Password (Randomized): {}", adminPassword);
-                logger.info("⚠️ Please change this password immediately after the first login.");
+                logger.info("Password fixed: {}", adminPassword);
             } else {
                 logger.info("Admin account already exists.");
             }

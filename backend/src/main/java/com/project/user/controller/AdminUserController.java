@@ -83,6 +83,17 @@ public class AdminUserController {
     }
 
     /**
+     * Xóa vĩnh viễn người dùng (Hủy hoàn toàn khỏi CSDL)
+     */
+    @DeleteMapping("/{id}/hard")
+    public ResponseEntity<Void> hardDeleteUser(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long id) {
+        userService.hardDeleteUser(userDetails.getUser(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Khôi phục tài khoản đã bị xóa mềm
      */
     @PostMapping("/{id}/restore")

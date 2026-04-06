@@ -88,7 +88,7 @@ public class UserAuthenticationService {
         String jwtToken = tokenManagementService.generateAccessToken(user);
         RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
 
-        return new AuthResponse(jwtToken, refreshToken.getToken());
+        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name());
     }
 
     @Transactional
@@ -113,7 +113,7 @@ public class UserAuthenticationService {
         String jwtToken = tokenManagementService.generateAccessToken(user);
         RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
 
-        return new AuthResponse(jwtToken, refreshToken.getToken());
+        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name());
     }
 
     @Transactional
@@ -168,7 +168,7 @@ public class UserAuthenticationService {
             String jwtToken = tokenManagementService.generateAccessToken(user);
             RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
 
-            return new AuthResponse(jwtToken, refreshToken.getToken());
+            return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name());
 
         } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
             loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "error.auth.google_failed");

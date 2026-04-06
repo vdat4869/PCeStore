@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Service
 public class UserService {
@@ -29,6 +31,9 @@ public class UserService {
     private final com.project.user.repository.EmailChangeTokenRepository emailChangeTokenRepository;
     private final com.project.notification.service.NotificationService notificationService;
     private final com.project.common.service.FileStorageService fileStorageService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public UserService(UserRepository userRepository, 
                        UserProfileRepository userProfileRepository, 
@@ -58,8 +63,8 @@ public class UserService {
         return new UserProfileResponse(
                 profile.getId(),
                 user.getEmail(),
-                profile.getFullName(),
-                profile.getPhone(),
+                profile.getFullName() != null ? profile.getFullName() : user.getFullName(),
+                profile.getPhone() != null ? profile.getPhone() : user.getPhone(),
                 profile.getAvatarUrl()
         );
     }
@@ -143,6 +148,35 @@ public class UserService {
 
         targetUser.setDeleted(true);
         userRepository.save(targetUser);
+    }
+
+    @Transactional
+    public void hardDeleteUser(User currentUser, Long targetUserId) {
+        if (!currentUser.getRole().equals(UserRole.ADMIN)) {
+            throw new org.springframework.security.access.AccessDeniedException("error.user.denied_delete");
+        }
+        if (currentUser.getId().equals(targetUserId)) {
+            throw new IllegalArgumentException("Không thể tự xóa chính mình bằng quyền Admin");
+        }
+        User targetUser = userRepository.findByIdIncludingDeleted(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
+        
+        Long uId = targetUser.getId();
+
+        // 1. Dọn dẹp dữ liệu ràng buộc
+        entityManager.createQuery("DELETE FROM Notification n WHERE n.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM Address a WHERE a.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM RefreshToken r WHERE r.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM EmailVerificationToken e WHERE e.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM PasswordResetToken p WHERE p.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM UserAuditLog u WHERE u.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM LoginLog l WHERE l.user.id = :uid").setParameter("uid", uId).executeUpdate();
+
+        // 2. Xóa profile tham chiếu
+        userProfileRepository.findByUser(targetUser).ifPresent(p -> userProfileRepository.delete(p));
+        
+        // 3. Cuối cùng xoá User
+        userRepository.delete(targetUser);
     }
 
     @Transactional
