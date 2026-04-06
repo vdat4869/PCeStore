@@ -46,6 +46,11 @@ public class Shipping {
     public Shipping() {
     }
 
+    /**
+     * Constructor internally used by the manual builder pattern.
+     * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
+     */
+    @SuppressWarnings("java:S107")
     public Shipping(Long id, Order order, String deliveryAddress, BigDecimal shippingCost, ShippingStatus status, String trackingCode, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.order = order;

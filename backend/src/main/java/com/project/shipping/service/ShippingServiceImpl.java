@@ -1,7 +1,6 @@
 package com.project.shipping.service;
 
 import com.project.order.entity.Order;
-import com.project.order.repository.OrderRepository;
 import com.project.shipping.entity.Shipping;
 import com.project.shipping.entity.ShippingStatus;
 import com.project.shipping.repository.ShippingRepository;
@@ -14,11 +13,9 @@ import java.math.BigDecimal;
 public class ShippingServiceImpl implements ShippingService {
 
     private final ShippingRepository shippingRepository;
-    private final OrderRepository orderRepository;
 
-    public ShippingServiceImpl(ShippingRepository shippingRepository, OrderRepository orderRepository) {
+    public ShippingServiceImpl(ShippingRepository shippingRepository) {
         this.shippingRepository = shippingRepository;
-        this.orderRepository = orderRepository;
     }
 
     @Override
@@ -37,20 +34,17 @@ public class ShippingServiceImpl implements ShippingService {
         BigDecimal cost = calculateShippingCost(deliveryAddress);
         String tCode = "VN-" + System.currentTimeMillis();
 
-        Shipping shipping = Shipping.builder()
+        return Shipping.builder()
                 .order(order)
                 .deliveryAddress(deliveryAddress)
                 .shippingCost(cost)
                 .status(ShippingStatus.PENDING)
                 .trackingCode(tCode)
                 .build();
-        
-        return shipping;
     }
 
     @Override
     public Shipping trackShipping(Long orderId) {
-        // Find by logic could be implemented if necessary
-        return null;
+        return shippingRepository.findByOrderId(orderId).orElse(null);
     }
 }

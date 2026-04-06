@@ -16,6 +16,11 @@ public class ReviewResponse {
     public ReviewResponse() {
     }
 
+    /**
+     * Constructor internally used by the manual builder pattern.
+     * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
+     */
+    @SuppressWarnings("java:S107")
     public ReviewResponse(Long id, Integer rating, String comment, Long productId, Long userId, String userFullName, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.rating = rating;
