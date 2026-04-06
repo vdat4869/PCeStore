@@ -66,7 +66,7 @@ public class GlobalExceptionHandler {
             translatedMessage = translate(messageKey);
         }
 
-        return new ResponseEntity<>(translatedMessage, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(translatedMessage, HttpStatus.UNAUTHORIZED);
     }
 
     // Bắt các RuntimeException tùy chỉnh khác

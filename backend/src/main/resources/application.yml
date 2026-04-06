@@ -36,6 +36,14 @@ spring:
           starttls:
             enable: true
 
+  # Cấu hình Cache cho Rate Limiting
+  cache:
+    type: caffeine
+    cache-names:
+      - login_buckets
+    caffeine:
+      spec: expireAfterWrite=1h,maximumSize=10000
+
 # Cấu hình JWT cho Token từ file .env
 application:
   security:
@@ -59,3 +67,18 @@ custom:
 sepay:
   merchant-id: ${SEPAY_MERCHANT_ID:sandbox_merchant}
   secret-key: ${SEPAY_SECRET_KEY:sandbox_secret}
+
+# --- Cấu hình Rate Limiting ---
+bucket4j:
+  enabled: true
+  filters:
+    - cache-name: login_buckets
+      url: /api/auth/login
+      http-response-body: "{\"error\": \"Too Many Requests\", \"message\": \"Quá nhiều yêu cầu đăng nhập. Vui lòng thử lại sau 1 phút.\"}"
+      rate-limits:
+        - bandwidths:
+            - capacity: 5
+              time: 1
+              unit: minutes
+
+
