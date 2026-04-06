@@ -15,6 +15,7 @@ import java.util.Optional;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+    @Override
     @EntityGraph(attributePaths = {"category", "inventory"})
     @NonNull
     Page<Product> findAll(@NonNull Pageable pageable);

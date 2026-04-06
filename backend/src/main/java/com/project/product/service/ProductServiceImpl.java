@@ -16,6 +16,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private static final String PRODUCT_NOT_FOUND_MSG = "Product not found with id: ";
 
     public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
@@ -65,7 +66,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + id));
         return mapToResponse(product);
     }
 
@@ -77,7 +78,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + request.getCategoryId()));
 
         // Khởi tạo đối tượng Product (không còn trường stock trực tiếp)
         Product product = Product.builder()
@@ -90,9 +91,13 @@ public class ProductServiceImpl implements ProductService {
                 .build();
 
         // Tạo bản ghi Inventory tương ứng và liên kết với Product
+        Integer initialStock = 0;
+        if (request.getStock() != null) {
+            initialStock = request.getStock();
+        }
         com.project.inventory.entity.Inventory inventory = com.project.inventory.entity.Inventory.builder()
                 .product(product)
-                .quantity(request.getStock() != null ? request.getStock() : 0)
+                .quantity(initialStock)
                 .reserved(0)
                 .build();
         
@@ -110,10 +115,10 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + id));
 
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found with id: " + request.getCategoryId()));
+                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + request.getCategoryId()));
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -139,7 +144,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + id));
         
         // Đánh dấu xóa mềm cho sản phẩm
         product.setDeleted(true);
@@ -159,7 +164,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void restoreProduct(Long id) {
         Product product = productRepository.findByIdIncludingDeleted(id)
-                .orElseThrow(() -> new RuntimeException("Product not found (including deleted) with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + "(including deleted) with id: " + id));
 
         product.setDeleted(false);
         
@@ -176,7 +181,10 @@ public class ProductServiceImpl implements ProductService {
      */
     private ProductResponse mapToResponse(Product product) {
         // Lấy số lượng từ Inventory liên kết (nếu có)
-        Integer currentStock = (product.getInventory() != null) ? product.getInventory().getQuantity() : 0;
+        Integer currentStock = 0;
+        if (product.getInventory() != null) {
+            currentStock = product.getInventory().getQuantity();
+        }
 
         return ProductResponse.builder()
                 .id(product.getId())
