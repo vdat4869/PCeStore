@@ -44,27 +44,30 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì sử dụng token stateless
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(customAuthenticationEntryPoint) // Bắn lỗi 401 khi rớt phân quyền
-                )
-                .authorizeHttpRequests(authz -> authz
-                        // Cho phép tất cả thực hiện đăng nhập, đăng ký mà không yêu cầu token
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Cho phép xem sản phẩm, category dưới tư cách khách hoăc User
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
-                        // Cho phép Swagger UI và API Docs công khai để kiểm thử
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        // Mọi Request còn lại cần xác thực
-                        .anyRequest().authenticated())
-                .sessionManagement(session -> session
-                        // Stateless: Không lưu trạng thái xác thực trên session server (dùng hoàn toàn
-                        // cho JWT)
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider())
-                // Kích hoạt JWT filter ưu tiên trước UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(AbstractHttpConfigurer::disable) // Tắt CSRF vì sử dụng token stateless
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(customAuthenticationEntryPoint) // Bắn lỗi 401 khi rớt phân quyền
+            )
+            .authorizeHttpRequests(authz -> authz
+                // Cho phép tất cả thực hiện đăng nhập, đăng ký mà không yêu cầu token
+                .requestMatchers("/api/auth/**").permitAll()
+                // Public API Payment và Order
+                .requestMatchers("/api/v1/payments/**", "/api/v1/orders/**", "/error").permitAll()
+                // Cho phép xem sản phẩm, category dưới tư cách khách hoăc User
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
+                // Cho phép Swagger UI và API Docs công khai để kiểm thử
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // Mọi Request còn lại cần xác thực
+                .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session
+                // Stateless: Không lưu trạng thái xác thực trên session server (dùng hoàn toàn cho JWT)
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authenticationProvider(authenticationProvider())
+            // Kích hoạt JWT filter ưu tiên trước UsernamePasswordAuthenticationFilter
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
