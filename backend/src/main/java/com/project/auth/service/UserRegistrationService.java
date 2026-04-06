@@ -27,15 +27,18 @@ public class UserRegistrationService {
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationTokenRepository emailTokenRepository;
     private final NotificationService notificationService;
+    private final com.project.common.service.SystemAlertService alertService;
 
     public UserRegistrationService(UserRepository userRepository, 
                                    PasswordEncoder passwordEncoder, 
                                    EmailVerificationTokenRepository emailTokenRepository, 
-                                   NotificationService notificationService) {
+                                   NotificationService notificationService,
+                                   com.project.common.service.SystemAlertService alertService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailTokenRepository = emailTokenRepository;
         this.notificationService = notificationService;
+        this.alertService = alertService;
     }
 
     @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
@@ -61,7 +64,23 @@ public class UserRegistrationService {
         emailTokenRepository.save(verificationToken);
 
         // Ghi nhận và Gửi thư
-        notificationService.sendVerification(user, token, LocaleContextHolder.getLocale());
+        try {
+            notificationService.sendVerification(user, token, LocaleContextHolder.getLocale());
+        } catch (Exception e) {
+            // Fallback ngay lập tức nếu notificationService ném lỗi đồng bộ (hiếm gặp vì gửi mail là Async)
+            alertService.createAlert("AUTH", com.project.common.entity.SystemLogSeverity.WARNING, 
+                "Đăng ký thành công nhưng gửi mail xác nhận thất bại (Đồng bộ): " + user.getEmail(), e);
+        }
+    }
+
+    /**
+     * Fallback cho phương thức register khi Retry thất bại 3 lần.
+     */
+    @org.springframework.retry.annotation.Recover
+    public void recoverRegister(Exception e, RegisterRequest request) {
+        alertService.createAlert("AUTH", com.project.common.entity.SystemLogSeverity.ERROR, 
+            "Lỗi nghiêm trọng khi Đăng ký người dùng (Retry Exhausted): " + request.getEmail(), e);
+        // Lưu ý: Không ném lại exception để tránh Rollback User đã được lưu (nếu đã lưu thành công trước đó)
     }
 
     @Transactional
@@ -96,7 +115,18 @@ public class UserRegistrationService {
         EmailVerificationToken verificationToken = new EmailVerificationToken(user, token, LocalDateTime.now().plusHours(24));
         emailTokenRepository.save(verificationToken);
 
-        notificationService.sendVerification(user, token, LocaleContextHolder.getLocale());
+        try {
+            notificationService.sendVerification(user, token, LocaleContextHolder.getLocale());
+        } catch (Exception e) {
+            alertService.createAlert("AUTH", com.project.common.entity.SystemLogSeverity.WARNING, 
+                "Gửi lại mail xác nhận thất bại: " + user.getEmail(), e);
+        }
+    }
+
+    @org.springframework.retry.annotation.Recover
+    public void recoverResend(Exception e, String email) {
+        alertService.createAlert("AUTH", com.project.common.entity.SystemLogSeverity.ERROR, 
+            "Cạn kiệt lần thử lại khi gửi lại mail xác nhận: " + email, e);
     }
 
     @Transactional

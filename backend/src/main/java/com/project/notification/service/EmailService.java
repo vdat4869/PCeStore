@@ -40,11 +40,13 @@ public class EmailService {
     private final Map<String, String> emailTemplates = new HashMap<>();
     private final MessageSource messageSource;
     private final NotificationService notificationService;
+    private final com.project.common.service.SystemAlertService alertService;
 
-    public EmailService(JavaMailSender mailSender, MessageSource messageSource, @Lazy NotificationService notificationService) {
+    public EmailService(JavaMailSender mailSender, MessageSource messageSource, @Lazy NotificationService notificationService, com.project.common.service.SystemAlertService alertService) {
         this.mailSender = mailSender;
         this.messageSource = messageSource;
         this.notificationService = notificationService;
+        this.alertService = alertService;
     }
 
     @PostConstruct
@@ -113,6 +115,8 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_verify", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
+        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+            "Gửi mail xác thực thất bại hoàn toàn sau 3 lần thử: " + toEmail, e);
     }
 
     @Async
@@ -139,6 +143,8 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_pwd_reset", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
+        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+            "Gửi mail reset mật khẩu thất bại hoàn toàn sau 3 lần thử: " + toEmail, e);
     }
 
     @Async
@@ -165,6 +171,8 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_order_confirm", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
+        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+            "Gửi mail xác nhận đơn hàng thất bại: " + orderId + " (Notif: " + notifId + ")", e);
     }
 
     @Async
@@ -191,6 +199,8 @@ public class EmailService {
         String logMsg = messageSource.getMessage("notification.error.exhausted_order_status", new Object[]{notifId}, locale);
         logger.error(logMsg);
         notificationService.markAsFailed(notifId);
+        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+            "Gửi mail cập nhật trạng thái đơn hàng thất bại: " + orderId + " (Status: " + orderStatus + ")", e);
     }
 
     public void sendRawEmailSync(String toEmail, String subject, String htmlContent) {

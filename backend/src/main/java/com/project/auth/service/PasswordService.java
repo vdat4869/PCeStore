@@ -21,15 +21,18 @@ public class PasswordService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final NotificationService notificationService;
+    private final com.project.common.service.SystemAlertService alertService;
 
     public PasswordService(UserRepository userRepository, 
-                           PasswordEncoder passwordEncoder, 
                            PasswordResetTokenRepository passwordResetTokenRepository, 
-                           NotificationService notificationService) {
+                           NotificationService notificationService, 
+                           PasswordEncoder passwordEncoder,
+                           com.project.common.service.SystemAlertService alertService) {
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.notificationService = notificationService;
+        this.passwordEncoder = passwordEncoder;
+        this.alertService = alertService;
     }
 
     @Transactional
@@ -43,7 +46,18 @@ public class PasswordService {
         PasswordResetToken resetToken = new PasswordResetToken(user, token, LocalDateTime.now().plusMinutes(15));
         passwordResetTokenRepository.save(resetToken);
 
-        notificationService.sendPasswordReset(user, token, LocaleContextHolder.getLocale());
+        try {
+            notificationService.sendPasswordReset(user, token, LocaleContextHolder.getLocale());
+        } catch (Exception e) {
+            alertService.createAlert("AUTH", com.project.common.entity.SystemLogSeverity.WARNING, 
+                "Tạo token reset mật khẩu thành công nhưng gửi mail thất bại: " + user.getEmail(), e);
+        }
+    }
+
+    @org.springframework.retry.annotation.Recover
+    public void recoverForgot(Exception e, String email) {
+        alertService.createAlert("AUTH", com.project.common.entity.SystemLogSeverity.ERROR, 
+            "Lỗi nghiêm trọng khi Quên mật khẩu (Retry Exhausted): " + email, e);
     }
 
     @Transactional
