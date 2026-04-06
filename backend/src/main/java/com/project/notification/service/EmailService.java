@@ -37,76 +37,50 @@ public class EmailService {
     @Value("${custom.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    private final Map<String, String> emailTemplates = new HashMap<>();
     private final MessageSource messageSource;
     private final NotificationService notificationService;
     private final com.project.common.service.SystemAlertService alertService;
+    private final com.project.notification.repository.EmailTemplateRepository templateRepository;
 
-    public EmailService(JavaMailSender mailSender, MessageSource messageSource, @Lazy NotificationService notificationService, com.project.common.service.SystemAlertService alertService) {
+    public EmailService(JavaMailSender mailSender, MessageSource messageSource, @Lazy NotificationService notificationService, com.project.common.service.SystemAlertService alertService, com.project.notification.repository.EmailTemplateRepository templateRepository) {
         this.mailSender = mailSender;
         this.messageSource = messageSource;
         this.notificationService = notificationService;
         this.alertService = alertService;
+        this.templateRepository = templateRepository;
     }
 
-    @PostConstruct
-    public void initTemplates() {
-        try {
-            emailTemplates.put("verify-email-vi",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/verify-email-vi.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("verify-email-en",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/verify-email-en.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("reset-password-vi",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/reset-password-vi.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("reset-password-en",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/reset-password-en.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("order-confirm-vi",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/order-confirm-vi.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("order-confirm-en",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/order-confirm-en.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("order-status-vi",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/order-status-vi.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("order-status-en",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/order-status-en.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("email-change-vi",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/email-change-vi.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            emailTemplates.put("email-change-en",
-                    StreamUtils.copyToString(
-                            new ClassPathResource("templates/email/email-change-en.html").getInputStream(),
-                            StandardCharsets.UTF_8));
-            logger.info("Email templates loaded successfully into RAM cache.");
-        } catch (java.io.IOException e) {
-            throw new IllegalStateException("Mất file HTML Email! Dừng hệ thống.", e);
-        }
+    @org.springframework.cache.annotation.Cacheable(value = "emailTemplates", key = "#type + '-' + #locale")
+    public com.project.notification.entity.EmailTemplate getTemplate(com.project.notification.entity.NotificationType type, String locale) {
+        return templateRepository.findByTypeAndLocale(type, locale)
+                .orElseGet(() -> templateRepository.findByTypeAndLocale(type, "en")
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy mẫu Email cho loại: " + type)));
+    }
+
+    public java.util.List<com.project.notification.entity.EmailTemplate> getAllTemplates() {
+        return templateRepository.findAll();
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = "emailTemplates", allEntries = true)
+    public void updateTemplate(com.project.notification.dto.EmailTemplateRequest request) {
+        com.project.notification.entity.EmailTemplate template = templateRepository.findByTypeAndLocale(request.getType(), request.getLocale())
+                .orElse(new com.project.notification.entity.EmailTemplate(request.getType(), request.getLocale(), request.getSubject(), request.getContent()));
+        
+        template.setSubject(request.getSubject());
+        template.setContent(request.getContent());
+        templateRepository.save(template);
+        logger.info("[NOTIFICATION] Đã cập nhật mẫu Email: {} - {}", request.getType(), request.getLocale());
     }
 
     @Async
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendVerificationEmail(String toEmail, String token, Locale locale, Long notifId) {
         try {
-            String subject = messageSource.getMessage("email.subject.verify", null, locale);
+            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.EMAIL_VERIFICATION, locale.getLanguage());
+            String subject = template.getSubject();
             String link = frontendUrl + "/verify-email?token=" + token;
-            
-            String key = "verify-email-" + locale.getLanguage();
-            String html = emailTemplates.getOrDefault(key, emailTemplates.get("verify-email-en"))
+            String html = template.getContent()
                     .replace("{{link}}", link)
                     .replace("{{token}}", token);
 
@@ -131,11 +105,10 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendPasswordResetEmail(String toEmail, String token, Locale locale, Long notifId) {
         try {
-            String subject = messageSource.getMessage("email.subject.pwd_reset", null, locale);
+            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.PASSWORD_RESET, locale.getLanguage());
+            String subject = template.getSubject();
             String link = frontendUrl + "/reset-password?token=" + token;
-            
-            String key = "reset-password-" + locale.getLanguage();
-            String html = emailTemplates.getOrDefault(key, emailTemplates.get("reset-password-en"))
+            String html = template.getContent()
                     .replace("{{link}}", link);
 
             sendHtmlMail(toEmail, subject, html);
@@ -159,9 +132,9 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendOrderConfirmationEmail(String toEmail, String username, String orderId, String totalAmount, Locale locale, Long notifId) {
         try {
-            String subject = messageSource.getMessage("email.subject.order_confirm", new Object[]{orderId}, locale);
-            String key = "order-confirm-" + locale.getLanguage();
-            String html = emailTemplates.getOrDefault(key, emailTemplates.get("order-confirm-en"))
+            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.ORDER_CONFIRMATION, locale.getLanguage());
+            String subject = template.getSubject().replace("{{orderId}}", orderId);
+            String html = template.getContent()
                     .replace("{{username}}", username)
                     .replace("{{orderId}}", orderId)
                     .replace("{{totalAmount}}", totalAmount);
@@ -187,9 +160,9 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendOrderStatusUpdateEmail(String toEmail, String username, String orderId, String orderStatus, Locale locale, Long notifId) {
         try {
-            String subject = messageSource.getMessage("email.subject.order_status", new Object[]{orderId}, locale);
-            String key = "order-status-" + locale.getLanguage();
-            String html = emailTemplates.getOrDefault(key, emailTemplates.get("order-status-en"))
+            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.ORDER_STATUS_UPDATE, locale.getLanguage());
+            String subject = template.getSubject().replace("{{orderId}}", orderId);
+            String html = template.getContent()
                     .replace("{{username}}", username)
                     .replace("{{orderId}}", orderId)
                     .replace("{{orderStatus}}", orderStatus);
@@ -215,11 +188,10 @@ public class EmailService {
     @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public void sendEmailChangeEmail(String toEmail, String token, Locale locale, Long notifId) {
         try {
-            String subject = messageSource.getMessage("email.subject.email_change", null, locale);
+            com.project.notification.entity.EmailTemplate template = getTemplate(com.project.notification.entity.NotificationType.EMAIL_CHANGE, locale.getLanguage());
+            String subject = template.getSubject();
             String link = frontendUrl + "/confirm-email-change?token=" + token;
-            
-            String key = "email-change-" + locale.getLanguage();
-            String html = emailTemplates.getOrDefault(key, emailTemplates.get("email-change-en"))
+            String html = template.getContent()
                     .replace("{{link}}", link)
                     .replace("{{token}}", token);
 
