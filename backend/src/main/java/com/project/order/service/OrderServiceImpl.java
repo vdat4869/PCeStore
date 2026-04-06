@@ -24,6 +24,8 @@ public class OrderServiceImpl implements OrderService {
     private final ShippingService shippingService;
     private final com.project.payment.repository.PaymentRepository paymentRepository;
 
+    private static final String ORDER_NOT_FOUND_MSG = "Order not found with id: ";
+
     public OrderServiceImpl(OrderRepository orderRepository, 
                             ProductRepository productRepository, 
                             ShippingService shippingService, 
@@ -48,10 +50,10 @@ public class OrderServiceImpl implements OrderService {
 
         for (OrderItemRequestDTO itemDto : requestDTO.getItems()) {
             Product product = productRepository.findById(itemDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found"));
 
             if (product.getInventory() == null || product.getInventory().getQuantity() < itemDto.getQuantity()) {
-                throw new RuntimeException("Not enough stock for product: " + product.getName());
+                throw new IllegalStateException("Not enough stock for product: " + product.getName());
             }
 
             // Deduct stock
@@ -80,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new IllegalArgumentException(ORDER_NOT_FOUND_MSG + id));
     }
 
     @Override
@@ -104,7 +106,7 @@ public class OrderServiceImpl implements OrderService {
     public void cancelOrder(Long orderId) {
         Order order = getOrderById(orderId);
         if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.COMPLETED) {
-            throw new RuntimeException("Cannot cancel order in status: " + order.getStatus());
+            throw new IllegalStateException("Cannot cancel order in status: " + order.getStatus());
         }
         
         // Restore stock
@@ -124,7 +126,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void deleteOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+                .orElseThrow(() -> new IllegalArgumentException(ORDER_NOT_FOUND_MSG + orderId));
         
         order.setDeleted(true);
         // Soft delete items as well
@@ -137,7 +139,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void restoreOrder(Long orderId) {
         Order order = orderRepository.findByIdIncludingDeleted(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+                .orElseThrow(() -> new IllegalArgumentException(ORDER_NOT_FOUND_MSG + orderId));
         
         order.setDeleted(false);
         order.getOrderItems().forEach(item -> item.setDeleted(false));
@@ -150,7 +152,7 @@ public class OrderServiceImpl implements OrderService {
     public void deleteAllOrders(Long userId) {
         List<Order> orders = orderRepository.findByUserId(userId);
         for (Order o : orders) {
-            paymentRepository.findByOrderId(o.getId()).ifPresent(p -> paymentRepository.delete(p));
+            paymentRepository.findByOrderId(o.getId()).ifPresent(paymentRepository::delete);
         }
         orderRepository.deleteAll(orders);
     }

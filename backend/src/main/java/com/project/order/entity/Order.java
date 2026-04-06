@@ -43,6 +43,11 @@ public class Order extends BaseEntity {
     public Order() {
     }
 
+    /**
+     * Constructor internally used by the manual builder pattern.
+     * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
+     */
+    @SuppressWarnings("java:S107")
     public Order(Long id, Long userId, OrderStatus status, BigDecimal totalAmount, String shippingAddress, LocalDateTime orderDate, List<OrderItem> orderItems, com.project.shipping.entity.Shipping shipping) {
         this.id = id;
         this.userId = userId;

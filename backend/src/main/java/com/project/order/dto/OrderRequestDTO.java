@@ -9,6 +9,7 @@ public class OrderRequestDTO {
     private List<OrderItemRequestDTO> items;
 
     public OrderRequestDTO() {
+        // Required for JSON deserialization
     }
 
     public Long getUserId() {

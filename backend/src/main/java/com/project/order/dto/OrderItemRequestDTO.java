@@ -5,6 +5,7 @@ public class OrderItemRequestDTO {
     private Integer quantity;
 
     public OrderItemRequestDTO() {
+        // Required for JSON deserialization
     }
 
     public Long getProductId() {
