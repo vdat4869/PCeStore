@@ -14,6 +14,7 @@ public class SePayIpnRequest {
     private TransactionData transaction;
 
     public SePayIpnRequest() {
+        // Required for JSON deserialization
     }
 
     public long getTimestamp() {
@@ -70,6 +71,7 @@ public class SePayIpnRequest {
         private String orderDescription;
 
         public OrderData() {
+            // Required for JSON deserialization
         }
 
         public String getId() {
@@ -148,6 +150,7 @@ public class SePayIpnRequest {
         private String transactionCurrency;
 
         public TransactionData() {
+            // Required for JSON deserialization
         }
 
         public String getId() {

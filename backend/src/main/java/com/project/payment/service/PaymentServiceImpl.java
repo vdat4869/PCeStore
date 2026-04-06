@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +26,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderService orderService;
+    private static final String PAYMENT_NOT_FOUND_MSG = "Payment not found";
 
     @Autowired
     public PaymentServiceImpl(PaymentRepository paymentRepository, @Lazy OrderService orderService) {
@@ -56,29 +56,29 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     public Payment processPayment(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
-        
+                .orElseThrow(() -> new IllegalArgumentException(PAYMENT_NOT_FOUND_MSG));
+
         // Mock processing logic (as required for Mock payment)
         payment.setStatus(PaymentStatus.COMPLETED);
         payment.setTransactionId(UUID.randomUUID().toString());
         payment.setPaymentDate(LocalDateTime.now());
-        
+
         orderService.updateOrderStatus(payment.getOrderId(), OrderStatus.PAID);
-        
+
         return paymentRepository.save(payment);
     }
 
     @Override
     public Payment getPaymentByOrderId(Long orderId) {
         return paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Payment not found for Order ID: " + orderId));
+                .orElseThrow(() -> new IllegalArgumentException(PAYMENT_NOT_FOUND_MSG + " for Order ID: " + orderId));
     }
 
     @Override
     @Transactional
     public Payment updatePaymentStatus(Long paymentId, PaymentStatus status, String transactionId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+                .orElseThrow(() -> new IllegalArgumentException(PAYMENT_NOT_FOUND_MSG));
         payment.setStatus(status);
         if (transactionId != null) {
             payment.setTransactionId(transactionId);
@@ -92,7 +92,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Map<String, String> initiateSePayCheckout(Long paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+                .orElseThrow(() -> new IllegalArgumentException(PAYMENT_NOT_FOUND_MSG));
 
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("merchant", merchantId);
@@ -102,7 +102,7 @@ public class PaymentServiceImpl implements PaymentService {
         fields.put("currency", "VND"); // Default to VND for SePay
         fields.put("order_invoice_number", "INV-" + payment.getOrderId());
         fields.put("order_description", "Thanh toan don hang D" + payment.getOrderId());
-        
+
         // Cấu hình các URL về thẳng Frontend React (localhost:5173) để render UI xịn xò
         fields.put("success_url", "http://localhost:5173/?status=success");
         fields.put("error_url", "http://localhost:5173/?status=error");
@@ -120,17 +120,17 @@ public class PaymentServiceImpl implements PaymentService {
         if ("ORDER_PAID".equals(request.getNotificationType()) && request.getOrder() != null) {
             String invoiceNumber = request.getOrder().getOrderInvoiceNumber();
             if (invoiceNumber != null && invoiceNumber.startsWith("INV-")) {
-                Long orderId = Long.parseLong(invoiceNumber.replace("INV-", ""));
-                
+                Long orderId = Long.valueOf(invoiceNumber.substring(4));
+
                 paymentRepository.findByOrderId(orderId).ifPresent(payment -> {
                     payment.setStatus(PaymentStatus.COMPLETED);
-                    
+
                     if (request.getTransaction() != null) {
                         payment.setTransactionId(request.getTransaction().getTransactionId());
                     }
                     payment.setPaymentDate(LocalDateTime.now());
                     paymentRepository.save(payment);
-                    
+
                     orderService.updateOrderStatus(orderId, OrderStatus.PAID);
                 });
             }
