@@ -1,6 +1,5 @@
 package com.project.auth.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.Cache;
 import org.springframework.stereotype.Service;
@@ -12,11 +11,14 @@ import java.util.Objects;
  * Sử dụng Caffeine Cache thay vì Redis theo yêu cầu không dùng Docker.
  */
 @Service
-@RequiredArgsConstructor
 public class JwtBlacklistService {
 
     private final CacheManager cacheManager;
     private static final String CACHE_NAME = "jwtBlacklist";
+
+    public JwtBlacklistService(CacheManager cacheManager) {
+        this.cacheManager = cacheManager;
+    }
 
     /**
      * Vô hiệu hoá một JWT (khi phát hiện xâm nhập hoặc logout).

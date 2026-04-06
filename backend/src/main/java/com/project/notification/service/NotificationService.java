@@ -14,9 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.MessageSource;
 import com.project.notification.repository.NotificationPreferenceRepository;
 import com.project.auth.repository.UserRepository;
-import com.project.notification.dto.NotificationPreferenceRequest;
-import com.project.notification.entity.NotificationPreference;
-import java.util.Locale;
 
 import java.time.LocalDateTime;
 import java.util.List;

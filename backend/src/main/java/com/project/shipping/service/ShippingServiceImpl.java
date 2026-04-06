@@ -1,20 +1,25 @@
 package com.project.shipping.service;
 
 import com.project.order.entity.Order;
+import com.project.order.repository.OrderRepository;
 import com.project.shipping.entity.Shipping;
 import com.project.shipping.entity.ShippingStatus;
 import com.project.shipping.repository.ShippingRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
 @Service
-@RequiredArgsConstructor
 public class ShippingServiceImpl implements ShippingService {
 
     private final ShippingRepository shippingRepository;
+    private final OrderRepository orderRepository;
+
+    public ShippingServiceImpl(ShippingRepository shippingRepository, OrderRepository orderRepository) {
+        this.shippingRepository = shippingRepository;
+        this.orderRepository = orderRepository;
+    }
 
     @Override
     public BigDecimal calculateShippingCost(String address) {

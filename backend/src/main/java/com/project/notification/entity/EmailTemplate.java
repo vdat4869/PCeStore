@@ -2,15 +2,11 @@ package com.project.notification.entity;
 
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(name = "email_templates", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"type", "locale"})
 })
-@Getter
-@Setter
 public class EmailTemplate extends BaseEntity {
 
     @Id
@@ -36,6 +32,46 @@ public class EmailTemplate extends BaseEntity {
         this.type = type;
         this.locale = locale;
         this.subject = subject;
+        this.content = content;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public NotificationType getType() {
+        return type;
+    }
+
+    public void setType(NotificationType type) {
+        this.type = type;
+    }
+
+    public String getLocale() {
+        return locale;
+    }
+
+    public void setLocale(String locale) {
+        this.locale = locale;
+    }
+
+    public String getSubject() {
+        return subject;
+    }
+
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
         this.content = content;
     }
 }

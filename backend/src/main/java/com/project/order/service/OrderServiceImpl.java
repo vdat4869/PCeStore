@@ -10,7 +10,6 @@ import com.project.product.entity.Product;
 import com.project.product.repository.ProductRepository;
 import com.project.shipping.service.ShippingService;
 import com.project.shipping.entity.Shipping;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
@@ -18,13 +17,22 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final ShippingService shippingService;
     private final com.project.payment.repository.PaymentRepository paymentRepository;
+
+    public OrderServiceImpl(OrderRepository orderRepository, 
+                            ProductRepository productRepository, 
+                            ShippingService shippingService, 
+                            com.project.payment.repository.PaymentRepository paymentRepository) {
+        this.orderRepository = orderRepository;
+        this.productRepository = productRepository;
+        this.shippingService = shippingService;
+        this.paymentRepository = paymentRepository;
+    }
 
     @Override
     @Transactional

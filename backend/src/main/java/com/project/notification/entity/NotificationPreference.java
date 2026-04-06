@@ -3,15 +3,11 @@ package com.project.notification.entity;
 import com.project.auth.entity.User;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(name = "notification_preferences", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"user_id", "type"})
 })
-@Getter
-@Setter
 public class NotificationPreference extends BaseEntity {
 
     @Id
@@ -36,5 +32,37 @@ public class NotificationPreference extends BaseEntity {
         this.user = user;
         this.type = type;
         this.isEnabled = isEnabled;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public NotificationType getType() {
+        return type;
+    }
+
+    public void setType(NotificationType type) {
+        this.type = type;
+    }
+
+    public boolean isEnabled() {
+        return isEnabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        isEnabled = enabled;
     }
 }

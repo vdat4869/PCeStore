@@ -3,16 +3,12 @@ package com.project.user.entity;
 import com.project.auth.entity.User;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(name = "user_audit_logs", indexes = {
     @Index(name = "idx_audit_user", columnList = "user_id"),
     @Index(name = "idx_audit_action", columnList = "action")
 })
-@Getter
-@Setter
 public class UserAuditLog extends BaseEntity {
 
     @Id
@@ -40,6 +36,46 @@ public class UserAuditLog extends BaseEntity {
         this.user = user;
         this.action = action;
         this.details = details;
+        this.ipAddress = ipAddress;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public UserAction getAction() {
+        return action;
+    }
+
+    public void setAction(UserAction action) {
+        this.action = action;
+    }
+
+    public String getDetails() {
+        return details;
+    }
+
+    public void setDetails(String details) {
+        this.details = details;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
     }
 }

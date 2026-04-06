@@ -3,14 +3,10 @@ package com.project.user.entity;
 import com.project.auth.entity.User;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "email_change_tokens")
-@Getter
-@Setter
 public class EmailChangeToken extends BaseEntity {
 
     @Id
@@ -37,6 +33,46 @@ public class EmailChangeToken extends BaseEntity {
         this.user = user;
         this.newEmail = newEmail;
         this.token = token;
+        this.expiryDate = expiryDate;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getNewEmail() {
+        return newEmail;
+    }
+
+    public void setNewEmail(String newEmail) {
+        this.newEmail = newEmail;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public LocalDateTime getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDateTime expiryDate) {
         this.expiryDate = expiryDate;
     }
 }

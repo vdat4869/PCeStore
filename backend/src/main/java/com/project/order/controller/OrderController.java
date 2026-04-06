@@ -5,7 +5,6 @@ import com.project.order.entity.Order;
 import com.project.order.service.OrderService;
 import com.project.payment.entity.Payment;
 import com.project.payment.service.PaymentService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,12 +15,17 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/v1/orders")
-@RequiredArgsConstructor
 public class OrderController {
 
     private final OrderService orderService;
     private final PaymentService paymentService;
     private final com.project.shipping.repository.ShippingRepository shippingRepository;
+
+    public OrderController(OrderService orderService, PaymentService paymentService, com.project.shipping.repository.ShippingRepository shippingRepository) {
+        this.orderService = orderService;
+        this.paymentService = paymentService;
+        this.shippingRepository = shippingRepository;
+    }
 
     @PostMapping("/create")
     public ResponseEntity<Map<String, Object>> createOrder(@RequestBody OrderRequestDTO requestDTO) {
