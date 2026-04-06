@@ -28,8 +28,8 @@ public class FileStorageService {
         try {
             Files.createDirectories(this.avatarStorageLocation);
             logger.info("Avatar storage directory initialized at: {}", this.avatarStorageLocation);
-        } catch (Exception ex) {
-            throw new RuntimeException("Không thể tạo thư mục lưu trữ ảnh đại diện.", ex);
+        } catch (IOException ex) {
+            throw new IllegalStateException("Không thể tạo thư mục lưu trữ ảnh đại diện.", ex);
         }
     }
 
@@ -55,7 +55,7 @@ public class FileStorageService {
         try {
             // Kiểm tra tệp tin có hợp lệ không
             if (fileName.contains("..")) {
-                throw new RuntimeException("Tên tệp tin không hợp lệ: " + fileName);
+                throw new IllegalArgumentException("Tên tệp tin không hợp lệ: " + fileName);
             }
 
             // Sao chép tệp tin vào thư mục mục tiêu
@@ -64,7 +64,7 @@ public class FileStorageService {
 
             return fileName;
         } catch (IOException ex) {
-            throw new RuntimeException("Không thể lưu trữ tệp tin " + fileName + ". Vui lòng thử lại!", ex);
+            throw new IllegalStateException("Không thể lưu trữ tệp tin " + fileName + ". Vui lòng thử lại!", ex);
         }
     }
 
