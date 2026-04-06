@@ -84,6 +84,14 @@ public class EmailService {
                     StreamUtils.copyToString(
                             new ClassPathResource("templates/email/order-status-en.html").getInputStream(),
                             StandardCharsets.UTF_8));
+            emailTemplates.put("email-change-vi",
+                    StreamUtils.copyToString(
+                            new ClassPathResource("templates/email/email-change-vi.html").getInputStream(),
+                            StandardCharsets.UTF_8));
+            emailTemplates.put("email-change-en",
+                    StreamUtils.copyToString(
+                            new ClassPathResource("templates/email/email-change-en.html").getInputStream(),
+                            StandardCharsets.UTF_8));
             logger.info("Email templates loaded successfully into RAM cache.");
         } catch (java.io.IOException e) {
             throw new IllegalStateException("Mất file HTML Email! Dừng hệ thống.", e);
@@ -201,6 +209,34 @@ public class EmailService {
         notificationService.markAsFailed(notifId);
         alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
             "Gửi mail cập nhật trạng thái đơn hàng thất bại: " + orderId + " (Status: " + orderStatus + ")", e);
+    }
+
+    @Async
+    @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    public void sendEmailChangeEmail(String toEmail, String token, Locale locale, Long notifId) {
+        try {
+            String subject = messageSource.getMessage("email.subject.email_change", null, locale);
+            String link = frontendUrl + "/confirm-email-change?token=" + token;
+            
+            String key = "email-change-" + locale.getLanguage();
+            String html = emailTemplates.getOrDefault(key, emailTemplates.get("email-change-en"))
+                    .replace("{{link}}", link)
+                    .replace("{{token}}", token);
+
+            sendHtmlMail(toEmail, subject, html);
+            notificationService.markAsSent(notifId);
+        } catch (MailException | MessagingException | org.springframework.context.NoSuchMessageException e) {
+            String msg = "Lỗi gửi mail xác nhận đổi Email (Notif: " + notifId + ")";
+            throw new NotificationException(msg, e);
+        }
+    }
+
+    @Recover
+    public void recoverEmailChangeEmail(NotificationException e, String toEmail, String token, Locale locale, Long notifId) {
+        logger.error("Cạn kiệt lần thử lại gửi mail xác nhận đổi Email tới: {}", toEmail);
+        notificationService.markAsFailed(notifId);
+        alertService.createAlert("NOTIFICATION", com.project.common.entity.SystemLogSeverity.CRITICAL, 
+            "Gửi mail xác nhận đổi Email thất bại hoàn toàn tới: " + toEmail, e);
     }
 
     public void sendRawEmailSync(String toEmail, String subject, String htmlContent) {

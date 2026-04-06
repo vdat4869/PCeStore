@@ -49,6 +49,14 @@ public class NotificationService {
     }
 
     @Transactional
+    public void sendEmailChangeVerification(User user, String newEmail, String token, Locale locale) {
+        String content = messageSource.getMessage("notification.email_change.content", new Object[]{newEmail}, locale);
+        Notification notif = new Notification(user, NotificationType.EMAIL_CHANGE, content);
+        notif = notificationRepository.save(notif);
+        emailService.sendEmailChangeEmail(newEmail, token, locale, notif.getId());
+    }
+
+    @Transactional
     public void sendPasswordReset(User user, String token, Locale locale) {
         String content = messageSource.getMessage("notification.pwd_reset.content", null, locale);
         Notification notif = new Notification(user, NotificationType.PASSWORD_RESET, content);

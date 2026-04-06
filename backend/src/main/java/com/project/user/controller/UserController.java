@@ -53,6 +53,16 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(userDetails.getUser(), request));
     }
 
+    // Cập nhật ảnh đại diện (Tải file vật lý)
+    @PostMapping("/profile/avatar")
+    public ResponseEntity<String> updateAvatar(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        
+        String fileName = userService.updateAvatar(userDetails.getUser(), file);
+        return ResponseEntity.ok("/uploads/avatars/" + fileName);
+    }
+
     // Đổi mật khẩu
     @PutMapping("/change-password")
     public ResponseEntity<String> changePassword(
@@ -107,5 +117,29 @@ public class UserController {
         
         addressService.deleteAddress(userDetails.getUser(), id);
         return ResponseEntity.ok(translate("success.address.deleted"));
+    }
+
+    // Người dùng tự vô hiệu hóa tài khoản
+    @DeleteMapping("/deactivate")
+    public ResponseEntity<String> deactivateAccount(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        userService.deactivateAccount(userDetails.getUser());
+        return ResponseEntity.ok(translate("success.user.deactivated"));
+    }
+
+    // Yêu cầu đổi Email (Gửi code tới mail mới)
+    @PostMapping("/email-change")
+    public ResponseEntity<String> requestEmailChange(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam String newEmail) {
+        
+        userService.requestEmailChange(userDetails.getUser(), newEmail);
+        return ResponseEntity.ok(translate("success.user.email_change_requested"));
+    }
+
+    // Xác nhận đổi Email
+    @GetMapping("/email-change/confirm")
+    public ResponseEntity<String> confirmEmailChange(@RequestParam String token) {
+        userService.confirmEmailChange(token);
+        return ResponseEntity.ok(translate("success.user.email_changed"));
     }
 }

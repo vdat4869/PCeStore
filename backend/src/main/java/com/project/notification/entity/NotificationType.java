@@ -5,5 +5,6 @@ public enum NotificationType {
     PASSWORD_RESET,
     ORDER_CONFIRMATION,
     ORDER_STATUS_UPDATE,
-    SYSTEM_ALERT
+    SYSTEM_ALERT,
+    EMAIL_CHANGE
 }

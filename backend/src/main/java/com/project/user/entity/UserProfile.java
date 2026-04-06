@@ -8,11 +8,16 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "user_profiles")
+@Table(name = "user_profiles", indexes = {
+    @Index(name = "idx_profile_user", columnList = "user_id")
+})
 @SQLRestriction("is_deleted = false")
 @Getter
 @Setter
 public class UserProfile extends BaseEntity {
+
+    @Version
+    private Long version;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
