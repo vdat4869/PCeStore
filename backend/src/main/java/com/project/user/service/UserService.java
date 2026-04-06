@@ -1,7 +1,10 @@
 package com.project.user.service;
 
 import com.project.auth.entity.User;
+import com.project.auth.entity.UserRole;
+import com.project.auth.entity.UserStatus;
 import com.project.auth.repository.UserRepository;
+import com.project.user.dto.AdminUserResponse;
 import com.project.user.dto.ChangePasswordRequest;
 import com.project.user.dto.UpdateProfileRequest;
 import com.project.user.dto.UserProfileResponse;
@@ -10,8 +13,11 @@ import com.project.user.repository.UserProfileRepository;
 import com.project.user.entity.UserAuditLog;
 import com.project.user.entity.UserAction;
 import com.project.user.repository.UserAuditLogRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -40,9 +46,9 @@ public class UserService {
         this.fileStorageService = fileStorageService;
     }
 
-    // Lấy thông tin cá nhân
+    // --- User Self-Management ---
+
     public UserProfileResponse getProfile(User user) {
-        // Nếu user này chưa có profile, tạo một bản profile mặc định trống
         UserProfile profile = userProfileRepository.findByUser(user)
                 .orElseGet(() -> {
                     UserProfile newProfile = new UserProfile(user, null, null, null);
@@ -58,7 +64,6 @@ public class UserService {
         );
     }
 
-    // Cập nhật thông tin cá nhân
     public UserProfileResponse updateProfile(User user, UpdateProfileRequest request) {
         UserProfile profile = userProfileRepository.findByUser(user)
                 .orElseGet(() -> new UserProfile(user, null, null, null));
@@ -68,8 +73,6 @@ public class UserService {
         profile.setAvatarUrl(request.getAvatarUrl());
 
         userProfileRepository.save(profile);
-        
-        // Log hành động
         auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Cập nhật hồ sơ từ " + user.getEmail(), null));
 
         return new UserProfileResponse(
@@ -81,57 +84,69 @@ public class UserService {
         );
     }
 
-    // Đổi mật khẩu
     public void changePassword(User user, ChangePasswordRequest request) {
-        // Kiểm tra xem mật khẩu cũ có đúng không
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new IllegalArgumentException("error.user.old_password_incorrect");
         }
-
-        // Kiểm tra xem mật khẩu mới có trùng với mật khẩu cũ không
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new IllegalArgumentException("error.user.new_password_same");
         }
 
-        // Cập nhật mật khẩu mới 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user); // Lưu Entity User vào DB
-
-        // Log hành động
+        userRepository.save(user);
         auditLogRepository.save(new UserAuditLog(user, UserAction.CHANGE_PASSWORD, "Đã đổi mật khẩu", null));
     }
 
-    // Người dùng tự vô hiệu hóa tài khoản (Self-Deactivate)
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public void deactivateAccount(User user) {
         user.setDeleted(true);
         userRepository.save(user);
-        
-        // Log hành động
         auditLogRepository.save(new UserAuditLog(user, UserAction.ACCOUNT_DEACTIVATED, "Người dùng tự hủy tài khoản", null));
     }
 
-    // Xoá người dùng (Soft Delete)
+    // --- Admin Management ---
+
+    @Transactional(readOnly = true)
+    public Page<AdminUserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAllIncludingDeleted(pageable).map(this::mapToAdminResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AdminUserResponse> searchUsers(String keyword, Pageable pageable) {
+        return userRepository.searchUsersIncludingDeleted(keyword, pageable).map(this::mapToAdminResponse);
+    }
+
+    @Transactional
+    public void updateUserRole(Long userId, UserRole role) {
+        User user = userRepository.findByIdIncludingDeleted(userId)
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
+        user.setRole(role);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void updateUserStatus(Long userId, UserStatus status) {
+        User user = userRepository.findByIdIncludingDeleted(userId)
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
+        user.setStatus(status);
+        userRepository.save(user);
+    }
+
+    @Transactional
     public void deleteUser(User currentUser, Long targetUserId) {
-        // Chỉ ADMIN hoặc chính chủ mới được xóa (thường là Admin xóa người dùng khác)
-        if (!currentUser.getRole().equals(com.project.auth.entity.UserRole.ADMIN) && 
-            !currentUser.getId().equals(targetUserId)) {
+        if (!currentUser.getRole().equals(UserRole.ADMIN) && !currentUser.getId().equals(targetUserId)) {
             throw new org.springframework.security.access.AccessDeniedException("error.user.denied_delete");
         }
 
-        User targetUser = userRepository.findById(targetUserId)
+        User targetUser = userRepository.findByIdIncludingDeleted(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
 
         targetUser.setDeleted(true);
         userRepository.save(targetUser);
     }
 
-    // Khôi phục người dùng (Restore) - Chỉ ADMIN
-    public void restoreUser(User currentUser, Long targetUserId) {
-        if (!currentUser.getRole().equals(com.project.auth.entity.UserRole.ADMIN)) {
-            throw new org.springframework.security.access.AccessDeniedException("error.user.denied_restore");
-        }
-
+    @Transactional
+    public void restoreUser(Long targetUserId) {
         User targetUser = userRepository.findByIdIncludingDeleted(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
 
@@ -139,67 +154,64 @@ public class UserService {
         userRepository.save(targetUser);
     }
 
-    // Luồng Thay đổi Email - Bước 1: Gửi Token tới Email mới
-    @org.springframework.transaction.annotation.Transactional
+    private AdminUserResponse mapToAdminResponse(User user) {
+        return AdminUserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .status(user.getStatus())
+                .isDeleted(user.isDeleted())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    // --- Email Identity Flow ---
+
+    @Transactional
     public void requestEmailChange(User user, String newEmail) {
         if (userRepository.existsByEmail(newEmail)) {
             throw new IllegalArgumentException("error.auth.email_used");
         }
-
-        // Dọn dẹp token cũ nếu có
         emailChangeTokenRepository.deleteByUser(user);
-
         String token = java.util.UUID.randomUUID().toString();
         com.project.user.entity.EmailChangeToken emailToken = new com.project.user.entity.EmailChangeToken(
             user, newEmail, token, java.time.LocalDateTime.now().plusHours(24)
         );
         emailChangeTokenRepository.save(emailToken);
-
-        // Gửi mail xác thực tới Email MỚI
         notificationService.sendEmailChangeVerification(user, newEmail, token, org.springframework.context.i18n.LocaleContextHolder.getLocale());
-        
         auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Yêu cầu đổi email sang: " + newEmail, null));
     }
 
-    // Luồng Thay đổi Email - Bước 2: Xác nhận và Cập nhật
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public void confirmEmailChange(String token) {
         com.project.user.entity.EmailChangeToken emailToken = emailChangeTokenRepository.findByToken(token)
             .orElseThrow(() -> new IllegalArgumentException("error.auth.token_not_found"));
-
         if (emailToken.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
             emailChangeTokenRepository.delete(emailToken);
             throw new IllegalArgumentException("error.auth.token_expired");
         }
-
         User user = emailToken.getUser();
         String oldEmail = user.getEmail();
         user.setEmail(emailToken.getNewEmail());
         userRepository.save(user);
-
         emailChangeTokenRepository.delete(emailToken);
-        
         auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Đổi email xong: " + oldEmail + " -> " + user.getEmail(), null));
     }
 
-    // Tải ảnh đại diện (Physical Avatar)
-    @org.springframework.transaction.annotation.Transactional
+    @Transactional
     public String updateAvatar(User user, org.springframework.web.multipart.MultipartFile file) {
         UserProfile profile = userProfileRepository.findByUser(user)
             .orElseGet(() -> new UserProfile(user, null, null, null));
-
-        // Xóa ảnh cũ nếu có và không phải mặc định
         if (profile.getAvatarUrl() != null && !profile.getAvatarUrl().startsWith("http")) {
             fileStorageService.deleteAvatar(profile.getAvatarUrl());
         }
-
-        // Lưu ảnh mới
         String fileName = fileStorageService.storeAvatar(file);
         profile.setAvatarUrl(fileName);
         userProfileRepository.save(profile);
-
         auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Cập nhật ảnh đại diện mơi: " + fileName, null));
-        
         return fileName;
     }
 }
