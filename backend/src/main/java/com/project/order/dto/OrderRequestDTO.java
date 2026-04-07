@@ -6,6 +6,7 @@ public class OrderRequestDTO {
     private Long userId;
     private String shippingAddress;
     private String paymentMethod; // e.g., VNPAY, PAYPAL, MOCK
+    private String discountCode; // Mã giảm giá
     private List<OrderItemRequestDTO> items;
 
     public OrderRequestDTO() {
@@ -42,5 +43,13 @@ public class OrderRequestDTO {
 
     public void setItems(List<OrderItemRequestDTO> items) {
         this.items = items;
+    }
+
+    public String getDiscountCode() {
+        return discountCode;
+    }
+
+    public void setDiscountCode(String discountCode) {
+        this.discountCode = discountCode;
     }
 }

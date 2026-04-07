@@ -26,7 +26,17 @@
 }
 
 .auth-modal-close {
-  display: none; /* Hidden to match target image */
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1;
+  padding: 0;
 }
 
 .auth-modal-close:hover {

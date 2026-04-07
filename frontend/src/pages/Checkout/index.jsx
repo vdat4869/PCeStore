@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { formatCurrency } from '../../utils';
@@ -20,7 +20,7 @@ const PAYMENT_METHODS = [
 ];
 
 export default function Checkout() {
-  const { cartItems, selectedItems } = useCart();
+  const { cartItems } = useCart(); // selectedItems không nằm trong CartContext
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: '',
@@ -39,15 +39,57 @@ export default function Checkout() {
   const [showDiscount, setShowDiscount] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState(0);
+
+  const [provinces, setProvinces] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+
+  useEffect(() => {
+    fetch('https://provinces.open-api.vn/api/p/')
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(err => console.error("Error fetching provinces:", err));
+  }, []);
+
+  const handleProvinceChange = (e) => {
+    const provinceCode = e.target.selectedOptions[0].getAttribute('data-code');
+    setForm(prev => ({ ...prev, province: e.target.value, district: '', ward: '' }));
+    
+    if (provinceCode) {
+      fetch(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`)
+        .then(res => res.json())
+        .then(data => setDistricts(data.districts))
+        .catch(err => console.error("Error fetching districts:", err));
+    } else {
+      setDistricts([]);
+    }
+    setWards([]);
+  };
+
+  const handleDistrictChange = (e) => {
+    const districtCode = e.target.selectedOptions[0].getAttribute('data-code');
+    setForm(prev => ({ ...prev, district: e.target.value, ward: '' }));
+
+    if (districtCode) {
+      fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`)
+        .then(res => res.json())
+        .then(data => setWards(data.wards))
+        .catch(err => console.error("Error fetching wards:", err));
+    } else {
+      setWards([]);
+    }
+  };
+
+  const handleWardChange = (e) => {
+    setForm(prev => ({ ...prev, ward: e.target.value }));
+  };
  
-  // Lấy các sản phẩm đã chọn từ Giỏ hàng (fallback: toàn bộ giỏ hàng)
-  const items = (selectedItems && selectedItems.length > 0)
-    ? cartItems.filter(i => selectedItems.includes(i.productId))
-    : cartItems;
+  // Tạm thời fix lỗi: lấy toàn bộ cartItems (hoặc có thể nhận selectedItems từ router state)
+  const items = cartItems;
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const discountAmount = subtotal * discountPercent;
-  const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
+  const shippingFee = 60000; // Cứng 60k trên giao diện Checkout
   const total = subtotal - discountAmount + shippingFee;
   
   const handleApplyDiscount = (e) => {
@@ -92,23 +134,21 @@ export default function Checkout() {
       return;
     }
 
+    if (items.length === 0) {
+      setError('Giỏ hàng của bạn đang trống! Vui lòng chọn sản phẩm trước khi thanh toán.');
+      return;
+    }
+
     setLoading(true);
     try {
-      if (items.length === 0) {
-        setError('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.');
-        setLoading(false);
-        return;
-      }
-
-      const payload = {
+      // 1. Tạo đơn hàng và thanh toán trên Backend
+      const orderResponse = await apiClient.post('/v1/orders/create', {
         shippingAddress: `${form.address}, ${form.ward}, ${form.district}, ${form.province}`,
         paymentMethod,
+        discountCode: discountCode || null, // Gửi thêm discountCode
         items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
-      };
-      console.log('[Checkout] Sending payload:', JSON.stringify(payload, null, 2));
-
-      // 1. Tạo đơn hàng và thanh toán trên Backend
-      const orderResponse = await apiClient.post('/v1/orders/create', payload);
+        // userId: 1, // Bỏ hardcode userId, để Backend tự lấy từ SecurityContext hoặc fallback
+      });
 
       const { orderId, payment } = orderResponse.data;
 
@@ -138,9 +178,8 @@ export default function Checkout() {
       }
     } catch (err) {
       console.error('Submit Error:', err);
-      const backendMsg = err.response?.data?.message || err.response?.data || err.message;
-      console.error('Backend error detail:', backendMsg);
-      setError(`Đặt hàng thất bại: ${backendMsg || 'Vui lòng thử lại!'}`);
+      const errorMsg = typeof err.response?.data === 'string' ? err.response.data : 'Đặt hàng thất bại. Vui lòng thử lại!';
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -242,11 +281,11 @@ export default function Checkout() {
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="form-label small fw-medium">Họ và tên <span className="text-danger">*</span></label>
-                    <input type="text" className="form-control" name="fullName" placeholder="Nguyễn Văn A" value={form.fullName} onChange={handleChange} required />
+                    <input type="text" className="form-control" name="fullName" value={form.fullName} onChange={handleChange} required />
                   </div>
                   <div className="col-md-6">
                     <label className="form-label small fw-medium">Số điện thoại <span className="text-danger">*</span></label>
-                    <input type="tel" className="form-control" name="phone" placeholder="0901 234 567" value={form.phone} onChange={handleChange} required />
+                    <input type="tel" className="form-control" name="phone" value={form.phone} onChange={handleChange} required />
                   </div>
                   <div className="col-12">
                     <label className="form-label small fw-medium">Email <span className="text-danger">*</span></label>
@@ -254,34 +293,29 @@ export default function Checkout() {
                   </div>
                   <div className="col-md-4">
                     <label className="form-label small fw-medium">Tỉnh/Thành phố <span className="text-danger">*</span></label>
-                    <select className="form-select" name="province" value={form.province} onChange={handleChange} required>
-                      <option value="">Chọn tỉnh/TP</option>
-                      <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                      <option value="Hà Nội">Hà Nội</option>
-                      <option value="Đà Nẵng">Đà Nẵng</option>
-                      <option value="Cần Thơ">Cần Thơ</option>
-                      <option value="Hải Phòng">Hải Phòng</option>
+                    <select className="form-select" name="province" value={form.province} onChange={handleProvinceChange} required>
+                      <option value="" data-code="">Chọn tỉnh/TP</option>
+                      {provinces.map(p => (
+                        <option key={p.code} value={p.name} data-code={p.code}>{p.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="col-md-4">
                     <label className="form-label small fw-medium">Quận/Huyện <span className="text-danger">*</span></label>
-                    <select className="form-select" name="district" value={form.district} onChange={handleChange} required>
-                      <option value="">Chọn quận/huyện</option>
-                      <option value="Quận 1">Quận 1</option>
-                      <option value="Quận 3">Quận 3</option>
-                      <option value="Quận 7">Quận 7</option>
-                      <option value="Quận Bình Thạnh">Quận Bình Thạnh</option>
-                      <option value="Quận Tân Bình">Quận Tân Bình</option>
+                    <select className="form-select" name="district" value={form.district} onChange={handleDistrictChange} required disabled={!districts.length}>
+                      <option value="" data-code="">Chọn quận/huyện</option>
+                      {districts.map(d => (
+                        <option key={d.code} value={d.name} data-code={d.code}>{d.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="col-md-4">
                     <label className="form-label small fw-medium">Phường/Xã <span className="text-danger">*</span></label>
-                    <select className="form-select" name="ward" value={form.ward} onChange={handleChange} required>
-                      <option value="">Chọn phường/xã</option>
-                      <option value="Phường 1">Phường 1</option>
-                      <option value="Phường 2">Phường 2</option>
-                      <option value="Phường 3">Phường 3</option>
-                      <option value="Phường 4">Phường 4</option>
+                    <select className="form-select" name="ward" value={form.ward} onChange={handleWardChange} required disabled={!wards.length}>
+                      <option value="" data-code="">Chọn phường/xã</option>
+                      {wards.map(w => (
+                        <option key={w.code} value={w.name} data-code={w.code}>{w.name}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="col-12">

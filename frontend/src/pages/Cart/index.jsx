@@ -9,10 +9,11 @@ import AuthModal from '../../components/AuthModal';
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { cartItems, updateQuantity, removeFromCart, clearCart, selectedItems, setSelectedItems } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const { isLoggedIn } = useAuth();
   
-  // Selection state (shared via context so it persists to Checkout)
+  // Selection state (local to this view)
+  const [selectedItems, setSelectedItems] = useState(cartItems.map(item => item.productId));
   const [loading, setLoading] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [message, setMessage] = useState(null);
@@ -92,7 +93,7 @@ export default function Cart() {
   const subtotal = selectedCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalQuantity = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
   const discountAmount = subtotal * discountPercent;
-  const shippingFee = (subtotal >= 500000 || subtotal === 0) ? 0 : 30000;
+  const shippingFee = 60000; // Cứng 60k trên giao diện
   const total = subtotal - discountAmount + shippingFee;
 
   // ============================================================

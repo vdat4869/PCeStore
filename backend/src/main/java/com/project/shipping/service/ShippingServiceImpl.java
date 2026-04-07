@@ -22,12 +22,7 @@ public class ShippingServiceImpl implements ShippingService {
 
     @Override
     public BigDecimal calculateShippingCost(String address) {
-        if (address == null || address.isEmpty()) return BigDecimal.valueOf(50000);
-        String lowerAddress = address.toLowerCase();
-        if (lowerAddress.contains("hồ chí minh") || lowerAddress.contains("ho chi minh") || lowerAddress.contains("hcm")) {
-            return BigDecimal.valueOf(20000); // 20k nội thành
-        }
-        return BigDecimal.valueOf(50000); // 50k ngoại thành
+        return BigDecimal.valueOf(60000); // Đồng bộ 60k cho toàn hệ thống
     }
 
     @Override
