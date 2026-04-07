@@ -16,7 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-import org.springframework.web.servlet.HandlerExceptionResolver;
+
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -24,15 +24,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final com.project.auth.service.JwtBlacklistService blacklistService;
-    private final HandlerExceptionResolver resolver;
 
     public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService,
-                                   com.project.auth.service.JwtBlacklistService blacklistService,
-                                   @org.springframework.beans.factory.annotation.Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
+                                   com.project.auth.service.JwtBlacklistService blacklistService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.blacklistService = blacklistService;
-        this.resolver = resolver;
     }
 
     // Xử lý bộ lọc JWT cho mọi Request
@@ -77,10 +74,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException | org.springframework.security.core.userdetails.UsernameNotFoundException e) {
-            // Ném lỗi JWT (Expired, Malformed) cho HandlerExceptionResolver phân hồi 401
-            resolver.resolveException(request, response, null, e);
-            return; // Cắt đức luồng HTTP yêu cầu client refresh ngay
+        } catch (Exception e) {
+            // Nếu Token lỗi (hết hạn, sai...), xóa context để coi là khách và tiếp tục luồng filter
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

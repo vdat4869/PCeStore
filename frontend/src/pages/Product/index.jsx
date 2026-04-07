@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatCurrency } from '../../utils';
+import { useCart } from '../../context/CartContext';
 
 // ============================================================
 // DỮ LIỆU MẪU — Sau này sẽ được thay bằng API thật
@@ -59,6 +60,20 @@ export default function Product() {
   const [sortBy, setSortBy] = useState('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('grid'); // 'grid' hoặc 'list'
+  const [toast, setToast] = useState(null);
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (product) => {
+    addToCart({
+      productId: product.id,
+      productName: product.name,
+      price: product.price,
+      image: product.imageUrl,
+      quantity: 1,
+    });
+    setToast(`Đã thêm "${product.name}" vào giỏ hàng!`);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   // ============================================================
   // LỌC & SẮP XẾP SẢN PHẨM
@@ -171,7 +186,21 @@ export default function Product() {
     (priceRange.min !== '' ? 1 : 0) + (priceRange.max !== '' ? 1 : 0);
 
   return (
-    <div className="container pb-5">
+    <>
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: '#323232', color: '#fff', padding: '0.75rem 1.5rem',
+          borderRadius: '8px', zIndex: 9999, fontSize: '0.9rem',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
+          animation: 'fadeIn 0.3s ease'
+        }}>
+          <i className="bi bi-cart-check me-2 text-success"></i>{toast}
+        </div>
+      )}
+
+      <div className="container pb-5">
       {/* Breadcrumb */}
       <nav aria-label="breadcrumb" className="mb-3">
         <ol className="breadcrumb small">
@@ -459,8 +488,7 @@ export default function Product() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            // TODO: Thêm vào giỏ hàng (Integration phase)
-                            alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
+                            handleAddToCart(product);
                           }}
                           disabled={product.stock === 0}
                         >
@@ -520,7 +548,7 @@ export default function Product() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                alert(`Đã thêm "${product.name}" vào giỏ hàng!`);
+                                handleAddToCart(product);
                               }}
                               disabled={product.stock === 0}
                             >
@@ -574,5 +602,6 @@ export default function Product() {
         </main>
       </div>
     </div>
+    </>
   );
 }

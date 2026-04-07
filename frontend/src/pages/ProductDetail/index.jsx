@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../../utils';
+import { useCart } from '../../context/CartContext';
 
 // ============================================================
 // DỮ LIỆU MẪU — Khớp với ProductResponse backend
@@ -23,8 +24,11 @@ const MOCK_PRODUCTS = [
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
+  const [toast, setToast] = useState(null);
 
   // Tìm sản phẩm theo ID
   const product = MOCK_PRODUCTS.find(p => p.id === Number(id));
@@ -44,12 +48,46 @@ export default function ProductDetail() {
     });
   };
 
+  const handleAddToCart = () => {
+    addToCart({
+      productId: product.id,
+      productName: product.name,
+      price: product.price,
+      image: product.imageUrl,
+      quantity,
+    });
+    setToast(`Đã thêm ${quantity}x "${product.name}" vào giỏ hàng!`);
+    setTimeout(() => setToast(null), 2500);
+  };
+
+  const handleBuyNow = () => {
+    addToCart({
+      productId: product.id,
+      productName: product.name,
+      price: product.price,
+      image: product.imageUrl,
+      quantity,
+    });
+    navigate('/cart');
+  };
+
   // ============================================================
   // KHÔNG TÌM THẤY SẢN PHẨM
   // ============================================================
   if (!product) {
     return (
       <div className="container py-5">
+        {/* toast */}
+        {toast && (
+          <div style={{
+            position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#323232', color: '#fff', padding: '0.75rem 1.5rem',
+            borderRadius: '8px', zIndex: 9999, fontSize: '0.9rem',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
+          }}>
+            <i className="bi bi-cart-check me-2 text-success"></i>{toast}
+          </div>
+        )}
         <div className="text-center py-5">
           <i className="bi bi-box-seam fs-1 text-muted d-block mb-3"></i>
           <h3 className="text-muted">Không tìm thấy sản phẩm</h3>
@@ -63,7 +101,19 @@ export default function ProductDetail() {
   }
 
   return (
-    <div className="container pb-5">
+    <>
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: '#323232', color: '#fff', padding: '0.75rem 1.5rem',
+          borderRadius: '8px', zIndex: 9999, fontSize: '0.9rem',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
+        }}>
+          <i className="bi bi-cart-check me-2 text-success"></i>{toast}
+        </div>
+      )}
+      <div className="container pb-5">
       {/* ============================================================ */}
       {/* BREADCRUMB */}
       {/* ============================================================ */}
@@ -231,14 +281,14 @@ export default function ProductDetail() {
                 <button
                   className="btn btn-danger btn-lg fw-bold px-5"
                   disabled={product.stock === 0}
-                  onClick={() => alert(`Mua ngay ${quantity}x "${product.name}"`)}
+                  onClick={handleBuyNow}
                 >
                   <i className="bi bi-bag-check me-2"></i>MUA NGAY
                 </button>
                 <button
                   className="btn btn-outline-danger btn-lg fw-bold px-4"
                   disabled={product.stock === 0}
-                  onClick={() => alert(`Đã thêm ${quantity}x "${product.name}" vào giỏ hàng!`)}
+                  onClick={handleAddToCart}
                 >
                   <i className="bi bi-cart-plus me-2"></i>THÊM VÀO GIỎ
                 </button>
@@ -409,6 +459,7 @@ export default function ProductDetail() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

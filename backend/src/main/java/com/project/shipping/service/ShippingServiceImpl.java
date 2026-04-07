@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,7 @@ public class ShippingServiceImpl implements ShippingService {
         if (address == null || address.isEmpty()) return BigDecimal.valueOf(50000);
         String lowerAddress = address.toLowerCase();
         if (lowerAddress.contains("hồ chí minh") || lowerAddress.contains("ho chi minh") || lowerAddress.contains("hcm")) {
-            return BigDecimal.valueOf(20000); // 20k cho nội thành
+            return BigDecimal.valueOf(20000); // 20k nội thành
         }
         return BigDecimal.valueOf(50000); // 50k ngoại thành
     }
@@ -30,7 +32,8 @@ public class ShippingServiceImpl implements ShippingService {
     @Transactional
     public Shipping createShippingForOrder(Order order, String deliveryAddress) {
         BigDecimal cost = calculateShippingCost(deliveryAddress);
-        String tCode = "VN-" + System.currentTimeMillis();
+        // Fixed: replaced System.currentTimeMillis() with UUID to prevent collision under concurrency
+        String tCode = "VN-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
 
         Shipping shipping = Shipping.builder()
                 .order(order)
@@ -39,13 +42,33 @@ public class ShippingServiceImpl implements ShippingService {
                 .status(ShippingStatus.PENDING)
                 .trackingCode(tCode)
                 .build();
-        
-        return shipping;
+
+        // Fixed: explicitly save shipping entity instead of relying on JPA cascade
+        return shippingRepository.save(shipping);
     }
 
     @Override
     public Shipping trackShipping(Long orderId) {
-        // Find by logic could be implemented if necessary
-        return null;
+        return shippingRepository.findByOrderId(orderId).orElse(null);
+    }
+
+    @Override
+    public Optional<Shipping> getShippingByOrderId(Long orderId) {
+        return shippingRepository.findByOrderId(orderId);
+    }
+
+    @Override
+    @Transactional
+    public Shipping updateShippingStatus(Long shippingId, ShippingStatus newStatus) {
+        Shipping shipping = shippingRepository.findById(shippingId)
+                .orElseThrow(() -> new RuntimeException("error.shipping.not_found"));
+
+        // Basic state machine: prevent invalid backward transitions
+        if (shipping.getStatus() == ShippingStatus.DELIVERED || shipping.getStatus() == ShippingStatus.CANCELLED) {
+            throw new RuntimeException("error.shipping.cannot_update_final_status");
+        }
+
+        shipping.setStatus(newStatus);
+        return shippingRepository.save(shipping);
     }
 }

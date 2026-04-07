@@ -11,9 +11,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.beans.factory.annotation.Value;
 import com.project.payment.dto.SePayIpnRequest;
 import com.project.payment.utils.SecurityUtils;
@@ -39,6 +40,9 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Value("${sepay.secret-key}")
     private String secretKey;
+
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
 
     @Override
     @Transactional
@@ -103,10 +107,10 @@ public class PaymentServiceImpl implements PaymentService {
         fields.put("order_invoice_number", "INV-" + payment.getOrderId());
         fields.put("order_description", "Thanh toan don hang D" + payment.getOrderId());
         
-        // Cấu hình các URL về thẳng Frontend React (localhost:5173) để render UI xịn xò
-        fields.put("success_url", "http://localhost:5173/?status=success");
-        fields.put("error_url", "http://localhost:5173/?status=error");
-        fields.put("cancel_url", "http://localhost:5173/?status=cancel");
+        // Cấu hình các URL về thẳng Frontend React tĩnh thay vì hardcode
+        fields.put("success_url", frontendUrl + "/?status=success");
+        fields.put("error_url", frontendUrl + "/?status=error");
+        fields.put("cancel_url", frontendUrl + "/?status=cancel");
 
         String signature = SecurityUtils.generateSePaySignature(fields, secretKey);
         fields.put("signature", signature);
@@ -116,6 +120,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public void processSePayIpn(SePayIpnRequest request) {
         if ("ORDER_PAID".equals(request.getNotificationType()) && request.getOrder() != null) {
             String invoiceNumber = request.getOrder().getOrderInvoiceNumber();

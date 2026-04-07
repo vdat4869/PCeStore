@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../../utils';
+import { useCart } from '../../context/CartContext';
 
 // ============================================================
 // DỮ LIỆU MẪU — Sản phẩm theo từng danh mục tab
-// ID khớp với mảng MOCK_PRODUCTS trong Product/index.jsx & ProductDetail/index.jsx
 // ============================================================
 const CATEGORY_PRODUCTS = {
   gaming: [
@@ -42,116 +42,145 @@ const TABS = [
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('gaming');
+  const [toast, setToast] = useState(null);
   const currentProducts = CATEGORY_PRODUCTS[activeTab];
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (p) => {
+    addToCart({
+      productId: p.id,
+      productName: p.name,
+      price: p.price,
+      oldPrice: p.oldPrice,
+      image: p.img,
+      quantity: 1,
+    });
+    setToast(`Đã thêm "${p.name}" vào giỏ hàng!`);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   return (
-    <div className="container pb-5">
-      {/* Banner Section */}
-      <div className="row mb-5">
-        <div className="col-12">
-          <div className="bg-primary text-white rounded p-5 text-center shadow-sm" style={{ background: 'linear-gradient(45deg, #007bff, #6610f2)'}}>
-            <h1 className="fw-bold display-4 mb-3">GHẾ ÊM LƯNG <span className="text-warning">QUÀ ƯNG Ý</span></h1>
-            <p className="fs-5 mb-4">Mua ghế văn phòng - Tặng củ sạc nhanh 30W trị giá 199K</p>
-            <Link to="/products" className="btn btn-warning btn-lg fw-bold rounded-pill px-5 shadow">Mua Ngay</Link>
+    <>
+      {/* Toast notification */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: '#323232', color: '#fff', padding: '0.75rem 1.5rem',
+          borderRadius: '8px', zIndex: 9999, fontSize: '0.9rem',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
+        }}>
+          <i className="bi bi-cart-check me-2 text-success"></i>{toast}
+        </div>
+      )}
+
+      <div className="container pb-5">
+        {/* Banner Section */}
+        <div className="row mb-5">
+          <div className="col-12">
+            <div className="bg-primary text-white rounded p-5 text-center shadow-sm" style={{ background: 'linear-gradient(45deg, #007bff, #6610f2)' }}>
+              <h1 className="fw-bold display-4 mb-3">GHẾ ÊM LƯNG <span className="text-warning">QUÀ ƯNG Ý</span></h1>
+              <p className="fs-5 mb-4">Mua ghế văn phòng - Tặng củ sạc nhanh 30W trị giá 199K</p>
+              <Link to="/products" className="btn btn-warning btn-lg fw-bold rounded-pill px-5 shadow">Mua Ngay</Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Category Tabs — Có hành động khi click */}
-      <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2 overflow-auto">
-        <ul className="nav nav-pills flex-nowrap">
-          {TABS.map(tab => (
-            <li className="nav-item" key={tab.key}>
-              <button
-                className={`nav-link fw-bold me-2 text-nowrap ${activeTab === tab.key ? 'bg-danger text-white' : 'text-dark hover-danger'}`}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                {tab.label}
-              </button>
-            </li>
+        {/* Category Tabs */}
+        <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2 overflow-auto">
+          <ul className="nav nav-pills flex-nowrap">
+            {TABS.map(tab => (
+              <li className="nav-item" key={tab.key}>
+                <button
+                  className={`nav-link fw-bold me-2 text-nowrap ${activeTab === tab.key ? 'bg-danger text-white' : 'text-dark hover-danger'}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <Link to="/products" className="text-danger text-decoration-none fw-medium small text-nowrap ms-3">
+            Xem tất cả <i className="bi bi-chevron-right"></i>
+          </Link>
+        </div>
+
+        {/* Category Products Grid */}
+        <div className="row">
+          {currentProducts.map((p) => (
+            <div className="col-12 col-sm-6 col-md-3 mb-4" key={p.id}>
+              <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
+                <div className="card h-100 product-card position-relative overflow-hidden bg-white border-0 shadow-sm">
+                  <div className="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 small fw-bold" style={{ zIndex: 1, borderBottomRightRadius: '10px' }}>
+                    Giảm {p.discount}
+                  </div>
+                  <div className="text-center bg-light p-3">
+                    <img src={p.img} className="img-fluid" alt={p.name} style={{ height: '180px', objectFit: 'contain' }} />
+                  </div>
+                  <div className="card-body d-flex flex-column">
+                    <h6 className="card-title fw-bold" style={{ minHeight: '40px', fontSize: '14px' }}>{p.name}</h6>
+                    <div className="mt-auto">
+                      <div className="text-danger fw-bold fs-5">{formatCurrency(p.price)}</div>
+                      <div className="text-muted text-decoration-line-through small">{formatCurrency(p.oldPrice)}</div>
+                    </div>
+                  </div>
+                  <div className="card-footer bg-white border-top-0 text-center pb-3">
+                    <button
+                      className="btn btn-outline-danger w-100 fw-bold"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddToCart(p);
+                      }}
+                    >
+                      <i className="bi bi-cart-plus me-1"></i>Thêm vào giỏ
+                    </button>
+                  </div>
+                </div>
+              </Link>
+            </div>
           ))}
-        </ul>
-        <Link to="/products" className="text-danger text-decoration-none fw-medium small text-nowrap ms-3">
-          Xem tất cả <i className="bi bi-chevron-right"></i>
-        </Link>
-      </div>
+        </div>
 
-      {/* Category Products Grid */}
-      <div className="row">
-        {currentProducts.map((p) => (
-          <div className="col-12 col-sm-6 col-md-3 mb-4" key={p.id}>
-            <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
-              <div className="card h-100 product-card position-relative overflow-hidden bg-white border-0 shadow-sm">
-                <div className="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 small fw-bold" style={{ zIndex: 1, borderBottomRightRadius: '10px' }}>
-                  Giảm {p.discount}
-                </div>
-                <div className="text-center bg-light p-3">
-                  <img src={p.img} className="img-fluid" alt={p.name} style={{ height: '180px', objectFit: 'contain' }} />
-                </div>
-                <div className="card-body d-flex flex-column">
-                  <h6 className="card-title fw-bold" style={{ minHeight: '40px', fontSize: '14px' }}>{p.name}</h6>
-                  <div className="mt-auto">
-                    <div className="text-danger fw-bold fs-5">{formatCurrency(p.price)}</div>
-                    <div className="text-muted text-decoration-line-through small">{formatCurrency(p.oldPrice)}</div>
+        {/* Flash Sale Section */}
+        <h4 className="fw-bold text-uppercase mb-3 mt-5">
+          <i className="bi bi-lightning-charge-fill text-warning me-2"></i>Flash Sale <span className="text-danger">Giá Sốc</span>
+        </h4>
+        <div className="row">
+          {FLASH_SALE_PRODUCTS.map((p) => (
+            <div className="col-12 col-sm-6 col-md-3 mb-4" key={p.id}>
+              <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
+                <div className="card h-100 product-card position-relative overflow-hidden bg-white border-0 shadow-sm">
+                  <div className="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 small fw-bold" style={{ zIndex: 1, borderBottomRightRadius: '10px' }}>
+                    Giảm {p.discount}
+                  </div>
+                  <div className="text-center bg-light p-3">
+                    <img src={p.img} className="img-fluid" alt={p.name} style={{ height: '180px', objectFit: 'contain' }} />
+                  </div>
+                  <div className="card-body d-flex flex-column">
+                    <h6 className="card-title fw-bold" style={{ minHeight: '40px', fontSize: '14px' }}>{p.name}</h6>
+                    <div className="mt-auto">
+                      <div className="text-danger fw-bold fs-5">{formatCurrency(p.price)}</div>
+                      <div className="text-muted text-decoration-line-through small">{formatCurrency(p.oldPrice)}</div>
+                    </div>
+                  </div>
+                  <div className="card-footer bg-white border-top-0 text-center pb-3">
+                    <button
+                      className="btn btn-outline-danger w-100 fw-bold"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddToCart(p);
+                      }}
+                    >
+                      <i className="bi bi-cart-plus me-1"></i>Thêm vào giỏ
+                    </button>
                   </div>
                 </div>
-                <div className="card-footer bg-white border-top-0 text-center pb-3">
-                  <button
-                    className="btn btn-outline-danger w-100 fw-bold"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      alert(`Đã thêm "${p.name}" vào giỏ hàng!`);
-                    }}
-                  >
-                    <i className="bi bi-cart-plus me-1"></i>Thêm vào giỏ
-                  </button>
-                </div>
-              </div>
-            </Link>
-          </div>
-        ))}
+              </Link>
+            </div>
+          ))}
+        </div>
       </div>
-
-      {/* Flash Sale Section */}
-      <h4 className="fw-bold text-uppercase mb-3 mt-5">
-        <i className="bi bi-lightning-charge-fill text-warning me-2"></i>Flash Sale <span className="text-danger">Giá Sốc</span>
-      </h4>
-      <div className="row">
-        {FLASH_SALE_PRODUCTS.map((p) => (
-          <div className="col-12 col-sm-6 col-md-3 mb-4" key={p.id}>
-            <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
-              <div className="card h-100 product-card position-relative overflow-hidden bg-white border-0 shadow-sm">
-                <div className="position-absolute top-0 start-0 bg-danger text-white px-2 py-1 small fw-bold" style={{ zIndex: 1, borderBottomRightRadius: '10px' }}>
-                  Giảm {p.discount}
-                </div>
-                <div className="text-center bg-light p-3">
-                  <img src={p.img} className="img-fluid" alt={p.name} style={{ height: '180px', objectFit: 'contain' }} />
-                </div>
-                <div className="card-body d-flex flex-column">
-                  <h6 className="card-title fw-bold" style={{ minHeight: '40px', fontSize: '14px' }}>{p.name}</h6>
-                  <div className="mt-auto">
-                    <div className="text-danger fw-bold fs-5">{formatCurrency(p.price)}</div>
-                    <div className="text-muted text-decoration-line-through small">{formatCurrency(p.oldPrice)}</div>
-                  </div>
-                </div>
-                <div className="card-footer bg-white border-top-0 text-center pb-3">
-                  <button
-                    className="btn btn-outline-danger w-100 fw-bold"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      alert(`Đã thêm "${p.name}" vào giỏ hàng!`);
-                    }}
-                  >
-                    <i className="bi bi-cart-plus me-1"></i>Thêm vào giỏ
-                  </button>
-                </div>
-              </div>
-            </Link>
-          </div>
-        ))}
-      </div>
-    </div>
+    </>
   );
 }

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,9 +23,8 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
-        // Cập nhật token và xác thực
-        localStorage.setItem('adminToken', data.accessToken);
-        localStorage.setItem('isAdminAuthenticated', 'true');
+        // Cập nhật token và xác thực thông qua AuthContext
+        login(data.accessToken, { email });
         setError('');
         navigate('/admin');
       } else {

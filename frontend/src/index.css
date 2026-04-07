@@ -6,8 +6,34 @@ body {
 }
 
 /* Custom Utilities for Hovers */
+/* Dropdown without default caret */
+.dropdown-toggle.no-caret::after {
+  display: none !important;
+}
+
 .hover-danger:hover {
-  color: #dc3545 !important;
+  color: var(--bs-danger) !important;
+}
+
+/* Premium Dropdown Styling */
+.dropdown-menu {
+  display: none;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.dropdown-menu.show {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Sticky Header enhancement */
+.sticky-top {
+  z-index: 1020;
 }
 
 /* Product Card custom styling */

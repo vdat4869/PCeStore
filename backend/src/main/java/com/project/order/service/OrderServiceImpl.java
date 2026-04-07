@@ -10,6 +10,10 @@ import com.project.product.entity.Product;
 import com.project.product.repository.ProductRepository;
 import com.project.shipping.service.ShippingService;
 import com.project.shipping.entity.Shipping;
+import com.project.inventory.service.InventoryService;
+import com.project.inventory.dto.InventoryRequest;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,9 +29,11 @@ public class OrderServiceImpl implements OrderService {
     private final ProductRepository productRepository;
     private final ShippingService shippingService;
     private final com.project.payment.repository.PaymentRepository paymentRepository;
+    private final InventoryService inventoryService;
 
     @Override
     @Transactional
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public Order createOrder(OrderRequestDTO requestDTO) {
         Order order = Order.builder()
                 .userId(requestDTO.getUserId())
@@ -40,15 +46,14 @@ public class OrderServiceImpl implements OrderService {
 
         for (OrderItemRequestDTO itemDto : requestDTO.getItems()) {
             Product product = productRepository.findById(itemDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+                    .orElseThrow(() -> new RuntimeException("error.product.not_found"));
 
-            if (product.getInventory() == null || product.getInventory().getQuantity() < itemDto.getQuantity()) {
-                throw new RuntimeException("Not enough stock for product: " + product.getName());
+            if (product.getInventory() == null || product.getInventory().getQuantity() - product.getInventory().getReserved() < itemDto.getQuantity()) {
+                throw new RuntimeException("error.inventory.insufficient_stock");
             }
 
-            // Deduct stock
-            product.getInventory().setQuantity(product.getInventory().getQuantity() - itemDto.getQuantity());
-            productRepository.save(product);
+            // Reserve stock
+            inventoryService.reserveStock(new InventoryRequest(product.getId(), itemDto.getQuantity()));
 
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
@@ -72,7 +77,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Order getOrderById(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new RuntimeException("error.order.not_found"));
     }
 
     @Override
@@ -82,30 +87,33 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
         Order order = getOrderById(orderId);
-        order.setStatus(status);
-        if (status == OrderStatus.PAID && order.getShipping() != null) {
-            order.getShipping().setStatus(com.project.shipping.entity.ShippingStatus.IN_TRANSIT);
+        if (status == OrderStatus.PAID && order.getStatus() != OrderStatus.PAID) {
+            for (OrderItem item : order.getOrderItems()) {
+                inventoryService.confirmStock(new InventoryRequest(item.getProduct().getId(), item.getQuantity()));
+            }
+            if (order.getShipping() != null) {
+                order.getShipping().setStatus(com.project.shipping.entity.ShippingStatus.IN_TRANSIT);
+            }
         }
+        order.setStatus(status);
         return orderRepository.save(order);
     }
 
     @Override
     @Transactional
+    @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public void cancelOrder(Long orderId) {
         Order order = getOrderById(orderId);
         if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.COMPLETED) {
-            throw new RuntimeException("Cannot cancel order in status: " + order.getStatus());
+            throw new RuntimeException("error.order.cannot_cancel_status");
         }
         
-        // Restore stock
+        // Cancel reservation
         for(OrderItem item : order.getOrderItems()) {
-            Product product = item.getProduct();
-            if (product.getInventory() != null) {
-                product.getInventory().setQuantity(product.getInventory().getQuantity() + item.getQuantity());
-            }
-            productRepository.save(product);
+            inventoryService.cancelReservation(new InventoryRequest(item.getProduct().getId(), item.getQuantity()));
         }
         
         order.setStatus(OrderStatus.CANCELLED);
@@ -116,7 +124,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void deleteOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+                .orElseThrow(() -> new RuntimeException("error.order.not_found"));
         
         order.setDeleted(true);
         // Soft delete items as well
@@ -129,7 +137,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public void restoreOrder(Long orderId) {
         Order order = orderRepository.findByIdIncludingDeleted(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
+                .orElseThrow(() -> new RuntimeException("error.order.not_found"));
         
         order.setDeleted(false);
         order.getOrderItems().forEach(item -> item.setDeleted(false));
@@ -143,7 +151,9 @@ public class OrderServiceImpl implements OrderService {
         List<Order> orders = orderRepository.findByUserId(userId);
         for (Order o : orders) {
             paymentRepository.findByOrderId(o.getId()).ifPresent(p -> paymentRepository.delete(p));
+            o.setDeleted(true);
+            o.getOrderItems().forEach(item -> item.setDeleted(true));
+            orderRepository.save(o);
         }
-        orderRepository.deleteAll(orders);
     }
 }
