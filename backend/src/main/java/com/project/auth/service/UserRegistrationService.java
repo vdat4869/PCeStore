@@ -23,6 +23,8 @@ import java.util.UUID;
 @Service
 public class UserRegistrationService {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserRegistrationService.class);
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationTokenRepository emailTokenRepository;
@@ -85,19 +87,49 @@ public class UserRegistrationService {
 
     @Transactional
     public void verifyEmail(String token) {
+        // 1. Tìm token
         EmailVerificationToken verificationToken = emailTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("error.auth.token_not_found"));
+                .orElseThrow(() -> {
+                    // Log cảnh báo để debug nếu cần
+                    return new IllegalArgumentException("error.auth.token_not_found");
+                });
 
+        // 2. Kiểm tra hết hạn
         if (verificationToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             emailTokenRepository.delete(verificationToken);
             throw new IllegalArgumentException("error.auth.token_expired");
         }
 
-        User user = verificationToken.getUser();
-        user.setStatus(UserStatus.ACTIVE);
-        userRepository.save(user);
+        // 3. Nạp lại User bằng ID để lấy version mới nhất
+        User user = userRepository.findById(verificationToken.getUser().getId())
+                .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
+        
+        // 4. Nếu đã ACTIVE (Idempotency), xoá token và kết thúc thành công
+        if (user.getStatus() == UserStatus.ACTIVE) {
+            emailTokenRepository.delete(verificationToken);
+            return;
+        }
 
-        emailTokenRepository.delete(verificationToken);
+        // 5. Cập nhật bằng Modifying Query để TRÁNH ném ngoại lệ OptimisticLockingFailure
+        // query trả về 1 nếu thành công, 0 nếu version không khớp (đã bị luồng khác update)
+        int rowsUpdated = userRepository.updateStatusByIdAndVersion(user.getId(), UserStatus.ACTIVE, user.getVersion());
+        
+        if (rowsUpdated > 0) {
+            logger.info("Xác thực Email thành công (Query): {}", user.getEmail());
+        } else {
+            // Kiểm tra lại nếu bản ghi hiện tại đã là ACTIVE chưa
+            User currentUser = userRepository.findById(user.getId()).orElse(null);
+            if (currentUser != null && currentUser.getStatus() == UserStatus.ACTIVE) {
+                logger.info("Xác thực Email (Concurrent-success): {}", user.getEmail());
+            } else {
+                // Đây là trường hợp hiếm gặp, có thể do User đã bị xóa
+                throw new IllegalStateException("Lỗi tranh chấp dữ liệu khi xác thực Email.");
+            }
+        }
+
+        // 6. Xoá token sau khi xác thực thành công (Sử dụng Modifying Query cho an toàn tuyệt đối)
+        emailTokenRepository.deleteByToken(token);
+        logger.info("Xác thực Email và xoá Token thành công: {}", user.getEmail());
     }
 
     @Transactional

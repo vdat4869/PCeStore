@@ -41,6 +41,7 @@ spring:
     type: caffeine
     cache-names:
       - login_buckets
+      - emailTemplates
     caffeine:
       spec: expireAfterWrite=1h,maximumSize=10000
 

@@ -11,16 +11,16 @@ public class LoginLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "email", nullable = false)
     private String email;
 
     @Column(name = "ip_address", nullable = false)
     private String ipAddress;
 
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false)
     private String status; // SUCCESS or FAILED
 
-    @Column(length = 500)
+    @Column(name = "reason", length = 500)
     private String reason;
 
     @Column(name = "created_at", nullable = false, updatable = false)

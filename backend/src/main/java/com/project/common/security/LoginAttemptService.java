@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import org.springframework.transaction.annotation.Propagation;
+
 @Service
 public class LoginAttemptService {
 
@@ -25,6 +27,7 @@ public class LoginAttemptService {
         this.loginLogRepository = loginLogRepository;
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void logLoginAudit(String email, String ipAddress, boolean isSuccess, String reason) {
         LoginLog log = new LoginLog(email, ipAddress, isSuccess ? "SUCCESS" : "FAILED", reason);
         loginLogRepository.save(log);

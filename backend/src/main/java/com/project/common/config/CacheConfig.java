@@ -15,9 +15,9 @@ public class CacheConfig {
 
     @Bean
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("jwtBlacklist");
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager("jwtBlacklist", "emailTemplates", "login_buckets");
         cacheManager.setCaffeine(Caffeine.newBuilder()
-                .expireAfterWrite(1, TimeUnit.DAYS) // Thời gian sống tối đa cho blacklist (có thể tinh chỉnh theo JWT expiration)
+                .expireAfterWrite(1, TimeUnit.DAYS)
                 .maximumSize(10000));
         return cacheManager;
     }

@@ -35,7 +35,7 @@ public class Notification extends BaseEntity {
     @Column(nullable = false)
     private NotificationStatus status = NotificationStatus.PENDING;
 
-    @Column(nullable = false)
+    @Column(name = "is_read", nullable = true, columnDefinition = "boolean default false")
     private boolean isRead = false;
 
     private LocalDateTime sentAt;

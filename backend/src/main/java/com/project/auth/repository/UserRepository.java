@@ -35,4 +35,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
            countQuery = "SELECT count(*) FROM users WHERE email LIKE %:keyword% OR full_name LIKE %:keyword%", 
            nativeQuery = true)
     Page<User> searchUsersIncludingDeleted(@Param("keyword") String keyword, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying(clearAutomatically = true, flushAutomatically = true)
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE User u SET u.status = :status, u.version = u.version + 1 WHERE u.id = :id AND u.version = :version")
+    int updateStatusByIdAndVersion(@Param("id") Long id, @Param("status") com.project.auth.entity.UserStatus status, @Param("version") Integer version);
 }
