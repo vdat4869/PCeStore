@@ -3,19 +3,22 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils';
+import { validateDiscountCode } from '../../utils/discounts';
 import apiClient from '../../services/api';
 import AuthModal from '../../components/AuthModal';
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, clearCart, selectedItems, setSelectedItems } = useCart();
   const { isLoggedIn } = useAuth();
   
-  // Selection state (local to this view)
-  const [selectedItems, setSelectedItems] = useState(cartItems.map(item => item.productId));
+  // Selection state (shared via context so it persists to Checkout)
   const [loading, setLoading] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [message, setMessage] = useState(null);
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState(0);
 
   // ============================================================
   // HANDLERS
@@ -70,6 +73,17 @@ export default function Cart() {
       setLoading(false);
     }
   };
+  
+  const handleApplyDiscount = () => {
+    const percent = validateDiscountCode(discountCode);
+    if (percent) {
+      setDiscountPercent(percent);
+      setMessage({ type: 'success', text: `Đã áp dụng mã giảm giá ${discountCode} (${percent * 100}%)` });
+    } else {
+      setDiscountPercent(0);
+      alert('Mã giảm giá không hợp lệ!');
+    }
+  };
 
   // ============================================================
   // TÍNH TOÁN
@@ -77,8 +91,9 @@ export default function Cart() {
   const selectedCartItems = cartItems.filter(item => selectedItems.includes(item.productId));
   const subtotal = selectedCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalQuantity = selectedCartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const discountAmount = subtotal * discountPercent;
   const shippingFee = (subtotal >= 500000 || subtotal === 0) ? 0 : 30000;
-  const total = subtotal + shippingFee;
+  const total = subtotal - discountAmount + shippingFee;
 
   // ============================================================
   // GIỎ HÀNG TRỐNG
@@ -246,6 +261,52 @@ export default function Cart() {
                   <span className="fw-medium">{formatCurrency(shippingFee)}</span>
                 )}
               </div>
+
+              {/* MÃ GIẢM GIÁ */}
+              <div className="mt-3 mb-2">
+                <div 
+                  className="d-flex align-items-center justify-content-between p-2 border rounded-3"
+                  style={{ 
+                    cursor: 'pointer', 
+                    backgroundColor: '#f8f9fa',
+                    borderColor: '#dee2e6',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setShowDiscount(!showDiscount)}
+                >
+                  <div className="d-flex align-items-center gap-2 text-primary">
+                    <i className="bi bi-ticket-perforated fs-5"></i>
+                    <span className="small fw-semibold">Sử dụng mã giảm giá</span>
+                  </div>
+                  <i className={`bi bi-chevron-${showDiscount ? 'up' : 'down'} text-muted small`}></i>
+                </div>
+                
+                {showDiscount && (
+                  <div className="mt-2 d-flex gap-2 animate__animated animate__fadeIn">
+                    <input 
+                      type="text" 
+                      className="form-control form-control-sm border-primary border-opacity-25" 
+                      placeholder="Nhập mã giảm giá"
+                      value={discountCode}
+                      onChange={(e) => setDiscountCode(e.target.value)}
+                      autoFocus
+                    />
+                    <button 
+                      className="btn btn-sm btn-primary px-3 fw-medium"
+                      onClick={handleApplyDiscount}
+                    >
+                      Áp dụng
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {discountPercent > 0 && (
+                <div className="d-flex justify-content-between mb-2 text-success small">
+                  <span>Giảm giá ({discountPercent * 100}%)</span>
+                  <span>-{formatCurrency(discountAmount)}</span>
+                </div>
+              )}
 
               <hr />
 

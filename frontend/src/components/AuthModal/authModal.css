@@ -26,16 +26,7 @@
 }
 
 .auth-modal-close {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #999;
-  cursor: pointer;
-  transition: color 0.2s;
-  line-height: 1;
+  display: none; /* Hidden to match target image */
 }
 
 .auth-modal-close:hover {
@@ -102,12 +93,15 @@
   color: #bbb;
 }
 
-.auth-forgot-link {
-  float: right;
-  font-size: 0.85rem;
-  color: #0d6efd;
-  text-decoration: none;
-  font-weight: 500;
+.auth-forgot-link-footer {
+  font-size: 0.9rem;
+  color: #666;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-forgot-link-footer:hover {
+  color: #333;
 }
 
 .auth-remember-row {
@@ -163,10 +157,14 @@
   margin: 0;
 }
 
-.auth-footer a {
-  color: #0d6efd;
+.auth-footer .auth-signup-link {
+  color: #dc3545; /* Red color from image */
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700; /* Bold */
+}
+
+.auth-footer .auth-signup-link:hover {
+  text-decoration: underline;
 }
 
 @keyframes fadeIn {

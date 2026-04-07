@@ -37,6 +37,10 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public Order createOrder(OrderRequestDTO requestDTO) {
+        if (requestDTO.getItems() == null || requestDTO.getItems().isEmpty()) {
+            throw new RuntimeException("error.order.items_required");
+        }
+
         Order order = Order.builder()
                 .userId(requestDTO.getUserId())
                 .status(OrderStatus.PENDING)
@@ -48,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
 
         for (OrderItemRequestDTO itemDto : requestDTO.getItems()) {
             Product product = productRepository.findById(itemDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("error.product.not_found"));
+                    .orElseThrow(() -> new RuntimeException("Sản phẩm ID " + itemDto.getProductId() + " không tồn tại"));
 
             if (product.getInventory() == null || product.getInventory().getQuantity() - product.getInventory().getReserved() < itemDto.getQuantity()) {
                 throw new RuntimeException("error.inventory.insufficient_stock");

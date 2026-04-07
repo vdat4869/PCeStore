@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../../context/CartContext';
 import { formatCurrency } from '../../utils';
+import { validateDiscountCode } from '../../utils/discounts';
+import apiClient from '../../services/api';
 
 // ============================================================
 // DỮ LIỆU MẪU — Sẽ nhận từ Cart qua state/context
@@ -13,11 +16,11 @@ const MOCK_CHECKOUT_ITEMS = [
 
 const PAYMENT_METHODS = [
   { value: 'COD', label: 'Thanh toán khi nhận hàng (COD)', icon: 'bi-cash-stack', desc: 'Thanh toán bằng tiền mặt khi nhận hàng' },
-  { value: 'VNPAY', label: 'VNPay', icon: 'bi-credit-card', desc: 'Thanh toán qua ví VNPay, thẻ ATM/Visa/Master' },
-  { value: 'MOMO', label: 'Ví MoMo', icon: 'bi-phone', desc: 'Thanh toán qua ví điện tử MoMo' },
+  { value: 'BANK_TRANSFER', label: 'Chuyển khoản ngân hàng (Quét mã QR)', icon: 'bi-qr-code-scan', desc: 'Thanh toán nhanh chỉ 2s bằng app Ngân hàng, MoMo, ZaloPay, ShopeePay, Viettel Money, ...' },
 ];
 
 export default function Checkout() {
+  const { cartItems, selectedItems } = useCart();
   const navigate = useNavigate();
   const [form, setForm] = useState({
     fullName: '',
@@ -33,12 +36,35 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-
-  const items = MOCK_CHECKOUT_ITEMS;
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountPercent, setDiscountPercent] = useState(0);
+ 
+  // Lấy các sản phẩm đã chọn từ Giỏ hàng (fallback: toàn bộ giỏ hàng)
+  const items = (selectedItems && selectedItems.length > 0)
+    ? cartItems.filter(i => selectedItems.includes(i.productId))
+    : cartItems;
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-  const shippingFee = subtotal >= 500000 ? 0 : 30000;
-  const total = subtotal + shippingFee;
+  const discountAmount = subtotal * discountPercent;
+  const shippingFee = subtotal >= 500000 || subtotal === 0 ? 0 : 30000;
+  const total = subtotal - discountAmount + shippingFee;
+  
+  const handleApplyDiscount = (e) => {
+    e.preventDefault();
+    const code = discountCode.trim();
+    if (!code) {
+      setDiscountPercent(0);
+      return;
+    }
+    const percent = validateDiscountCode(code);
+    if (percent) {
+      setDiscountPercent(percent);
+    } else {
+      setDiscountPercent(0);
+      alert('Mã giảm giá không hợp lệ!');
+    }
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -68,22 +94,53 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      // TODO: Gọi API thật POST /api/v1/orders/create
-      // const response = await fetch('http://localhost:8080/api/v1/orders/create', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      //   body: JSON.stringify({
-      //     shippingAddress: `${form.address}, ${form.ward}, ${form.district}, ${form.province}`,
-      //     paymentMethod,
-      //     items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
-      //   }),
-      // });
+      if (items.length === 0) {
+        setError('Giỏ hàng trống. Vui lòng thêm sản phẩm trước khi đặt hàng.');
+        setLoading(false);
+        return;
+      }
 
-      // Giả lập thành công
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setOrderSuccess(true);
+      const payload = {
+        shippingAddress: `${form.address}, ${form.ward}, ${form.district}, ${form.province}`,
+        paymentMethod,
+        items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+      };
+      console.log('[Checkout] Sending payload:', JSON.stringify(payload, null, 2));
+
+      // 1. Tạo đơn hàng và thanh toán trên Backend
+      const orderResponse = await apiClient.post('/v1/orders/create', payload);
+
+      const { orderId, payment } = orderResponse.data;
+
+      // 2. Xử lý theo phương thức thanh toán
+      if (paymentMethod === 'BANK_TRANSFER') {
+        const sepayResponse = await apiClient.post(`/v1/payments/${payment.id}/sepay-checkout`);
+        const fields = sepayResponse.data;
+        
+        // Redirect tới SePay Checkout bằng POST form
+        const checkoutForm = document.createElement('form');
+        checkoutForm.method = 'POST';
+        checkoutForm.action = 'https://checkout.sepay.vn/checkout';
+        
+        Object.keys(fields).forEach(key => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = fields[key];
+          checkoutForm.appendChild(input);
+        });
+        
+        document.body.appendChild(checkoutForm);
+        checkoutForm.submit();
+      } else {
+        // COD hoặc phương thức khác: Hiện màn hình thành công
+        setOrderSuccess(true);
+      }
     } catch (err) {
-      setError('Đặt hàng thất bại. Vui lòng thử lại!');
+      console.error('Submit Error:', err);
+      const backendMsg = err.response?.data?.message || err.response?.data || err.message;
+      console.error('Backend error detail:', backendMsg);
+      setError(`Đặt hàng thất bại: ${backendMsg || 'Vui lòng thử lại!'}`);
     } finally {
       setLoading(false);
     }
@@ -247,28 +304,39 @@ export default function Checkout() {
                 </h5>
 
                 <div className="d-flex flex-column gap-2">
-                  {PAYMENT_METHODS.map(method => (
-                    <label
-                      key={method.value}
-                      className={`d-flex align-items-center gap-3 p-3 rounded-3 border cursor-pointer ${paymentMethod === method.value ? 'border-danger bg-danger bg-opacity-10' : 'border-light'}`}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method.value}
-                        checked={paymentMethod === method.value}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="form-check-input"
-                      />
-                      <div>
-                        <div className="fw-medium">
-                          <i className={`bi ${method.icon} me-2 text-danger`}></i>{method.label}
-                        </div>
-                        <small className="text-muted">{method.desc}</small>
-                      </div>
-                    </label>
-                  ))}
+                    {PAYMENT_METHODS.map(method => {
+                      const isBankTransfer = method.value === 'BANK_TRANSFER';
+                      const isSelected = paymentMethod === method.value;
+                      
+                      return (
+                        <label
+                          key={method.value}
+                          className={`d-flex align-items-center gap-3 p-3 rounded-3 border cursor-pointer transition-all ${
+                            isSelected 
+                              ? (isBankTransfer ? 'border-warning bg-warning bg-opacity-10' : 'border-danger bg-danger bg-opacity-10') 
+                              : 'border-light'
+                          }`}
+                          style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value={method.value}
+                            checked={isSelected}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className={`form-check-input ${isBankTransfer ? 'accent-warning' : ''}`}
+                            style={isBankTransfer && isSelected ? { accentColor: '#fd7e14' } : {}}
+                          />
+                          <div>
+                            <div className="fw-medium">
+                              <i className={`bi ${method.icon} me-2 ${isBankTransfer ? 'text-warning' : 'text-danger'}`}></i>
+                              {method.label}
+                            </div>
+                            <small className="text-muted">{method.desc}</small>
+                          </div>
+                        </label>
+                      );
+                    })}
                 </div>
               </div>
             </div>
@@ -317,6 +385,51 @@ export default function Checkout() {
                     <span>{formatCurrency(shippingFee)}</span>
                   )}
                 </div>
+
+                {/* MÃ GIẢM GIÁ */}
+                <div className="mt-3 mb-2">
+                  <div 
+                    className="d-flex align-items-center justify-content-between p-2 border rounded-3"
+                    style={{ 
+                      cursor: 'pointer', 
+                      backgroundColor: '#f8f9fa',
+                      borderColor: '#dee2e6'
+                    }}
+                    onClick={() => setShowDiscount(!showDiscount)}
+                  >
+                    <div className="d-flex align-items-center gap-2 text-primary">
+                      <i className="bi bi-ticket-perforated fs-5"></i>
+                      <span className="small fw-semibold">Sử dụng mã giảm giá</span>
+                    </div>
+                    <i className={`bi bi-chevron-${showDiscount ? 'up' : 'down'} text-muted small`}></i>
+                  </div>
+                  
+                  {showDiscount && (
+                    <div className="mt-2 d-flex gap-2">
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm border-primary border-opacity-25" 
+                        placeholder="Nhập mã giảm giá"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value)}
+                        autoFocus
+                      />
+                      <button 
+                        className="btn btn-sm btn-primary px-3 fw-medium"
+                        onClick={handleApplyDiscount}
+                      >
+                        Áp dụng
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {discountPercent > 0 && (
+                  <div className="d-flex justify-content-between mb-2 text-success small">
+                    <span>Giảm giá ({discountPercent * 100}%)</span>
+                    <span>-{formatCurrency(discountAmount)}</span>
+                  </div>
+                )}
 
                 <hr />
 

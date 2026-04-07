@@ -75,7 +75,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
               <input
                 type="email"
                 className="auth-input"
-                placeholder="admin123@gmail.com"
+                placeholder="Nhập Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -85,7 +85,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
 
           <div className="mb-4">
             <label className="auth-form-label">Mật khẩu</label>
-            <a href="#" className="auth-forgot-link">Quên mật khẩu?</a>
+
             <div className="auth-input-group">
               <i className="bi bi-lock auth-input-icon"></i>
               <input
@@ -110,8 +110,11 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
 
           <div className="auth-footer">
             <p>
-              Chưa có tài khoản? <Link to="/signup" onClick={onClose}>Đăng ký ngay</Link>
+              Chưa có tài khoản? <Link to="/signup" className="auth-signup-link" onClick={onClose}>Đăng ký ngay</Link>
             </p>
+            <div className="mt-3">
+              <a href="#" className="auth-forgot-link-footer">Quên mật khẩu?</a>
+            </div>
           </div>
         </form>
       </div>
