@@ -12,6 +12,7 @@ public interface PaymentService {
     Payment createPayment(Long orderId, BigDecimal amount, String paymentMethod);
     Payment processPayment(Long paymentId);
     Payment getPaymentByOrderId(Long orderId);
+    Payment getPaymentByOrderId(Long orderId, Long userId);
     Payment updatePaymentStatus(Long paymentId, PaymentStatus status, String transactionId);
 
     Map<String, String> initiateSePayCheckout(Long paymentId);

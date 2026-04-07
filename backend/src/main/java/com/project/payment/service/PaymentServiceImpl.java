@@ -20,6 +20,8 @@ import com.project.payment.dto.SePayIpnRequest;
 import com.project.payment.utils.SecurityUtils;
 import com.project.order.service.OrderService;
 import com.project.order.entity.OrderStatus;
+import com.project.order.entity.Order;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -77,6 +79,15 @@ public class PaymentServiceImpl implements PaymentService {
     public Payment getPaymentByOrderId(Long orderId) {
         return paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException(PAYMENT_NOT_FOUND_MSG + " for Order ID: " + orderId));
+    }
+
+    @Override
+    public Payment getPaymentByOrderId(Long orderId, Long userId) {
+        Order order = orderService.getOrderById(orderId);
+        if (order == null || !order.getUserId().equals(userId)) {
+            throw new AccessDeniedException("You do not have permission to access this payment record");
+        }
+        return getPaymentByOrderId(orderId);
     }
 
     @Override
