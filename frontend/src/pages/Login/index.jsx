@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -99,14 +100,22 @@ export default function Login() {
                   <i className="bi bi-lock text-muted"></i>
                 </span>
                 <input
-                  type="password"
-                  className="form-control bg-light border-start-0 ps-0"
+                  type={showPassword ? "text" : "password"}
+                  className="form-control bg-light border-start-0 border-end-0 ps-0"
                   id="password"
                   placeholder="Nhập mật khẩu"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
+                <span 
+                  className="input-group-text bg-light border-start-0" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                >
+                  <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} text-muted`}></i>
+                </span>
               </div>
             </div>
 

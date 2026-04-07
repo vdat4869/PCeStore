@@ -6,6 +6,7 @@ import './authModal.css';
 export default function AuthModal({ isOpen, onClose, onSuccess }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -89,13 +90,18 @@ export default function AuthModal({ isOpen, onClose, onSuccess }) {
             <div className="auth-input-group">
               <i className="bi bi-lock auth-input-icon"></i>
               <input
-                type="password"
-                className="auth-input"
+                type={showPassword ? "text" : "password"}
+                className="auth-input auth-input-password"
                 placeholder="Nhập mật khẩu"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <i 
+                className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'} auth-toggle-password`} 
+                onClick={() => setShowPassword(!showPassword)}
+                title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              ></i>
             </div>
           </div>
 
