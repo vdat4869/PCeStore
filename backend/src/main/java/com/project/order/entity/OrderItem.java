@@ -1,9 +1,7 @@
 package com.project.order.entity;
 
 import com.project.common.entity.BaseEntity;
-import com.project.product.entity.Product;
 import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
 
 import java.math.BigDecimal;
@@ -11,12 +9,6 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "order_items")
 @SQLRestriction("is_deleted = false")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@EqualsAndHashCode(callSuper = true)
 public class OrderItem extends BaseEntity {
 
     @Id
@@ -25,16 +17,110 @@ public class OrderItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
-    @com.fasterxml.jackson.annotation.JsonIgnore
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    private com.project.product.entity.Product product;
 
     @Column(nullable = false)
     private Integer quantity;
 
     @Column(nullable = false)
     private BigDecimal price; // Price at the time of purchase
+
+    public OrderItem() {
+    }
+
+    public OrderItem(Long id, Order order, com.project.product.entity.Product product, Integer quantity, BigDecimal price) {
+        this.id = id;
+        this.order = order;
+        this.product = product;
+        this.quantity = quantity;
+        this.price = price;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Order getOrder() {
+        return order;
+    }
+
+    public void setOrder(Order order) {
+        this.order = order;
+    }
+
+    public com.project.product.entity.Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(com.project.product.entity.Product product) {
+        this.product = product;
+    }
+
+    public Integer getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
+
+    // Manual Builder
+    public static OrderItemBuilder builder() {
+        return new OrderItemBuilder();
+    }
+
+    public static class OrderItemBuilder {
+        private Long id;
+        private Order order;
+        private com.project.product.entity.Product product;
+        private Integer quantity;
+        private BigDecimal price;
+
+        OrderItemBuilder() {}
+
+        public OrderItemBuilder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public OrderItemBuilder order(Order order) {
+            this.order = order;
+            return this;
+        }
+
+        public OrderItemBuilder product(com.project.product.entity.Product product) {
+            this.product = product;
+            return this;
+        }
+
+        public OrderItemBuilder quantity(Integer quantity) {
+            this.quantity = quantity;
+            return this;
+        }
+
+        public OrderItemBuilder price(BigDecimal price) {
+            this.price = price;
+            return this;
+        }
+
+        public OrderItem build() {
+            return new OrderItem(id, order, product, quantity, price);
+        }
+    }
 }

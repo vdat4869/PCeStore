@@ -64,4 +64,14 @@ public class RefreshTokenService {
         User user = userRepository.findById(userId).orElseThrow(() -> new org.springframework.security.core.userdetails.UsernameNotFoundException("error.auth.user_not_found"));
         return refreshTokenRepository.deleteByUser(user);
     }
+
+    public Optional<RefreshToken> findByUserEmail(String email) {
+        return userRepository.findByEmail(email)
+                .flatMap(refreshTokenRepository::findByUser);
+    }
+
+    @Transactional
+    public void deleteByUserEmail(String email) {
+        userRepository.findByEmail(email).ifPresent(refreshTokenRepository::deleteByUser);
+    }
 }

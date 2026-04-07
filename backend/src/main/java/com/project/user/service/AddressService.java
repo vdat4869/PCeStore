@@ -19,9 +19,11 @@ public class AddressService {
     private static final String ADDRESS_NOT_FOUND_MSG = "error.address.not_found";
 
     private final AddressRepository addressRepository;
+    private final com.project.user.repository.UserAuditLogRepository auditLogRepository;
 
-    public AddressService(AddressRepository addressRepository) {
+    public AddressService(AddressRepository addressRepository, com.project.user.repository.UserAuditLogRepository auditLogRepository) {
         this.addressRepository = addressRepository;
+        this.auditLogRepository = auditLogRepository;
     }
 
     // Lấy toàn bộ địa chỉ của một User
@@ -69,6 +71,10 @@ public class AddressService {
 
         addressRepository.save(newAddr);
 
+        // Log hành động
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.ADD_ADDRESS, 
+            "Thêm địa chỉ mới: " + newAddr.getStreet(), null));
+
         return new AddressResponse(
                 newAddr.getId(),
                 newAddr.getStreet(),
@@ -115,6 +121,10 @@ public class AddressService {
 
         addressRepository.save(address);
 
+        // Log hành động
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.UPDATE_ADDRESS, 
+            "Cập nhật địa chỉ ID: " + addressId, null));
+
         return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), address.getIsDefault());
     }
 
@@ -139,6 +149,10 @@ public class AddressService {
         address.setIsDefault(true);
         addressRepository.save(address);
 
+        // Log hành động
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.SET_DEFAULT_ADDRESS, 
+            "Thiết lập địa chỉ mặc định ID: " + addressId, null));
+
         return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), true);
     }
 
@@ -157,6 +171,10 @@ public class AddressService {
         // Đánh dấu xóa mềm
         address.setDeleted(true);
         addressRepository.save(address);
+
+        // Log hành động
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.DELETE_ADDRESS, 
+            "Xóa địa chỉ ID: " + addressId, null));
     }
 
     // Khôi phục địa chỉ (Restore) - Chỉ dành cho Admin hoặc chủ sở hữu

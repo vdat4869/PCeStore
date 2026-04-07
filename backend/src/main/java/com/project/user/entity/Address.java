@@ -6,9 +6,14 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "addresses")
+@Table(name = "addresses", indexes = {
+    @Index(name = "idx_address_user", columnList = "user_id")
+})
 @SQLRestriction("is_deleted = false")
 public class Address extends BaseEntity {
+
+    @Version
+    private Long version;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -46,6 +51,10 @@ public class Address extends BaseEntity {
 
     public Long getId() {
         return id;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     public void setId(Long id) {

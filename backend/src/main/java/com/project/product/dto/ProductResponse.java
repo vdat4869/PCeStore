@@ -19,6 +19,11 @@ public class ProductResponse {
     // --- Constructors ---
     public ProductResponse() {}
 
+    /**
+     * Constructor internally used by the manual builder pattern.
+     * java:S107: Constructor has 11 parameters, which is greater than 7 authorized.
+     */
+    @SuppressWarnings("java:S107")
     public ProductResponse(Long id, String name, String description, Double price, Integer stock, Long categoryId, 
                            String categoryName, String brand, String imageUrl, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;

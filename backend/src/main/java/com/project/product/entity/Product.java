@@ -43,6 +43,11 @@ public class Product extends BaseEntity {
     public Product() {
     }
 
+    /**
+     * Constructor internally used by the manual builder pattern.
+     * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
+     */
+    @SuppressWarnings("java:S107")
     public Product(Long id, String name, String description, Double price, Category category, String brand, com.project.inventory.entity.Inventory inventory, String imageUrl) {
         this.id = id;
         this.name = name;

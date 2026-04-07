@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
   const { cartCount } = useCart();
-  const { isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, logout, user } = useAuth();
+  const navigate = useNavigate();
   
   // Trạng thái đóng/mở menu (React-controlled)
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -28,6 +29,12 @@ const Header = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleLogout = () => {
+    logout();
+    setIsAccountOpen(false);
+    navigate('/login');
+  };
 
   return (
     <header className="shadow-sm sticky-top bg-white">
@@ -82,10 +89,10 @@ const Header = () => {
                 </button>
               </div>
               <div className="small mt-1 text-muted d-none d-md-flex gap-3">
-                <Link to="/search?q=VGA" className="text-decoration-none text-secondary">VGA</Link>
-                <Link to="/search?q=CPU" className="text-decoration-none text-secondary">CPU AMD</Link>
-                <Link to="/search?q=RAM" className="text-decoration-none text-secondary">RAM</Link>
-                <Link to="/search?q=Màn hình" className="text-decoration-none text-secondary">Màn hình</Link>
+                <Link to="/products?q=VGA" className="text-decoration-none text-secondary">VGA</Link>
+                <Link to="/products?q=CPU" className="text-decoration-none text-secondary">CPU AMD</Link>
+                <Link to="/products?q=RAM" className="text-decoration-none text-secondary">RAM</Link>
+                <Link to="/products?q=Màn hình" className="text-decoration-none text-secondary">Màn hình</Link>
               </div>
             </div>
 
@@ -103,7 +110,7 @@ const Header = () => {
                       {isLoggedIn ? 'Xin chào,' : 'Đăng nhập/Đăng ký'}
                     </div>
                     <div className="text-dark fw-bold" style={{ fontSize: '14px' }}>
-                      Tài khoản <i className={`bi bi-caret-down-fill ${isLoggedIn ? '' : 'text-muted'}`} style={{ fontSize: '10px' }}></i>
+                      {isLoggedIn ? (user?.name || 'Tài khoản') : 'Tài khoản'} <i className={`bi bi-caret-down-fill ${isLoggedIn ? '' : 'text-muted'}`} style={{ fontSize: '10px' }}></i>
                     </div>
                   </div>
                 </button>
@@ -111,9 +118,9 @@ const Header = () => {
                   {isLoggedIn ? (
                     <>
                       <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person me-2"></i>Thông tin cá nhân</Link></li>
-                      <li><Link className="dropdown-item py-2" to="/orders" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Đơn hàng của tôi</Link></li>
+                      <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Đơn hàng của tôi</Link></li>
                       <li><hr className="dropdown-divider" /></li>
-                      <li><button className="dropdown-item py-2 text-danger" onClick={() => { logout(); setIsAccountOpen(false); }}><i className="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
+                      <li><button className="dropdown-item py-2 text-danger" onClick={handleLogout}><i className="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
                     </>
                   ) : (
                     <>
@@ -131,7 +138,7 @@ const Header = () => {
                     {cartCount}
                   </span>
                 </div>
-                <span className="ms-3 fw-bold">Giỏ hàng</span>
+                <span className="ms-3 fw-bold d-none d-lg-block">Giỏ hàng</span>
               </Link>
             </div>
           </div>

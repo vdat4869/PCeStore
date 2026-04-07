@@ -20,6 +20,12 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     // Lấy thông báo theo trạng thái
     List<Notification> findByStatus(NotificationStatus status);
 
+    List<Notification> findByUserAndIsRead(User user, boolean isRead);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    long deleteByCreatedAtBefore(java.time.LocalDateTime date);
+
     // Tìm kiếm thông báo bất kể trạng thái xóa
     @Query(value = "SELECT * FROM notifications WHERE id = :id", nativeQuery = true)
     Optional<Notification> findByIdIncludingDeleted(@Param("id") Long id);

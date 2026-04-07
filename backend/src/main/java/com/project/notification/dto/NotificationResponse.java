@@ -10,13 +10,15 @@ public class NotificationResponse {
     private final NotificationType type;
     private final String content;
     private final NotificationStatus status;
+    private final boolean isRead;
     private final LocalDateTime createdAt;
 
-    public NotificationResponse(Long id, NotificationType type, String content, NotificationStatus status, LocalDateTime createdAt) {
+    public NotificationResponse(Long id, NotificationType type, String content, NotificationStatus status, boolean isRead, LocalDateTime createdAt) {
         this.id = id;
         this.type = type;
         this.content = content;
         this.status = status;
+        this.isRead = isRead;
         this.createdAt = createdAt;
     }
 
@@ -24,5 +26,6 @@ public class NotificationResponse {
     public NotificationType getType() { return type; }
     public String getContent() { return content; }
     public NotificationStatus getStatus() { return status; }
+    public boolean isRead() { return isRead; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

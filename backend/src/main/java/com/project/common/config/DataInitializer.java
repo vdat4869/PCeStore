@@ -10,6 +10,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.util.UUID;
 
 @Configuration
 public class DataInitializer {
@@ -24,9 +25,10 @@ public class DataInitializer {
             if (!userRepository.existsByEmail(adminEmail)) {
                 logger.info("Initializing default Admin account...");
                 
+                String adminPassword = "Admin@123";
                 User admin = new User(
                         adminEmail,
-                        passwordEncoder.encode("Admin123"),
+                        passwordEncoder.encode(adminPassword),
                         UserRole.ADMIN,
                         UserStatus.ACTIVE
                 );
@@ -36,7 +38,7 @@ public class DataInitializer {
                 
                 logger.info("✅ Default Admin account created successfully!");
                 logger.info("Email: {}", adminEmail);
-                logger.info("Password: {}", "Admin123");
+                logger.info("Password fixed: {}", adminPassword);
             } else {
                 logger.info("Admin account already exists.");
             }

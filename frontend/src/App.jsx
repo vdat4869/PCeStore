@@ -5,11 +5,15 @@ import Home from './pages/Home';
 import Product from './pages/Product';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
 import Login from './pages/Login';
-import SignUp from './pages/SignUp';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import Profile from './pages/Profile';
 import AdminApp from './admin/App';
+import EmployeeApp from './employee/EmployeeApp';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -40,13 +44,17 @@ function App() {
                 <Route path="/products" element={<Product />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<SignUp />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/signup" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
   
-              {/* Admin Dashboard Route (Isolates styling & layout) */}
+              {/* Admin Dashboard Route */}
               <Route
                 path="/admin/*"
                 element={
@@ -54,6 +62,16 @@ function App() {
                     <AdminApp />
                   </ProtectedRoute>
                 }
+              />
+
+              {/* Employee Dashboard Route */}
+              <Route 
+                path="/employee/*" 
+                element={
+                  <ProtectedRoute>
+                    <EmployeeApp />
+                  </ProtectedRoute>
+                } 
               />
             </Routes>
           </div>

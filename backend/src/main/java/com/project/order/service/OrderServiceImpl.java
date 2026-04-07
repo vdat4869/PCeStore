@@ -31,6 +31,8 @@ public class OrderServiceImpl implements OrderService {
     private final com.project.payment.repository.PaymentRepository paymentRepository;
     private final InventoryService inventoryService;
 
+    private static final String ORDER_NOT_FOUND_MSG = "Order not found with id: ";
+
     @Override
     @Transactional
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))

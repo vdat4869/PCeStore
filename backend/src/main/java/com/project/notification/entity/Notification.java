@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Table(name = "notifications", indexes = {
     @Index(name = "idx_notification_user", columnList = "user_id"),
     @Index(name = "idx_notification_status", columnList = "status"),
+    @Index(name = "idx_notification_is_read", columnList = "is_read"),
     @Index(name = "idx_notification_created", columnList = "created_at")
 })
 @SQLRestriction("is_deleted = false")
@@ -33,6 +34,9 @@ public class Notification extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationStatus status = NotificationStatus.PENDING;
+
+    @Column(nullable = false)
+    private boolean isRead = false;
 
     private LocalDateTime sentAt;
 
@@ -84,6 +88,14 @@ public class Notification extends BaseEntity {
 
     public void setStatus(NotificationStatus status) {
         this.status = status;
+    }
+
+    public boolean isRead() {
+        return isRead;
+    }
+
+    public void setRead(boolean read) {
+        isRead = read;
     }
 
     public LocalDateTime getSentAt() {

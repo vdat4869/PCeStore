@@ -4,7 +4,6 @@ import com.project.order.entity.Order;
 import com.project.shipping.entity.Shipping;
 import com.project.shipping.entity.ShippingStatus;
 import com.project.shipping.repository.ShippingRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,10 +12,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class ShippingServiceImpl implements ShippingService {
 
     private final ShippingRepository shippingRepository;
+
+    public ShippingServiceImpl(ShippingRepository shippingRepository) {
+        this.shippingRepository = shippingRepository;
+    }
 
     @Override
     public BigDecimal calculateShippingCost(String address) {
@@ -43,7 +45,6 @@ public class ShippingServiceImpl implements ShippingService {
                 .trackingCode(tCode)
                 .build();
 
-        // Fixed: explicitly save shipping entity instead of relying on JPA cascade
         return shippingRepository.save(shipping);
     }
 

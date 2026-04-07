@@ -9,7 +9,7 @@ public class ChangePasswordRequest {
     private String oldPassword;
 
     @NotBlank(message = "{validation.password.new_empty}")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{9,}$", 
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$", 
              message = "{validation.password.invalid}")
     private String newPassword;
 

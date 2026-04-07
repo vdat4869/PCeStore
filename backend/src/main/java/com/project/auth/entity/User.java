@@ -2,11 +2,13 @@ package com.project.auth.entity;
 
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
+@SQLDelete(sql = "UPDATE users SET is_deleted = true WHERE id = ?")
 @SQLRestriction("is_deleted = false")
 public class User extends BaseEntity {
 
@@ -46,6 +48,15 @@ public class User extends BaseEntity {
 
     @Column(name = "account_non_locked", nullable = false, columnDefinition = "boolean default true")
     private boolean accountNonLocked = true;
+
+    @Version
+    private Integer version;
+
+    @Column(name = "mfa_enabled", nullable = false, columnDefinition = "boolean default false")
+    private boolean mfaEnabled = false;
+
+    @Column(name = "mfa_secret")
+    private String mfaSecret;
 
     // Default constructor (bắt buộc bởi JPA)
     public User() {
@@ -150,5 +161,29 @@ public class User extends BaseEntity {
 
     public void setAccountNonLocked(boolean accountNonLocked) {
         this.accountNonLocked = accountNonLocked;
+    }
+
+    public Integer getVersion() {
+        return version;
+    }
+
+    public void setVersion(Integer version) {
+        this.version = version;
+    }
+
+    public boolean isMfaEnabled() {
+        return mfaEnabled;
+    }
+
+    public void setMfaEnabled(boolean mfaEnabled) {
+        this.mfaEnabled = mfaEnabled;
+    }
+
+    public String getMfaSecret() {
+        return mfaSecret;
+    }
+
+    public void setMfaSecret(String mfaSecret) {
+        this.mfaSecret = mfaSecret;
     }
 }

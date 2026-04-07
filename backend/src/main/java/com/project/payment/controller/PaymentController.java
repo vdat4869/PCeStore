@@ -2,7 +2,6 @@ package com.project.payment.controller;
 
 import com.project.payment.entity.Payment;
 import com.project.payment.service.PaymentService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +17,6 @@ import org.springframework.security.access.AccessDeniedException;
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/v1/payments")
-@RequiredArgsConstructor
 public class PaymentController {
 
     private final PaymentService paymentService;
@@ -26,6 +24,10 @@ public class PaymentController {
 
     @Value("${sepay.secret-key}")
     private String secretKey;
+
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
+    }
 
     @PostMapping("/create")
     public ResponseEntity<Payment> createPayment(

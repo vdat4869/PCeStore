@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventoryServiceImpl implements InventoryService {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryServiceImpl.class);
+    private static final String ERROR_PRODUCT_NOT_FOUND = "error.product.not_found";
 
     private final InventoryRepository inventoryRepository;
     private final ProductRepository productRepository;
@@ -54,7 +55,7 @@ public class InventoryServiceImpl implements InventoryService {
     public InventoryResponse updateStock(InventoryRequest request) {
         log.info("ADMIN cập nhật tồn kho [ProductID: {}, Qty: {}]", request.getProductId(), request.getQuantity());
         Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new RuntimeException("error.product.not_found"));
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_PRODUCT_NOT_FOUND));
 
         Inventory inventory = inventoryRepository.findByProductIdWithLock(product.getId())
                 .orElseGet(() -> createEmptyInventory(product.getId()));
@@ -75,7 +76,7 @@ public class InventoryServiceImpl implements InventoryService {
         Inventory inventory = getInventoryWithLock(request.getProductId());
 
         if (inventory.getQuantity() < request.getQuantity()) {
-            throw new RuntimeException("error.inventory.insufficient_stock");
+            throw new IllegalStateException("error.inventory.insufficient_stock");
         }
 
         inventory.setQuantity(inventory.getQuantity() - request.getQuantity());
@@ -105,7 +106,7 @@ public class InventoryServiceImpl implements InventoryService {
 
         int available = inventory.getQuantity() - inventory.getReserved();
         if (available < request.getQuantity()) {
-            throw new RuntimeException("error.inventory.insufficient_available_stock");
+            throw new IllegalStateException("error.inventory.insufficient_available_stock");
         }
 
         inventory.setReserved(inventory.getReserved() + request.getQuantity());
@@ -153,7 +154,7 @@ public class InventoryServiceImpl implements InventoryService {
 
     private Inventory getInventoryWithLock(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("error.product.not_found"));
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_PRODUCT_NOT_FOUND));
         
         return inventoryRepository.findByProductIdWithLock(product.getId())
                 .orElseGet(() -> createEmptyInventory(productId));
@@ -174,7 +175,7 @@ public class InventoryServiceImpl implements InventoryService {
      */
     private Inventory createEmptyInventory(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("error.product.not_found"));
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_PRODUCT_NOT_FOUND));
 
         Inventory inventory = new Inventory();
         inventory.setProduct(product);
