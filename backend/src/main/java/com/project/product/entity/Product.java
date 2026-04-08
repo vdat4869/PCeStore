@@ -34,9 +34,8 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private String brand;
 
-    // Liên kết 1-1 ngược lại với Inventory để lấy thông tin tồn kho.
-    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private com.project.inventory.entity.Inventory inventory;
+    @Version
+    private Long version;
 
     private String imageUrl;
 
@@ -48,15 +47,15 @@ public class Product extends BaseEntity {
      * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
      */
     @SuppressWarnings("java:S107")
-    public Product(Long id, String name, String description, Double price, Category category, String brand, com.project.inventory.entity.Inventory inventory, String imageUrl) {
+    public Product(Long id, String name, String description, Double price, Category category, String brand, String imageUrl, Long version) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.price = price;
         this.category = category;
         this.brand = brand;
-        this.inventory = inventory;
         this.imageUrl = imageUrl;
+        this.version = version;
     }
 
     public Long getId() {
@@ -107,12 +106,12 @@ public class Product extends BaseEntity {
         this.brand = brand;
     }
 
-    public com.project.inventory.entity.Inventory getInventory() {
-        return inventory;
+    public Long getVersion() {
+        return version;
     }
 
-    public void setInventory(com.project.inventory.entity.Inventory inventory) {
-        this.inventory = inventory;
+    public void setVersion(Long version) {
+        this.version = version;
     }
 
     public String getImageUrl() {
@@ -128,12 +127,12 @@ public class Product extends BaseEntity {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Product product = (Product) o;
-        return Objects.equals(id, product.id) && Objects.equals(name, product.name) && Objects.equals(description, product.description) && Objects.equals(price, product.price) && Objects.equals(category, product.category) && Objects.equals(brand, product.brand) && Objects.equals(inventory, product.inventory) && Objects.equals(imageUrl, product.imageUrl);
+        return Objects.equals(id, product.id) && Objects.equals(name, product.name) && Objects.equals(description, product.description) && Objects.equals(price, product.price) && Objects.equals(category, product.category) && Objects.equals(brand, product.brand) && Objects.equals(imageUrl, product.imageUrl);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description, price, category, brand, inventory, imageUrl);
+        return Objects.hash(id, name, description, price, category, brand, imageUrl);
     }
 
     public static ProductBuilder builder() {
@@ -147,8 +146,8 @@ public class Product extends BaseEntity {
         private Double price;
         private Category category;
         private String brand;
-        private com.project.inventory.entity.Inventory inventory;
         private String imageUrl;
+        private Long version;
 
         public ProductBuilder id(Long id) {
             this.id = id;
@@ -180,8 +179,8 @@ public class Product extends BaseEntity {
             return this;
         }
 
-        public ProductBuilder inventory(com.project.inventory.entity.Inventory inventory) {
-            this.inventory = inventory;
+        public ProductBuilder version(Long version) {
+            this.version = version;
             return this;
         }
 
@@ -191,7 +190,7 @@ public class Product extends BaseEntity {
         }
 
         public Product build() {
-            return new Product(id, name, description, price, category, brand, inventory, imageUrl);
+            return new Product(id, name, description, price, category, brand, imageUrl, version);
         }
     }
 }

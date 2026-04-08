@@ -6,6 +6,11 @@ import com.project.product.entity.Category;
 import com.project.product.entity.Product;
 import com.project.product.repository.CategoryRepository;
 import com.project.product.repository.ProductRepository;
+import com.project.common.exception.ResourceNotFoundException;
+import com.project.product.event.ProductCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,11 +21,18 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private static final String PRODUCT_NOT_FOUND_MSG = "Product not found with id: ";
+    private final MessageSource messageSource;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository, MessageSource messageSource, ApplicationEventPublisher eventPublisher) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.messageSource = messageSource;
+        this.eventPublisher = eventPublisher;
+    }
+
+    private String getMessage(String key, Object... args) {
+        return messageSource.getMessage(key, args, LocaleContextHolder.getLocale());
     }
 
     /**
@@ -66,7 +78,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + id));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
         return mapToResponse(product);
     }
 
@@ -78,7 +90,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + request.getCategoryId()));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.category.not_found", request.getCategoryId())));
 
         // Khởi tạo đối tượng Product (không còn trường stock trực tiếp)
         Product product = Product.builder()
@@ -90,21 +102,12 @@ public class ProductServiceImpl implements ProductService {
                 .imageUrl(request.getImageUrl())
                 .build();
 
-        // Tạo bản ghi Inventory tương ứng và liên kết với Product
-        Integer initialStock = 0;
-        if (request.getStock() != null) {
-            initialStock = request.getStock();
-        }
-        com.project.inventory.entity.Inventory inventory = com.project.inventory.entity.Inventory.builder()
-                .product(product)
-                .quantity(initialStock)
-                .reserved(0)
-                .build();
-        
-        // Thiết lập liên kết xuôi-ngược để Cascade hoạt động
-        product.setInventory(inventory);
-
         Product savedProduct = productRepository.save(product);
+
+        // Kỹ thuật Event-Driven: Gọi sang module Inventory một cách lỏng lẻo
+        Integer initialStock = request.getStock() != null ? request.getStock() : 0;
+        eventPublisher.publishEvent(new ProductCreatedEvent(savedProduct.getId(), initialStock));
+
         return mapToResponse(savedProduct);
     }
 
@@ -115,10 +118,10 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse updateProduct(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + id));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
 
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("Category not found with id: " + request.getCategoryId()));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.category.not_found", request.getCategoryId())));
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -127,11 +130,8 @@ public class ProductServiceImpl implements ProductService {
         product.setBrand(request.getBrand());
         product.setImageUrl(request.getImageUrl());
 
-        // Lưu ý: Việc cập nhật số lượng tồn kho (stock) nên được thực hiện qua InventoryService
-        // để đảm bảo tính nhất quán và cơ chế Locking. Ở đây ta chỉ cập nhật thông tin cơ bản.
-        if (request.getStock() != null && product.getInventory() != null) {
-            product.getInventory().setQuantity(request.getStock());
-        }
+        // Việc cập nhật số lượng tồn kho (stock) hiện tại đã bóc tách về Inventory module.
+        // ProductService sẽ không được phép can thiệp số liệu kho tại đây nữa.
 
         Product updatedProduct = productRepository.save(product);
         return mapToResponse(updatedProduct);
@@ -144,15 +144,13 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + id));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
         
         // Đánh dấu xóa mềm cho sản phẩm
         product.setDeleted(true);
         
-        // Luôn đánh dấu xóa mềm cho kho hàng đi kèm
-        if (product.getInventory() != null) {
-            product.getInventory().setDeleted(true);
-        }
+        // Để xoá được Inventory ở module khác, cần publish một xoá kiện (SoftDeleteEvent) 
+        // hoặc để quá trình Clean-up batch job thực thi. Tại đây ta chỉ xoá phạm vi Product.
         
         productRepository.save(product);
     }
@@ -164,14 +162,11 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public void restoreProduct(Long id) {
         Product product = productRepository.findByIdIncludingDeleted(id)
-                .orElseThrow(() -> new IllegalArgumentException(PRODUCT_NOT_FOUND_MSG + "(including deleted) with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
 
         product.setDeleted(false);
         
-        // Khôi phục luôn kho hàng
-        if (product.getInventory() != null) {
-            product.getInventory().setDeleted(false);
-        }
+        // Việc thao tác khôi phục Inventory sẽ thực hiện bên trong InventoryService.
 
         productRepository.save(product);
     }
@@ -180,11 +175,10 @@ public class ProductServiceImpl implements ProductService {
      * Hàm tiện ích (Utility): Chuyển đổi đối tượng Product (Entity) sang ProductResponse (DTO trả về)
      */
     private ProductResponse mapToResponse(Product product) {
-        // Lấy số lượng từ Inventory liên kết (nếu có)
-        Integer currentStock = 0;
-        if (product.getInventory() != null) {
-            currentStock = product.getInventory().getQuantity();
-        }
+        // Lấy số lượng từ Inventory đã bị tách biệt. Gán mặc định là 0 hoặc null khi get array APIs.
+        // Để hiển thị chính xác ở frontend trong tab danh sách, Frontend sẽ có màn gọi batch Inventory
+        // hoặc ta sẽ load riêng rẽ cho trang detail qua service giao diện.
+        Integer currentStock = null;
 
         return ProductResponse.builder()
                 .id(product.getId())
