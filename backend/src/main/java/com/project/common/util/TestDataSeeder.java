@@ -23,15 +23,31 @@ public class TestDataSeeder implements CommandLineRunner {
 
     private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
+    private final com.project.product.repository.CategoryRepository categoryRepository;
     private final Random random = new Random();
 
-    public TestDataSeeder(ProductRepository productRepository, InventoryRepository inventoryRepository) {
+    public TestDataSeeder(ProductRepository productRepository, 
+                          InventoryRepository inventoryRepository,
+                          com.project.product.repository.CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
         this.inventoryRepository = inventoryRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
     public void run(String... args) {
+        log.info("Đang kiểm tra và Seed Dữ liệu mẫu...");
+
+        // 0. Khởi tạo danh mục nếu cơ sở dữ liệu trống tinh
+        if (categoryRepository.count() == 0) {
+            log.info("Không tìm thấy Danh mục nào. Đang tạo danh mục mẫu: Laptop Gaming...");
+            com.project.product.entity.Category category = com.project.product.entity.Category.builder()
+                    .name("Laptop Gaming")
+                    .build();
+            categoryRepository.save(category);
+            log.info("Đã tạo thành công danh mục mẫu với ID: {}", category.getId());
+        }
+
         log.info("Đang bắt đầu quá trình Seed Dữ liệu Tồn kho (Inventory Seed)...");
 
         // 1. Lấy tất cả sản phẩm hiện có (Bao gồm cả dữ liệu từ data.sql)
@@ -48,7 +64,7 @@ public class TestDataSeeder implements CommandLineRunner {
                 int randomQuantity = 10 + random.nextInt(41);
                 
                 Inventory inventory = Inventory.builder()
-                        .product(product)
+                        .productId(product.getId())
                         .quantity(randomQuantity)
                         .reserved(0)
                         .build();
