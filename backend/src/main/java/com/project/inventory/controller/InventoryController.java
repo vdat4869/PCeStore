@@ -40,36 +40,36 @@ public class InventoryController {
 
     @Operation(summary = "Trừ tồn kho", description = "Được gọi khi có đơn hàng mới. Đảm bảo chống bán vượt mức (overselling) bằng Lock database.")
     @PostMapping("/decrease")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<InventoryResponse> decreaseStock(@Valid @RequestBody InventoryRequest request) {
-        // Tạm thời cho phép USER được gọi để phục vụ luồng checkout hoặc test
+        // Endpoint nội bộ. Frontend Checkout không được gọi thẳng HTTP này mà phải qua Order API.
         return ResponseEntity.ok(inventoryService.decreaseStock(request));
     }
 
     @Operation(summary = "Hoàn lại tồn kho", description = "Được gọi khi đơn hàng bị hủy để cộng lại số lượng vào kho.")
     @PostMapping("/increase")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<InventoryResponse> increaseStock(@Valid @RequestBody InventoryRequest request) {
         return ResponseEntity.ok(inventoryService.increaseStock(request));
     }
 
     @Operation(summary = "Giữ hàng tạm thời", description = "Tăng số lượng reserved để giữ hàng khi khách đang trong luồng thanh toán.")
     @PostMapping("/reserve")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<InventoryResponse> reserveStock(@Valid @RequestBody InventoryRequest request) {
         return ResponseEntity.ok(inventoryService.reserveStock(request));
     }
 
     @Operation(summary = "Xác nhận trừ kho", description = "Được gọi sau khi thanh toán thành công. Trừ cả quantity và reserved.")
     @PostMapping("/confirm")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<InventoryResponse> confirmStock(@Valid @RequestBody InventoryRequest request) {
         return ResponseEntity.ok(inventoryService.confirmStock(request));
     }
 
     @Operation(summary = "Huỷ giữ hàng", description = "Được gọi nếu đơn hàng bị timeout hoặc huỷ khi chưa thanh toán. Trừ reserved.")
     @PostMapping("/cancel-reservation")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE') or hasRole('USER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<InventoryResponse> cancelReservation(@Valid @RequestBody InventoryRequest request) {
         return ResponseEntity.ok(inventoryService.cancelReservation(request));
     }

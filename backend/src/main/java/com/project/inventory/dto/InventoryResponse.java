@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 public class InventoryResponse {
     private Long id;
     private Long productId;
-    private String productName;
     private Integer quantity;
     private Integer reserved;
     private Integer availableStock;
@@ -17,10 +16,9 @@ public class InventoryResponse {
     // --- Constructors ---
     public InventoryResponse() {}
 
-    public InventoryResponse(Long id, Long productId, String productName, Integer quantity, Integer reserved, Integer availableStock, LocalDateTime updatedAt) {
+    public InventoryResponse(Long id, Long productId, Integer quantity, Integer reserved, Integer availableStock, LocalDateTime updatedAt) {
         this.id = id;
         this.productId = productId;
-        this.productName = productName;
         this.quantity = quantity;
         this.reserved = reserved;
         this.availableStock = availableStock;
@@ -33,9 +31,6 @@ public class InventoryResponse {
 
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
-
-    public String getProductName() { return productName; }
-    public void setProductName(String productName) { this.productName = productName; }
 
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
@@ -57,7 +52,6 @@ public class InventoryResponse {
     public static class InventoryResponseBuilder {
         private Long id;
         private Long productId;
-        private String productName;
         private Integer quantity;
         private Integer reserved;
         private Integer availableStock;
@@ -65,7 +59,6 @@ public class InventoryResponse {
 
         public InventoryResponseBuilder id(Long id) { this.id = id; return this; }
         public InventoryResponseBuilder productId(Long productId) { this.productId = productId; return this; }
-        public InventoryResponseBuilder productName(String productName) { this.productName = productName; return this; }
         public InventoryResponseBuilder quantity(Integer quantity) { this.quantity = quantity; return this; }
         public InventoryResponseBuilder reserved(Integer reserved) { this.reserved = reserved; return this; }
         public InventoryResponseBuilder availableStock(Integer availableStock) { this.availableStock = availableStock; return this; }
@@ -73,7 +66,7 @@ public class InventoryResponse {
 
 
         public InventoryResponse build() {
-            return new InventoryResponse(id, productId, productName, quantity, reserved, availableStock, updatedAt);
+            return new InventoryResponse(id, productId, quantity, reserved, availableStock, updatedAt);
         }
     }
 }

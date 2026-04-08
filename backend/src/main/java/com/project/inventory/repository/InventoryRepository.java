@@ -29,7 +29,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
      * Đây là cơ chế then chốt để chống bán vượt mức (overselling).
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId")
+    @Query("SELECT i FROM Inventory i WHERE i.productId = :productId")
     Optional<Inventory> findByProductIdWithLock(@Param("productId") Long productId);
 
     // Tìm kiếm thông tin kho bất kể trạng thái sản phẩm bị xóa mềm hay chưa (Dùng cho Admin)

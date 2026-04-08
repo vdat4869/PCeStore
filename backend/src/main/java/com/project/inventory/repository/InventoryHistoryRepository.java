@@ -16,4 +16,9 @@ public interface InventoryHistoryRepository extends JpaRepository<InventoryHisto
      * Tìm kiếm lịch sử kho theo Product ID (Phân trang).
      */
     Page<InventoryHistory> findByProductIdOrderByCreatedAtDesc(Long productId, Pageable pageable);
+
+    /**
+     * Kiểm tra xem một mã giao dịch (referenceId) đã tồn tại hay chưa để tránh trùng lặp.
+     */
+    boolean existsByReferenceId(String referenceId);
 }

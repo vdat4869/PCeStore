@@ -24,6 +24,9 @@ public class InventoryHistory {
     @Column(nullable = false)
     private Integer changeAmount;
 
+    @Column(name = "reference_id", unique = true)
+    private String referenceId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private HistoryType type;
@@ -47,11 +50,12 @@ public class InventoryHistory {
     // --- Constructors ---
     public InventoryHistory() {}
 
-    public InventoryHistory(Long productId, Integer changeAmount, HistoryType type, String reason) {
+    public InventoryHistory(Long productId, Integer changeAmount, HistoryType type, String reason, String referenceId) {
         this.productId = productId;
         this.changeAmount = changeAmount;
         this.type = type;
         this.reason = reason;
+        this.referenceId = referenceId;
     }
 
     // --- Getters and Setters ---
@@ -70,6 +74,9 @@ public class InventoryHistory {
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
 
+    public String getReferenceId() { return referenceId; }
+    public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -83,14 +90,16 @@ public class InventoryHistory {
         private Integer changeAmount;
         private HistoryType type;
         private String reason;
+        private String referenceId;
 
         public InventoryHistoryBuilder productId(Long productId) { this.productId = productId; return this; }
         public InventoryHistoryBuilder changeAmount(Integer changeAmount) { this.changeAmount = changeAmount; return this; }
         public InventoryHistoryBuilder type(HistoryType type) { this.type = type; return this; }
         public InventoryHistoryBuilder reason(String reason) { this.reason = reason; return this; }
+        public InventoryHistoryBuilder referenceId(String referenceId) { this.referenceId = referenceId; return this; }
 
         public InventoryHistory build() {
-            return new InventoryHistory(productId, changeAmount, type, reason);
+            return new InventoryHistory(productId, changeAmount, type, reason, referenceId);
         }
     }
 }
