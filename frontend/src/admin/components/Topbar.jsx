@@ -79,7 +79,7 @@ export default function Topbar({ toggleSidebar, toggleMobileSidebar, isSidebarCo
                 <div className="p-3 d-flex flex-column gap-1 small lh-lg">
                   <a href="#!" className=""><span>Home</span></a>
                   <a href="#!" className=""><span>Inbox</span></a>
-                  <a href="#!" className=""><span>Account Settings</span></a>
+                  <a href="/profile" className=""><span>Hồ sơ cá nhân</span></a>
                 </div>
               </div>
             </div>

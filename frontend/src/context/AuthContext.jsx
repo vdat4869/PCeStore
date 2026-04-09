@@ -7,27 +7,50 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Kiểm tra trạng thái đăng nhập từ localStorage khi khởi tạo
-    const token = localStorage.getItem('adminToken');
-    const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
+    // Kiểm tra token ưu tiên adminToken (Admin/Employee) hoặc userToken (Khách hàng)
+    const adminToken = localStorage.getItem('adminToken');
+    const userToken = localStorage.getItem('userToken');
+    const token = adminToken || userToken;
     
-    if (token && isAuthenticated) {
+    if (token) {
       setIsLoggedIn(true);
-      // Giả sử ta lấy thêm thông tin user từ token hoặc API khác
-      setUser({ token }); 
+      // Gọi API lấy tên user từ DB để hiện lên Header
+      fetch('http://localhost:8080/api/users/profile', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          const userName = data.fullName || (data.email ? data.email.split('@')[0] : 'Khách hàng');
+          setUser({ token, name: userName, email: data.email, role: localStorage.getItem('userRole') });
+        }
+      })
+      .catch(err => {
+         console.error(err);
+         setUser({ token, name: 'Khách hàng' });
+      });
     }
   }, []);
 
-  const login = (token, userData = {}) => {
-    localStorage.setItem('adminToken', token);
-    localStorage.setItem('isAdminAuthenticated', 'true');
+  const login = (token, role, userData = {}) => {
+    if (role === 'ADMIN' || role === 'EMPLOYEE') {
+       localStorage.setItem('adminToken', token);
+       localStorage.setItem('isAdminAuthenticated', 'true');
+    } else {
+       localStorage.setItem('userToken', token);
+       localStorage.removeItem('isAdminAuthenticated');
+    }
+    localStorage.setItem('userRole', role);
     setIsLoggedIn(true);
-    setUser({ ...userData, token });
+    setUser({ ...userData, token, role });
   };
 
   const logout = () => {
     localStorage.removeItem('adminToken');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('isAdminAuthenticated');
+    localStorage.removeItem('userRole');
     setIsLoggedIn(false);
     setUser(null);
   };

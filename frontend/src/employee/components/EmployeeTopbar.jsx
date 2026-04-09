@@ -49,7 +49,7 @@ export default function EmployeeTopbar({ toggleSidebar, toggleMobileSidebar, isS
               <img src="/src/admin/assets/images/avatar/avatar-1.jpg" alt="" className="avatar avatar-sm rounded-circle" />
            </a>
            <ul className="dropdown-menu dropdown-menu-end">
-              <li><Link className="dropdown-item" to="/employee/profile">Thông tin cá nhân</Link></li>
+              <li><a className="dropdown-item" href="/profile">Thông tin cá nhân</a></li>
               <li><hr className="dropdown-divider" /></li>
               <li><Link className="dropdown-item text-danger" to="/login">Đăng xuất</Link></li>
            </ul>

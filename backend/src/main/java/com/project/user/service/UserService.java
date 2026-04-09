@@ -56,8 +56,16 @@ public class UserService {
     public UserProfileResponse getProfile(User user) {
         UserProfile profile = userProfileRepository.findByUser(user)
                 .orElseGet(() -> {
-                    UserProfile newProfile = new UserProfile(user, null, null, null);
-                    return userProfileRepository.save(newProfile);
+                    // Check if a soft-deleted profile exists to prevent Unique Constraint violation
+                    return userProfileRepository.findByUserIdIncludingDeleted(user.getId())
+                            .map(deletedProfile -> {
+                                deletedProfile.setDeleted(false);
+                                return userProfileRepository.save(deletedProfile);
+                            })
+                            .orElseGet(() -> {
+                                UserProfile newProfile = new UserProfile(user, null, null, null);
+                                return userProfileRepository.save(newProfile);
+                            });
                 });
         
         return new UserProfileResponse(
@@ -165,17 +173,26 @@ public class UserService {
 
         // 1. Dọn dẹp dữ liệu ràng buộc
         entityManager.createQuery("DELETE FROM Notification n WHERE n.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM NotificationPreference np WHERE np.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM Address a WHERE a.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM RefreshToken r WHERE r.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM EmailVerificationToken e WHERE e.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM PasswordResetToken p WHERE p.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM EmailChangeToken ect WHERE ect.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM UserAuditLog u WHERE u.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM LoginLog l WHERE l.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM Review r WHERE r.user.id = :uid").setParameter("uid", uId).executeUpdate();
 
-        // 2. Xóa profile tham chiếu
+        // 2. Xóa Orders theo cơ chế cascade (để tự động xóa OrderItem, Shipping, Payment)
+        java.util.List<?> orders = entityManager.createQuery("SELECT o FROM Order o WHERE o.userId = :uid").setParameter("uid", uId).getResultList();
+        for (Object o : orders) {
+            entityManager.remove(o);
+        }
+
+        // 3. Xóa profile tham chiếu
         userProfileRepository.findByUser(targetUser).ifPresent(p -> userProfileRepository.delete(p));
         
-        // 3. Cuối cùng xoá User
+        // 4. Cuối cùng xoá User
         userRepository.delete(targetUser);
     }
 

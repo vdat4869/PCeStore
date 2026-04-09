@@ -11,7 +11,7 @@ const apiClient = axios.create({
 // Interceptor: tự động đính kèm JWT token vào mọi request
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }

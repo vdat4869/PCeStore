@@ -25,28 +25,14 @@ export default function Login() {
       if (response.ok) {
         const data = await response.json();
         // Cập nhật token và xác thực thông qua AuthContext
-        login(data.accessToken, { email });
+        login(data.accessToken, data.role, { email });
         setError('');
 
         if (data.role === 'ADMIN') {
-          // Token cho Admin
-          localStorage.setItem('adminToken', data.accessToken);
-          localStorage.setItem('refreshToken', data.refreshToken);
-          localStorage.setItem('isAdminAuthenticated', 'true');
-          localStorage.setItem('userRole', data.role);
           window.location.href = '/admin';
         } else if (data.role === 'EMPLOYEE') {
-          // Token cho Nhân Viên
-          localStorage.setItem('adminToken', data.accessToken); 
-          localStorage.setItem('refreshToken', data.refreshToken);
-          localStorage.setItem('isAdminAuthenticated', 'true'); // Dùng guard của Admin tạm
-          localStorage.setItem('userRole', data.role);
           window.location.href = '/employee';
         } else {
-          // Token cho User Khách hàng (Về giao diện gốc)
-          localStorage.setItem('userToken', data.accessToken);
-          localStorage.setItem('refreshToken', data.refreshToken);
-          localStorage.removeItem('isAdminAuthenticated'); 
           window.location.href = '/';
         }
       } else {
