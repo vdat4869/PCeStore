@@ -8,19 +8,22 @@ import jakarta.validation.constraints.NotNull;
  */
 public class InventoryRequest {
 
-    @NotNull(message = "Product ID is required")
+    @NotNull(message = "{validation.inventory.product_id.empty}")
     private Long productId;
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
+    @NotNull(message = "{validation.inventory.quantity.empty}")
+    @Min(value = 1, message = "{validation.inventory.quantity.min}")
     private Integer quantity;
+
+    private String referenceId; // Idempotency key (ví dụ: orderId)
 
     // --- Constructors ---
     public InventoryRequest() {}
 
-    public InventoryRequest(Long productId, Integer quantity) {
+    public InventoryRequest(Long productId, Integer quantity, String referenceId) {
         this.productId = productId;
         this.quantity = quantity;
+        this.referenceId = referenceId;
     }
 
     // --- Getters and Setters ---
@@ -30,6 +33,9 @@ public class InventoryRequest {
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
+    public String getReferenceId() { return referenceId; }
+    public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
+
     // --- Manual Builder ---
     public static InventoryRequestBuilder builder() {
         return new InventoryRequestBuilder();
@@ -38,12 +44,14 @@ public class InventoryRequest {
     public static class InventoryRequestBuilder {
         private Long productId;
         private Integer quantity;
+        private String referenceId;
 
         public InventoryRequestBuilder productId(Long productId) { this.productId = productId; return this; }
         public InventoryRequestBuilder quantity(Integer quantity) { this.quantity = quantity; return this; }
+        public InventoryRequestBuilder referenceId(String referenceId) { this.referenceId = referenceId; return this; }
 
         public InventoryRequest build() {
-            return new InventoryRequest(productId, quantity);
+            return new InventoryRequest(productId, quantity, referenceId);
         }
     }
 }

@@ -7,22 +7,22 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 public class ProductRequest {
-    @NotBlank(message = "Tên sản phẩm không được để trống")
+    @NotBlank(message = "{validation.product.name.empty}")
     private String name;
 
     private String description;
 
-    @NotNull(message = "Giá sản phẩm không được để trống")
-    @Positive(message = "Giá sản phẩm phải lớn hơn 0")
+    @NotNull(message = "{validation.product.price.empty}")
+    @Positive(message = "{validation.product.price.invalid}")
     private Double price;
 
-    @PositiveOrZero(message = "Số lượng tồn kho không được âm")
+    @PositiveOrZero(message = "{validation.product.stock.invalid}")
     private Integer stock;
 
-    @NotNull(message = "Danh mục không được để trống")
+    @NotNull(message = "{validation.product.category_id.empty}")
     private Long categoryId;
 
-    @NotBlank(message = "Thương hiệu không được để trống")
+    @NotBlank(message = "{validation.product.brand.empty}")
     private String brand;
 
     private String imageUrl;

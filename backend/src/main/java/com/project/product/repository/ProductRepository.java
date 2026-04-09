@@ -16,17 +16,17 @@ import java.util.Optional;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Override
-    @EntityGraph(attributePaths = {"category", "inventory"})
+    @EntityGraph(attributePaths = {"category"})
     @NonNull
     Page<Product> findAll(@NonNull Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "inventory"})
+    @EntityGraph(attributePaths = {"category"})
     Page<Product> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "inventory"})
+    @EntityGraph(attributePaths = {"category"})
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"category", "inventory"})
+    @EntityGraph(attributePaths = {"category"})
     Page<Product> findByPriceBetween(Double minPrice, Double maxPrice, Pageable pageable);
 
     // Tìm kiếm sản phẩm bất kể trạng thái xóa (Dùng cho Admin khôi phục)

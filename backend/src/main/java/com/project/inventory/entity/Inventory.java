@@ -1,7 +1,6 @@
 package com.project.inventory.entity;
 
 import com.project.common.entity.BaseEntity;
-import com.project.product.entity.Product;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -22,10 +21,9 @@ public class Inventory extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Quan hệ 1-1 với sản phẩm. Mỗi sản phẩm có một bản ghi kho duy nhất.
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false, unique = true)
-    private Product product;
+    // Tham chiếu đến ID sản phẩm. Giúp decoupling khỏi Entity Product.
+    @Column(name = "product_id", nullable = false, unique = true)
+    private Long productId;
 
     // Tổng số lượng hàng vật lý đang có trong kho.
     @Column(nullable = false, columnDefinition = "integer default 0")
@@ -39,9 +37,9 @@ public class Inventory extends BaseEntity {
     public Inventory() {
     }
 
-    public Inventory(Long id, Product product, Integer quantity, Integer reserved) {
+    public Inventory(Long id, Long productId, Integer quantity, Integer reserved) {
         this.id = id;
-        this.product = product;
+        this.productId = productId;
         this.quantity = quantity;
         this.reserved = reserved;
     }
@@ -54,12 +52,12 @@ public class Inventory extends BaseEntity {
         this.id = id;
     }
 
-    public Product getProduct() {
-        return product;
+    public Long getProductId() {
+        return productId;
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
     public Integer getQuantity() {
@@ -83,12 +81,12 @@ public class Inventory extends BaseEntity {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Inventory inventory = (Inventory) o;
-        return Objects.equals(id, inventory.id) && Objects.equals(product, inventory.product) && Objects.equals(quantity, inventory.quantity) && Objects.equals(reserved, inventory.reserved);
+        return Objects.equals(id, inventory.id) && Objects.equals(productId, inventory.productId) && Objects.equals(quantity, inventory.quantity) && Objects.equals(reserved, inventory.reserved);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, product, quantity, reserved);
+        return Objects.hash(id, productId, quantity, reserved);
     }
 
     public static InventoryBuilder builder() {
@@ -97,7 +95,7 @@ public class Inventory extends BaseEntity {
 
     public static class InventoryBuilder {
         private Long id;
-        private Product product;
+        private Long productId;
         private Integer quantity;
         private Integer reserved;
 
@@ -106,8 +104,8 @@ public class Inventory extends BaseEntity {
             return this;
         }
 
-        public InventoryBuilder product(Product product) {
-            this.product = product;
+        public InventoryBuilder productId(Long productId) {
+            this.productId = productId;
             return this;
         }
 
@@ -122,7 +120,7 @@ public class Inventory extends BaseEntity {
         }
 
         public Inventory build() {
-            return new Inventory(id, product, quantity, reserved);
+            return new Inventory(id, productId, quantity, reserved);
         }
     }
 }

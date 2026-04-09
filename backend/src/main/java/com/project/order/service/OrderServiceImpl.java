@@ -54,12 +54,13 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new RuntimeException("error.product.not_found"));
 
-            if (product.getInventory() == null || product.getInventory().getQuantity() - product.getInventory().getReserved() < itemDto.getQuantity()) {
+            com.project.inventory.dto.InventoryResponse inventory = inventoryService.getStock(product.getId());
+            if (inventory == null || inventory.getAvailableStock() < itemDto.getQuantity()) {
                 throw new RuntimeException("error.inventory.insufficient_stock");
             }
 
             // Reserve stock
-            inventoryService.reserveStock(new InventoryRequest(product.getId(), itemDto.getQuantity()));
+            inventoryService.reserveStock(new InventoryRequest(product.getId(), itemDto.getQuantity(), null));
 
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
@@ -98,7 +99,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = getOrderById(orderId);
         if (status == OrderStatus.PAID && order.getStatus() != OrderStatus.PAID) {
             for (OrderItem item : order.getOrderItems()) {
-                inventoryService.confirmStock(new InventoryRequest(item.getProduct().getId(), item.getQuantity()));
+                inventoryService.confirmStock(new InventoryRequest(item.getProduct().getId(), item.getQuantity(), "CONFIRM-" + orderId + "-" + item.getId()));
             }
             if (order.getShipping() != null) {
                 order.getShipping().setStatus(com.project.shipping.entity.ShippingStatus.IN_TRANSIT);
@@ -119,7 +120,7 @@ public class OrderServiceImpl implements OrderService {
         
         // Cancel reservation
         for(OrderItem item : order.getOrderItems()) {
-            inventoryService.cancelReservation(new InventoryRequest(item.getProduct().getId(), item.getQuantity()));
+            inventoryService.cancelReservation(new InventoryRequest(item.getProduct().getId(), item.getQuantity(), "CANCEL-" + orderId + "-" + item.getId()));
         }
         
         order.setStatus(OrderStatus.CANCELLED);

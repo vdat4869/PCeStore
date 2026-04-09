@@ -43,7 +43,7 @@ public class InventorySyncJob {
 
             // Lỗi 1: Reserved âm
             if (inv.getReserved() < 0) {
-                log.warn("Phát hiện reserved âm cho Product ID: {}. Đang reset về 0.", inv.getProduct().getId());
+                log.warn("Phát hiện reserved âm cho Product ID: {}. Đang reset về 0.", inv.getProductId());
                 inv.setReserved(0);
                 changed = true;
             }
@@ -51,7 +51,7 @@ public class InventorySyncJob {
             // Lỗi 2: Reserved vượt quá tổng số hàng hiện có
             if (inv.getReserved() > inv.getQuantity()) {
                 log.error("Lỗi nghiêm trọng: Reserved ({}) > Quantity ({}) tại Product ID: {}. Đang cân bằng lại.", 
-                          inv.getReserved(), inv.getQuantity(), inv.getProduct().getId());
+                          inv.getReserved(), inv.getQuantity(), inv.getProductId());
                 inv.setReserved(inv.getQuantity());
                 changed = true;
             }

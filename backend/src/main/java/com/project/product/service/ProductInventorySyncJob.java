@@ -6,7 +6,6 @@ import com.project.product.entity.Product;
 import com.project.product.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,32 +29,27 @@ public class ProductInventorySyncJob {
     }
 
     /**
-     * Chạy định kỳ mỗi 5 phút để quét các sản phẩm thiếu kho.
-     * fixedRate = 300000ms = 5 phút.
-     * initialDelay = 60000ms (Tránh conflict với TestDataSeeder lúc khởi động)
+     * Tác vụ đồng bộ (Auto-healing/Backfill) giữa Product và Inventory.
+     * Đã bị loại bỏ khỏi luồng chạy tự động (@Scheduled) để tránh Conflict và cấp quyền cho Event-Driven.
+     * Chỉ gọi thủ công (manual trigger) khi cần repair data.
      */
-    @Scheduled(initialDelay = 60000, fixedRate = 300000)
     @Transactional
     public void syncMissingInventories() {
-        log.info("Bắt đầu Job Auto-healing: Quét các sản phầm thiếu bản ghi tồn kho...");
+        log.info("Bắt đầu Job Auto-healing (Manual Backfill): Quét các sản phầm thiếu bản ghi tồn kho...");
 
         // Tìm tất cả sản phẩm
         List<Product> allProducts = productRepository.findAll();
         int createdCount = 0;
 
         for (Product product : allProducts) {
-            // Nếu sản phẩm chưa có Inventory (liên kết null)
-            if (product.getInventory() == null) {
+            if (!inventoryRepository.existsByProductId(product.getId())) {
                 log.warn("Phát hiện sản phẩm thiếu kho [ID: {}, Tên: {}]. Đang tự động tạo...", 
                          product.getId(), product.getName());
 
                 Inventory newInventory = new Inventory();
-                newInventory.setProduct(product);
+                newInventory.setProductId(product.getId());
                 newInventory.setQuantity(0);
                 newInventory.setReserved(0);
-                
-                // Thiết lập liên kết ngược lại cho Product để đồng bộ Context hiện tại
-                product.setInventory(newInventory);
                 
                 inventoryRepository.save(newInventory);
                 createdCount++;
