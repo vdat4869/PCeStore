@@ -6,7 +6,6 @@ import com.project.inventory.entity.Inventory;
 import com.project.inventory.entity.InventoryHistory;
 import com.project.inventory.repository.InventoryHistoryRepository;
 import com.project.inventory.repository.InventoryRepository;
-import com.project.common.exception.ResourceNotFoundException;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.slf4j.Logger;
@@ -27,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class InventoryServiceImpl implements InventoryService {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryServiceImpl.class);
-    private static final String ERROR_PRODUCT_NOT_FOUND = "error.product.not_found";
 
     private final InventoryRepository inventoryRepository;
     private final InventoryHistoryRepository historyRepository;
