@@ -1,6 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Topbar({ toggleSidebar, toggleMobileSidebar, isSidebarCollapsed }) {
+  const { user } = useAuth();
+  
+  const [theme, setTheme] = useState(localStorage.getItem('adminTheme') || 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-bs-theme', theme);
+    localStorage.setItem('adminTheme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
   return (
     <nav id="topbar" className={`navbar bg-white border-bottom fixed-top topbar px-3 ${isSidebarCollapsed ? 'full' : ''}`}>
       <button 
@@ -23,66 +37,22 @@ export default function Topbar({ toggleSidebar, toggleMobileSidebar, isSidebarCo
       <div>
         {/* Navbar nav */}
         <ul className="list-unstyled d-flex align-items-center mb-0 gap-1">
-          {/* Bell icon */}
+          {/* Theme Toggle Icon */}
           <li>
-            <a className="position-relative btn-icon btn-sm btn-light btn rounded-circle" data-bs-toggle="dropdown" aria-expanded="false" href="#" role="button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="icon icon-tabler icons-tabler-outline icon-tabler-bell">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                <path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" />
-                <path d="M9 17v1a3 3 0 0 0 6 0v-1" />
-              </svg>
-              <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger mt-2 ms-n2">
-                2
-                <span className="visually-hidden">unread messages</span>
-              </span>
-            </a>
-            <div className="dropdown-menu dropdown-menu-end dropdown-menu-md p-0">
-              <ul className="list-unstyled p-0 m-0">
-                <li className="p-3 border-bottom ">
-                  <div className="d-flex gap-3">
-                    <img src="/src/admin/assets/images/avatar/avatar-1.jpg" alt="" className="avatar avatar-sm rounded-circle" />
-                    <div className="flex-grow-1 small">
-                      <p className="mb-0">New order received</p>
-                      <p className="mb-1">Order #12345 has been placed</p>
-                      <div className="text-secondary">5 minutes ago</div>
-                    </div>
-                  </div>
-                </li>
-                <li className="p-3 border-bottom ">
-                  <div className="d-flex gap-3">
-                    <img src="/src/admin/assets/images/avatar/avatar-4.jpg" alt="" className="avatar avatar-sm rounded-circle" />
-                    <div className="flex-grow-1 small">
-                      <p className="mb-0">New user registered</p>
-                      <p className="mb-1">User @john_doe has signed up</p>
-                      <div className="text-secondary">30 minutes ago</div>
-                    </div>
-                  </div>
-                </li>
-              </ul>
-            </div>
+            <button 
+              className="position-relative btn-icon btn-sm btn-light btn rounded-circle border-0" 
+              onClick={toggleTheme}
+              title={theme === 'light' ? 'Chuyển sang Giao diện Tối' : 'Chuyển sang Giao diện Sáng'}
+            >
+              <i className={`bi ${theme === 'light' ? 'bi-moon' : 'bi-sun'} fs-5`}></i>
+            </button>
           </li>
-          
-          {/* Dropdown */}
-          <li className="ms-3 dropdown">
-            <a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <img src="/src/admin/assets/images/avatar/avatar-1.jpg" alt="" className="avatar avatar-sm rounded-circle" />
-            </a>
-            <div className="dropdown-menu dropdown-menu-end p-0" style={{ minWidth: '200px' }}>
-              <div>
-                <div className="d-flex gap-3 align-items-center border-dashed border-bottom px-3 py-3">
-                  <img src="/src/admin/assets/images/avatar/avatar-1.jpg" alt="" className="avatar avatar-md rounded-circle" />
-                  <div>
-                    <h4 className="mb-0 small">Shrina Tesla</h4>
-                    <p className="mb-0  small">@imshrina</p>
-                  </div>
-                </div>
-                <div className="p-3 d-flex flex-column gap-1 small lh-lg">
-                  <a href="#!" className=""><span>Home</span></a>
-                  <a href="#!" className=""><span>Inbox</span></a>
-                  <a href="/profile" className=""><span>Hồ sơ cá nhân</span></a>
-                </div>
-              </div>
-            </div>
+
+          {/* Avatar Profile Link */}
+          <li className="ms-3">
+            <Link to="/admin/profile" title="Chỉnh sửa hồ sơ cá nhân">
+              <img src={user?.avatarUrl || "/src/admin/assets/images/avatar/avatar-1.jpg"} alt="User Avatar" className="avatar avatar-sm rounded-circle shadow-sm" style={{ border: '2px solid #fff' }} />
+            </Link>
           </li>
         </ul>
       </div>

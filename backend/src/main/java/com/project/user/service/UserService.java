@@ -180,7 +180,7 @@ public class UserService {
         entityManager.createQuery("DELETE FROM PasswordResetToken p WHERE p.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM EmailChangeToken ect WHERE ect.user.id = :uid").setParameter("uid", uId).executeUpdate();
         entityManager.createQuery("DELETE FROM UserAuditLog u WHERE u.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM LoginLog l WHERE l.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        entityManager.createQuery("DELETE FROM LoginLog l WHERE l.email = :email").setParameter("email", targetUser.getEmail()).executeUpdate();
         entityManager.createQuery("DELETE FROM Review r WHERE r.user.id = :uid").setParameter("uid", uId).executeUpdate();
 
         // 2. Xóa Orders theo cơ chế cascade (để tự động xóa OrderItem, Shipping, Payment)

@@ -21,14 +21,16 @@ export default function EditProfileTab() {
     try {
       setLoading(true);
       setMessage(null);
-      // Construct payload according to backend expectation. For avatar, standard is FormData if multipart, or just normal json if url string.
-      // Assuming url/json payload for standard PUT /api/users/profile
-      await apiClient.put('/users/profile', formData);
+      const payload = {
+        fullName: formData.fullName,
+        phone: formData.phone && formData.phone.trim() !== '' ? formData.phone : null
+      };
+      await apiClient.put('/users/profile', payload);
       // Handle avatar upload separately or together if form-data
       if (avatar) {
         const uploadForm = new FormData();
-        uploadForm.append('avatar', avatar);
-        await apiClient.put('/users/profile/avatar', uploadForm, {
+        uploadForm.append('file', avatar);
+        await apiClient.post('/users/profile/avatar', uploadForm, {
            headers: { 'Content-Type': 'multipart/form-data' }
         });
       }

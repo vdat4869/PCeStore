@@ -5,8 +5,11 @@ import { useAuth } from '../../../context/AuthContext';
 export default function SecurityTab() {
   const { logout } = useAuth();
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
+  const [emailForm, setEmailForm] = useState({ newEmail: '' });
   const [message, setMessage] = useState(null);
+  const [emailMsg, setEmailMsg] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -17,7 +20,7 @@ export default function SecurityTab() {
     try {
       setLoading(true);
       setMessage(null);
-      await apiClient.post('/users/change-password', {
+      await apiClient.put('/users/change-password', {
         oldPassword: passwordForm.oldPassword,
         newPassword: passwordForm.newPassword
       });
@@ -30,10 +33,25 @@ export default function SecurityTab() {
     }
   };
 
+  const handleEmailChange = async (e) => {
+    e.preventDefault();
+    try {
+      setEmailLoading(true);
+      setEmailMsg(null);
+      await apiClient.post(`/users/email-change?newEmail=${emailForm.newEmail}`);
+      setEmailMsg({ type: 'success', text: 'Yêu cầu đã được gửi! Vui lòng kiểm tra hộp thư của email mới để xác nhận.' });
+      setEmailForm({ newEmail: '' });
+    } catch (err) {
+      setEmailMsg({ type: 'danger', text: err.response?.data?.message || 'Lỗi khi yêu cầu đổi Email.' });
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản này? Hành động này không thể hoàn tác!")) return;
     try {
-      await apiClient.delete('/users/account');
+      await apiClient.delete('/users/deactivate');
       alert("Tài khoản đã được xóa!");
       logout();
     } catch (err) {
@@ -85,6 +103,30 @@ export default function SecurityTab() {
           <button type="submit" className="btn btn-dark" disabled={loading}>
             {loading ? 'Đang xử lý...' : 'Cập nhật Mật khẩu'}
           </button>
+        </form>
+
+        <hr className="my-4" />
+
+        <form onSubmit={handleEmailChange} className="mb-5">
+          <h6 className="fw-bold mb-3">Yêu cầu đổi Email</h6>
+          {emailMsg && <div className={`alert alert-${emailMsg.type}`}>{emailMsg.text}</div>}
+          <div className="mb-3">
+            <label className="form-label text-muted small">Địa chỉ Email mới</label>
+            <div className="input-group">
+              <input 
+                type="email" 
+                className="form-control" 
+                value={emailForm.newEmail}
+                onChange={e => setEmailForm({ newEmail: e.target.value })}
+                required 
+                placeholder="Nhập email mới của bạn..."
+              />
+              <button type="submit" className="btn btn-primary" disabled={emailLoading}>
+                {emailLoading ? 'Đang gửi...' : 'Gửi Yêu cầu'}
+              </button>
+            </div>
+            <div className="form-text">Hệ thống sẽ gửi một liên kết xác nhận đến Email mới của bạn để hoàn tất việc đổi.</div>
+          </div>
         </form>
 
         <hr className="my-4" />

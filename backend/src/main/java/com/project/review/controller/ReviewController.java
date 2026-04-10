@@ -46,6 +46,22 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.getAverageRating(productId));
     }
 
+    // API public: Lấy danh sách đánh giá của một User
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<ReviewResponse>> getReviewsByUser(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
+        
+        String[] sortParams = sort.split(",");
+        Sort.Direction direction = Sort.Direction.fromString(sortParams.length > 1 ? sortParams[1] : "desc");
+        String sortBy = sortParams[0];
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        return ResponseEntity.ok(reviewService.getReviewsByUser(userId, pageable));
+    }
+
     // Bắt buộc USER phải đăng nhập mới được tạo review
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     @PostMapping

@@ -12,6 +12,7 @@ import Orders from './pages/Orders';
 import Users from './pages/Users';
 import Docs from './pages/Docs';
 import NotFound from './pages/NotFound';
+import Profile from '../pages/Profile';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

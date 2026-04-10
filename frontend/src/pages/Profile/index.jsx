@@ -11,6 +11,7 @@ import AddressTab from './components/AddressTab';
 import NotificationsTab from './components/NotificationsTab';
 import NotificationSettingsTab from './components/NotificationSettingsTab';
 import OrdersTab from './components/OrdersTab';
+import ReviewsTab from './components/ReviewsTab';
 
 export default function Profile() {
   const { user: authUser, logout: authLogout } = useAuth();
@@ -25,6 +26,7 @@ export default function Profile() {
     { key: 'notifications', label: 'Thông báo của tôi', icon: 'bi-bell' },
     { key: 'notification-settings', label: 'Cài đặt Thông báo', icon: 'bi-gear-wide-connected' },
     { key: 'orders', label: 'Lịch sử Đơn hàng', icon: 'bi-box-seam' },
+    { key: 'reviews', label: 'Đánh giá của tôi', icon: 'bi-star-half' },
   ];
 
   const renderTabContent = () => {
@@ -37,6 +39,7 @@ export default function Profile() {
       case 'notifications': return <NotificationsTab />;
       case 'notification-settings': return <NotificationSettingsTab />;
       case 'orders': return <OrdersTab />;
+      case 'reviews': return <ReviewsTab />;
       default: return <DashboardTab />;
     }
   };

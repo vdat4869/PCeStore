@@ -80,6 +80,16 @@ public class ReviewService {
         return reviews.map(this::mapToResponse);
     }
 
+    // Đọc danh sách review theo userId
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getReviewsByUser(Long userId, Pageable pageable) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("Người dùng không tồn tại");
+        }
+        Page<Review> reviews = reviewRepository.findByUserId(userId, pageable);
+        return reviews.map(this::mapToResponse);
+    }
+
     // Tính rating trung bình realtime theo yêu cầu
     @Transactional(readOnly = true)
     public Double getAverageRating(Long productId) {

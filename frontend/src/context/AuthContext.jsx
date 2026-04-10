@@ -6,6 +6,16 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
+  const logout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('isAdminAuthenticated');
+    localStorage.removeItem('userRole');
+    setIsLoggedIn(false);
+    setUser(null);
+  };
+
   useEffect(() => {
     // Kiểm tra token ưu tiên adminToken (Admin/Employee) hoặc userToken (Khách hàng)
     const adminToken = localStorage.getItem('adminToken');
@@ -18,7 +28,15 @@ export const AuthProvider = ({ children }) => {
       fetch('http://localhost:8080/api/users/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
-      .then(res => res.ok ? res.json() : null)
+      .then(res => {
+        if (res.ok) {
+          return res.json();
+        } else {
+          // Token hết hạn hoặc không hợp lệ -> Xóa và logout chặn 401 treo UI
+          logout();
+          return null;
+        }
+      })
       .then(data => {
         if (data) {
           const userName = data.fullName || (data.email ? data.email.split('@')[0] : 'Khách hàng');
@@ -26,8 +44,8 @@ export const AuthProvider = ({ children }) => {
         }
       })
       .catch(err => {
-         console.error(err);
-         setUser({ token, name: 'Khách hàng' });
+         console.error('Network Error or API down:', err);
+         logout();
       });
     }
   }, []);
@@ -43,16 +61,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userRole', role);
     setIsLoggedIn(true);
     setUser({ ...userData, token, role });
-  };
-
-  const logout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('isAdminAuthenticated');
-    localStorage.removeItem('userRole');
-    setIsLoggedIn(false);
-    setUser(null);
   };
 
   return (

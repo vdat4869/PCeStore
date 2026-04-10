@@ -72,6 +72,7 @@ public class GlobalExceptionHandler {
     // Bắt các RuntimeException tùy chỉnh khác
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntimeExceptions(RuntimeException ex) {
+        ex.printStackTrace(); // DEBUG
         return new ResponseEntity<>(translate(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
     

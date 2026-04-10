@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
@@ -16,10 +16,19 @@ import AdminApp from './admin/App';
 import EmployeeApp from './employee/EmployeeApp';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Component Layout Chung cho luồng Khách Hàng
 const MainLayout = () => {
+  const { user } = useAuth();
+  
+  if (user && user.role === 'ADMIN') {
+    return <Navigate to="/admin" replace />;
+  }
+  if (user && user.role === 'EMPLOYEE') {
+    return <Navigate to="/employee" replace />;
+  }
+
   return (
     <>
       <Header />
