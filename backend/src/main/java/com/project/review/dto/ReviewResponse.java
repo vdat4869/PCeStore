@@ -8,26 +8,25 @@ public class ReviewResponse {
     private Integer rating;
     private String comment;
     private Long productId;
+    private String productName;
     private Long userId;
     private String userFullName;
+    private String userEmail;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public ReviewResponse() {
     }
 
-    /**
-     * Constructor internally used by the manual builder pattern.
-     * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
-     */
-    @SuppressWarnings("java:S107")
-    public ReviewResponse(Long id, Integer rating, String comment, Long productId, Long userId, String userFullName, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public ReviewResponse(Long id, Integer rating, String comment, Long productId, String productName, Long userId, String userFullName, String userEmail, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.rating = rating;
         this.comment = comment;
         this.productId = productId;
+        this.productName = productName;
         this.userId = userId;
         this.userFullName = userFullName;
+        this.userEmail = userEmail;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -64,6 +63,14 @@ public class ReviewResponse {
         this.productId = productId;
     }
 
+    public String getProductName() {
+        return productName;
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
     public Long getUserId() {
         return userId;
     }
@@ -78,6 +85,14 @@ public class ReviewResponse {
 
     public void setUserFullName(String userFullName) {
         this.userFullName = userFullName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -105,8 +120,10 @@ public class ReviewResponse {
         private Integer rating;
         private String comment;
         private Long productId;
+        private String productName;
         private Long userId;
         private String userFullName;
+        private String userEmail;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
 
@@ -130,6 +147,11 @@ public class ReviewResponse {
             return this;
         }
 
+        public ReviewResponseBuilder productName(String productName) {
+            this.productName = productName;
+            return this;
+        }
+
         public ReviewResponseBuilder userId(Long userId) {
             this.userId = userId;
             return this;
@@ -137,6 +159,11 @@ public class ReviewResponse {
 
         public ReviewResponseBuilder userFullName(String userFullName) {
             this.userFullName = userFullName;
+            return this;
+        }
+
+        public ReviewResponseBuilder userEmail(String userEmail) {
+            this.userEmail = userEmail;
             return this;
         }
 
@@ -151,7 +178,7 @@ public class ReviewResponse {
         }
 
         public ReviewResponse build() {
-            return new ReviewResponse(id, rating, comment, productId, userId, userFullName, createdAt, updatedAt);
+            return new ReviewResponse(id, rating, comment, productId, productName, userId, userFullName, userEmail, createdAt, updatedAt);
         }
     }
 }

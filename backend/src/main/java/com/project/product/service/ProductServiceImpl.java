@@ -8,6 +8,8 @@ import com.project.product.repository.CategoryRepository;
 import com.project.product.repository.ProductRepository;
 import com.project.common.exception.ResourceNotFoundException;
 import com.project.product.event.ProductCreatedEvent;
+import com.project.inventory.repository.InventoryRepository;
+import com.project.inventory.entity.Inventory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
@@ -23,12 +25,18 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final MessageSource messageSource;
     private final ApplicationEventPublisher eventPublisher;
+    private final InventoryRepository inventoryRepository;
 
-    public ProductServiceImpl(ProductRepository productRepository, CategoryRepository categoryRepository, MessageSource messageSource, ApplicationEventPublisher eventPublisher) {
+    public ProductServiceImpl(ProductRepository productRepository, 
+                              CategoryRepository categoryRepository, 
+                              MessageSource messageSource, 
+                              ApplicationEventPublisher eventPublisher,
+                              InventoryRepository inventoryRepository) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.messageSource = messageSource;
         this.eventPublisher = eventPublisher;
+        this.inventoryRepository = inventoryRepository;
     }
 
     private String getMessage(String key, Object... args) {
@@ -175,10 +183,10 @@ public class ProductServiceImpl implements ProductService {
      * Hàm tiện ích (Utility): Chuyển đổi đối tượng Product (Entity) sang ProductResponse (DTO trả về)
      */
     private ProductResponse mapToResponse(Product product) {
-        // Lấy số lượng từ Inventory đã bị tách biệt. Gán mặc định là 0 hoặc null khi get array APIs.
-        // Để hiển thị chính xác ở frontend trong tab danh sách, Frontend sẽ có màn gọi batch Inventory
-        // hoặc ta sẽ load riêng rẽ cho trang detail qua service giao diện.
-        Integer currentStock = null;
+        // Lấy số lượng từ Inventory module
+        Integer currentStock = inventoryRepository.findByProductId(product.getId())
+                .map(Inventory::getQuantity)
+                .orElse(0);
 
         return ProductResponse.builder()
                 .id(product.getId())

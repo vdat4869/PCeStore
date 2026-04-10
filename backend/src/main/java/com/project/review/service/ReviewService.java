@@ -55,6 +55,12 @@ public class ReviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thông tin xác thực user."));
     }
 
+    // Đọc toàn bộ review cho Admin
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getAllReviews(Pageable pageable) {
+        return reviewRepository.findAll(pageable).map(this::mapToResponse);
+    }
+
     // Hàm chuyển đổi Entity sang DTO
     private ReviewResponse mapToResponse(Review review) {
         return ReviewResponse.builder()
@@ -62,8 +68,10 @@ public class ReviewService {
                 .rating(review.getRating())
                 .comment(review.getComment())
                 .productId(review.getProduct().getId())
+                .productName(review.getProduct().getName()) // Thêm tên SP cho dễ xem
                 .userId(review.getUser().getId())
                 .userFullName(review.getUser().getFullName() != null ? review.getUser().getFullName() : review.getUser().getEmail())
+                .userEmail(review.getUser().getEmail()) // Thêm email cho admin quản lý
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
                 .build();

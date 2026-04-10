@@ -54,6 +54,11 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
             <i className="ti ti-receipt"></i><span className="nav-text">Reports</span>
           </Link>
         </li>
+        <li>
+          <Link className={getNavLinkClass('/admin/reviews')} to="/admin/reviews">
+            <i className="ti ti-star"></i><span className="nav-text">Reviews</span>
+          </Link>
+        </li>
 
         <li>
           <a className="nav-link text-danger mt-4" href="#" onClick={handleLogout}>

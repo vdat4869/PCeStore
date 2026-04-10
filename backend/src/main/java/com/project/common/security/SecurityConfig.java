@@ -55,7 +55,7 @@ public class SecurityConfig {
                 // Public API Payment và Order
                 .requestMatchers("/api/v1/payments/**", "/api/v1/orders/**", "/api/v1/shipping/**", "/error").permitAll()
                 // Cho phép xem sản phẩm, category dưới tư cách khách hoăc User
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**", "/api/reviews/product/**", "/api/reviews/product/*/average").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/reviews/product/**", "/api/reviews/product/*/average").permitAll()
                 // Cho phép Swagger UI và API Docs công khai để kiểm thử
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 // Mọi Request còn lại cần xác thực

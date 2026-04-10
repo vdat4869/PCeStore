@@ -1,47 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../services/api';
 
-export default function CreateProduct() {
+export default function EditProduct() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    stock: '',
+    stock: '', // Stock field for reference, but usually updated via Inventory
     brand: '',
     categoryId: '',
     imageUrl: ''
   });
 
   useEffect(() => {
-    // Tải danh mục thực tế từ Backend
-    apiClient.get('/categories')
-      .then(res => setCategories(res.data))
-      .catch(err => console.error("Lỗi khi tải danh mục:", err));
-  }, []);
+    // Tải danh mục và thông tin sản phẩm song song
+    const fetchData = async () => {
+      try {
+        const [catRes, prodRes] = await Promise.all([
+          apiClient.get('/categories'),
+          apiClient.get(`/products/${id}`)
+        ]);
+        
+        setCategories(catRes.data);
+        
+        const p = prodRes.data;
+        setFormData({
+          name: p.name || '',
+          description: p.description || '',
+          price: p.price || '',
+          stock: p.stock || 0,
+          brand: p.brand || '',
+          categoryId: p.categoryId || '',
+          imageUrl: p.imageUrl || ''
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải dữ liệu:", err);
+        alert("Không thể tải thông tin sản phẩm!");
+        navigate('/admin/products');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
+      setSaving(true);
       const payload = {
         ...formData,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
         categoryId: parseInt(formData.categoryId)
       };
-      await apiClient.post('/products', payload);
-      alert("Thêm sản phẩm thành công!");
+      await apiClient.put(`/products/${id}`, payload);
+      alert("Cập nhật sản phẩm thành công!");
       navigate('/admin/products');
     } catch (err) {
-      alert("Lỗi khi thêm sản phẩm: " + (err.response?.data?.message || err.message));
+      alert("Lỗi khi cập nhật sản phẩm: " + (err.response?.data?.message || err.message));
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) return <div className="p-5 text-center">Đang tải dữ liệu sản phẩm...</div>;
 
   return (
     <div className="container-fluid">
@@ -49,7 +79,7 @@ export default function CreateProduct() {
         <div className="col-12 col-lg-8 mx-auto">
           <div className="card border-0 shadow-sm">
             <div className="card-body p-4">
-              <h1 className="fs-3 mb-4">Thêm sản phẩm mới</h1>
+              <h1 className="fs-3 mb-4">Chỉnh sửa sản phẩm: #{id}</h1>
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label fw-bold">Tên sản phẩm</label>
@@ -58,7 +88,6 @@ export default function CreateProduct() {
                     className="form-control" 
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
-                    placeholder="VD: CPU Intel Core i9-14900K"
                     required 
                   />
                 </div>
@@ -85,7 +114,6 @@ export default function CreateProduct() {
                       className="form-control" 
                       value={formData.brand}
                       onChange={e => setFormData({...formData, brand: e.target.value})}
-                      placeholder="VD: ASUS, MSI, Intel..."
                       required 
                     />
                   </div>
@@ -99,20 +127,18 @@ export default function CreateProduct() {
                       className="form-control" 
                       value={formData.price}
                       onChange={e => setFormData({...formData, price: e.target.value})}
-                      placeholder="0"
                       required 
                     />
                   </div>
                   <div className="col-md-6">
-                    <label className="form-label fw-bold">Số lượng nhập kho</label>
+                    <label className="form-label fw-bold">Số lượng trong kho (Chỉ xem)</label>
                     <input 
                       type="number" 
-                      className="form-control" 
+                      className="form-control bg-light" 
                       value={formData.stock}
-                      onChange={e => setFormData({...formData, stock: e.target.value})}
-                      placeholder="0"
-                      required 
+                      readOnly
                     />
+                    <small className="text-muted">Việc cập nhật số lượng được thực hiện qua module Kho.</small>
                   </div>
                 </div>
 
@@ -125,22 +151,24 @@ export default function CreateProduct() {
                     onChange={e => setFormData({...formData, imageUrl: e.target.value})}
                     placeholder="https://example.com/image.jpg"
                   />
+                  {formData.imageUrl && (
+                    <img src={formData.imageUrl} alt="Preview" className="mt-2 rounded" style={{ height: '100px' }} />
+                  )}
                 </div>
 
                 <div className="mb-4">
                   <label className="form-label fw-bold">Mô tả sản phẩm</label>
                   <textarea 
                     className="form-control" 
-                    rows="4"
+                    rows="6"
                     value={formData.description}
                     onChange={e => setFormData({...formData, description: e.target.value})}
-                    placeholder="Mô tả chi tiết về sản phẩm..."
                   ></textarea>
                 </div>
 
                 <div className="d-flex gap-2">
-                  <button type="submit" className="btn btn-primary px-4" disabled={loading}>
-                    {loading ? 'Đang lưu...' : 'Lưu sản phẩm'}
+                  <button type="submit" className="btn btn-primary px-4" disabled={saving}>
+                    {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
                   </button>
                   <button type="button" className="btn btn-light border" onClick={() => navigate('/admin/products')}>
                     Hủy bỏ
@@ -154,4 +182,3 @@ export default function CreateProduct() {
     </div>
   );
 }
-

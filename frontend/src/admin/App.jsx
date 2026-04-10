@@ -7,9 +7,11 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import CreateProduct from './pages/CreateProduct';
+import EditProduct from './pages/EditProduct';
 import Reports from './pages/Reports';
 import Orders from './pages/Orders';
 import Users from './pages/Users';
+import Reviews from './pages/Reviews';
 import Docs from './pages/Docs';
 import NotFound from './pages/NotFound';
 import Profile from '../pages/Profile';
@@ -22,9 +24,11 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="products" element={<Inventory />} />
           <Route path="create-product" element={<CreateProduct />} />
+          <Route path="edit-product/:id" element={<EditProduct />} />
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="reviews" element={<Reviews />} />
           <Route path="profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<NotFound />} />

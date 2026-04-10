@@ -17,50 +17,48 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Kiểm tra token ưu tiên adminToken (Admin/Employee) hoặc userToken (Khách hàng)
-    const adminToken = localStorage.getItem('adminToken');
+    // Chỉ tự động đăng nhập cho Khách hàng (userToken)
+    // adminToken sẽ được dùng riêng cho ProtectedRoute của Dashboard
     const userToken = localStorage.getItem('userToken');
-    const token = adminToken || userToken;
     
-    if (token) {
+    if (userToken) {
       setIsLoggedIn(true);
-      // Gọi API lấy tên user từ DB để hiện lên Header
       fetch('http://localhost:8080/api/users/profile', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${userToken}` }
       })
-      .then(res => {
-        if (res.ok) {
-          return res.json();
-        } else {
-          // Token hết hạn hoặc không hợp lệ -> Xóa và logout chặn 401 treo UI
-          logout();
-          return null;
-        }
-      })
+      .then(res => res.ok ? res.json() : (logout(), null))
       .then(data => {
         if (data) {
-          const userName = data.fullName || (data.email ? data.email.split('@')[0] : 'Khách hàng');
-          setUser({ token, name: userName, email: data.email, role: localStorage.getItem('userRole') });
+          setUser({ 
+            token: userToken, 
+            name: data.fullName || (data.email ? data.email.split('@')[0] : 'Khách hàng'), 
+            email: data.email, 
+            role: 'USER' 
+          });
         }
       })
       .catch(err => {
-         console.error('Network Error or API down:', err);
+         console.error('Auth check failed:', err);
          logout();
       });
     }
   }, []);
 
   const login = (token, role, userData = {}) => {
+    localStorage.setItem('userRole', role);
+    
     if (role === 'ADMIN' || role === 'EMPLOYEE') {
        localStorage.setItem('adminToken', token);
        localStorage.setItem('isAdminAuthenticated', 'true');
+       // Không set isLoggedIn = true cho Admin ở Store để tránh hiện tên Admin trên Header
+       setIsLoggedIn(false);
+       setUser(null);
     } else {
        localStorage.setItem('userToken', token);
        localStorage.removeItem('isAdminAuthenticated');
+       setIsLoggedIn(true);
+       setUser({ ...userData, token, role });
     }
-    localStorage.setItem('userRole', role);
-    setIsLoggedIn(true);
-    setUser({ ...userData, token, role });
   };
 
   return (

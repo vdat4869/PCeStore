@@ -64,6 +64,47 @@ export default function Users() {
     }
   };
 
+  const handleStatusChange = async (userId, currentStatus) => {
+    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}/status?status=${newStatus}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        fetchUsers();
+      } else {
+        alert('Có lỗi xảy ra khi cập nhật trạng thái hoạt động!');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleSoftDelete = async (userId) => {
+    if (!window.confirm("Bạn muốn xóa (vô hiệu hóa tạm thời) tài khoản này?")) return;
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchUsers();
+    } catch (error) { console.error(error); }
+  };
+
+  const handleRestore = async (userId) => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}/restore`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchUsers();
+    } catch (error) { console.error(error); }
+  };
+
   return (
     <div className="container-fluid">
       <div className="row">
@@ -113,18 +154,39 @@ export default function Users() {
                         </select>
                       </td>
                       <td>
-                        <span className={`badge ${u.status === 'ACTIVE' ? 'bg-success' : 'bg-danger'}`}>
+                        <span className={`badge ${u.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'} me-1`}>
                           {u.status}
                         </span>
+                        {u.deletedAt && <span className="badge bg-danger">XÓA TẠM</span>}
                       </td>
                       <td>
-                        <button 
-                          onClick={() => handleHardDelete(u.id)}
-                          className="btn btn-sm btn-outline-danger"
-                          title="Xóa vĩnh viễn"
-                        >
-                           Xóa
-                        </button>
+                        <div className="btn-group gap-1">
+                          <button 
+                            onClick={() => handleStatusChange(u.id, u.status)}
+                            className={`btn btn-sm ${u.status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'}`}
+                            title={u.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                          >
+                             {u.status === 'ACTIVE' ? 'Khóa' : 'Mở'}
+                          </button>
+                          
+                          {u.deletedAt ? (
+                            <button onClick={() => handleRestore(u.id)} className="btn btn-sm btn-outline-info" title="Khôi phục">
+                              Khôi phục
+                            </button>
+                          ) : (
+                            <button onClick={() => handleSoftDelete(u.id)} className="btn btn-sm btn-outline-secondary" title="Xóa tạm">
+                              Xóa
+                            </button>
+                          )}
+
+                          <button 
+                            onClick={() => handleHardDelete(u.id)}
+                            className="btn btn-sm btn-danger text-white"
+                            title="Xóa vĩnh viễn"
+                          >
+                             <i className="bi bi-trash"></i>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

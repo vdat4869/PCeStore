@@ -23,6 +23,15 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
+    // API Admin: Liệt kê toàn bộ đánh giá hệ thống
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<ReviewResponse>> getAllReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(reviewService.getAllReviews(PageRequest.of(page, size, Sort.by("createdAt").descending())));
+    }
+
     // API public: Xem đánh giá của một sản phẩm (Có phân trang)
     @GetMapping("/product/{productId}")
     public ResponseEntity<Page<ReviewResponse>> getReviewsByProduct(

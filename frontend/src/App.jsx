@@ -22,13 +22,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 const MainLayout = () => {
   const { user } = useAuth();
   
-  if (user && user.role === 'ADMIN') {
-    return <Navigate to="/admin" replace />;
-  }
-  if (user && user.role === 'EMPLOYEE') {
-    return <Navigate to="/employee" replace />;
-  }
-
+  // Cho phép Admin xem trang chủ và danh sách sản phẩm, 
+  // nhưng nếu vào trang Profile khách hàng thì chuyển hướng về Admin Profile
   return (
     <>
       <Header />
