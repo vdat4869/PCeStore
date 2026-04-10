@@ -55,20 +55,49 @@ export default function Cart() {
     setMessage(null);
     try {
       const itemsToOrder = cartItems.filter(i => selectedItems.includes(i.productId));
+
+      // ✅ VALIDATE: Kiểm tra productId hợp lệ trước khi gọi API
+      const invalidItems = itemsToOrder.filter(i => !i.productId || Number(i.productId) <= 0);
+      if (invalidItems.length > 0) {
+        console.error('[Checkout] Phát hiện sản phẩm có productId không hợp lệ:', invalidItems);
+        setMessage({ type: 'error', text: 'Có sản phẩm không hợp lệ trong giỏ hàng. Vui lòng xoá và thêm lại.' });
+        setLoading(false);
+        return;
+      }
+
       const payload = {
-        items: itemsToOrder.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        items: itemsToOrder.map(i => ({
+          productId: Number(i.productId), // Đảm bảo luôn là số
+          quantity: Number(i.quantity),
+        })),
         shippingAddress: 'Sẽ nhập ở bước tiếp theo',
         paymentMethod: 'BANK_TRANSFER',
+        discountCode: discountPercent > 0 ? discountCode : null,
       };
+
+      // 🔍 DEBUG: Log payload trước khi gửi
+      console.log('[Checkout] Payload gửi lên API:', JSON.stringify(payload, null, 2));
+
       const response = await apiClient.post('/v1/orders/create', payload);
+      console.log('[Checkout] Kết quả:', response.data);
       setMessage({ type: 'success', text: `Đặt hàng thành công! Mã đơn hàng: ${response.data.orderId}` });
       
-      // Remove ordered items from cart
+      // Xoá sản phẩm đã đặt khỏi giỏ hàng
       itemsToOrder.forEach(i => removeFromCart(i.productId));
       setSelectedItems([]);
     } catch (error) {
-      console.error(error);
-      const errMsg = error.response?.data?.message || 'Đặt hàng thất bại. Vui lòng thử lại.';
+      console.error('[Checkout] Lỗi:', error);
+      const errData = error.response?.data;
+      
+      let errMsg = 'Đặt hàng thất bại. Vui lòng thử lại.';
+      if (errData && typeof errData === 'object') {
+        // Lỗi Validation từ DTO — trả về dạng Map { field: message }
+        errMsg = Object.values(errData).join(', ');
+      } else if (typeof errData === 'string' && errData.trim().length > 0) {
+        // Lỗi RuntimeException — trả về dạng String thuần
+        errMsg = errData;
+      }
+      
       setMessage({ type: 'error', text: errMsg });
     } finally {
       setLoading(false);
