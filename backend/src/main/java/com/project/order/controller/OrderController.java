@@ -28,7 +28,7 @@ public class OrderController {
     private final ShippingService shippingService;
 
     @PostMapping("/create")
-    public ResponseEntity<Map<String, Object>> createOrder(@RequestBody OrderRequestDTO requestDTO) {
+    public ResponseEntity<Map<String, Object>> createOrder(@jakarta.validation.Valid @RequestBody OrderRequestDTO requestDTO) {
         // Enforce secure user assignment if token exists
         try {
             Long userId = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser().getId();
