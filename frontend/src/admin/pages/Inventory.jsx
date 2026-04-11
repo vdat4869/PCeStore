@@ -6,6 +6,9 @@ export default function Inventory() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [newQuantity, setNewQuantity] = useState(0);
+  const [updating, setUpdating] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -23,21 +26,28 @@ export default function Inventory() {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return;
+  const handleUpdateStock = async (e) => {
+    e.preventDefault();
+    if (!selectedProduct) return;
     try {
-      await apiClient.delete(`/products/${id}`);
-      alert("Đã xóa sản phẩm thành công!");
+      setUpdating(true);
+      await apiClient.put('/inventory/update', {
+        productId: selectedProduct.id,
+        quantity: parseInt(newQuantity)
+      });
+      alert(`Đã cập nhật tồn kho cho #${selectedProduct.id} thành công!`);
+      const modal = bootstrap.Modal.getInstance(document.getElementById('stockModal'));
+      modal.hide();
       fetchProducts();
     } catch (err) {
-      alert("Lỗi khi xóa sản phẩm: " + (err.response?.data?.message || err.message));
+      alert("Lỗi: " + (err.response?.data?.message || "Không thể cập nhật"));
+    } finally {
+      setUpdating(false);
     }
   };
 
   const handleSearch = (e) => {
-    if (e.key === 'Enter') {
-      fetchProducts();
-    }
+    if (e.key === 'Enter') fetchProducts();
   };
 
   return (
@@ -45,103 +55,142 @@ export default function Inventory() {
       <div className="row">
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="">
-              <h1 className="fs-3 mb-1">Quản lý Sản phẩm & Kho</h1>
-              <p className="mb-0">Xem danh sách, chỉnh sửa và theo dõi tồn kho</p>
+            <div>
+              <h1 className="fs-3 mb-1">Quản lý Kho tổng</h1>
+              <p className="text-secondary">Giám sát tồn kho, hàng chờ (reserved) và cập nhật số lượng thực tế</p>
             </div>
             <div>
+              <button className="btn btn-outline-secondary me-2" onClick={fetchProducts}>
+                <i className="bi bi-arrow-clockwise"></i> Làm mới
+              </button>
               <Link to="/admin/create-product" className="btn btn-primary">
-                <i className="bi bi-plus-lg me-1"></i> Thêm sản phẩm
+                <i className="bi bi-plus-lg me-1"></i> Nhập SP mới
               </Link>
             </div>
           </div>
         </div>
       </div>
-      <div className="row">
-        <div className="col-12">
-          <div>
-            <div className="d-flex gap-2 mb-3 flex-wrap justify-content-between">
-              <div className="input-group" style={{ maxWidth: '350px' }}>
+
+      <div className="card border-0 shadow-sm mb-4">
+          <div className="card-body p-3">
+             <div className="input-group" style={{ maxWidth: '400px' }}>
+                <span className="input-group-text bg-white border-end-0"><i className="bi bi-search text-muted"></i></span>
                 <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="Tìm theo tên sản phẩm..." 
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={handleSearch}
+                   type="text" 
+                   className="form-control border-start-0" 
+                   placeholder="Mã SKU hoặc tên sản phẩm..." 
+                   value={keyword}
+                   onChange={e => setKeyword(e.target.value)}
+                   onKeyDown={handleSearch}
                 />
-                <button className="btn btn-outline-secondary" onClick={fetchProducts}>
-                  <i className="bi bi-search"></i>
-                </button>
-              </div>
-              <div className="d-flex gap-2">
-                <button className="btn btn-outline-secondary" onClick={fetchProducts}>
-                  <i className="bi bi-arrow-clockwise"></i> Làm mới
-                </button>
-              </div>
-            </div>
+             </div>
           </div>
-          <div className="card table-responsive border-0 shadow-sm">
-            <table className="table mb-0 text-nowrap table-hover align-middle">
-              <thead className="table-light border-light">
-                <tr>
-                  <th>Hình ảnh</th>
-                  <th>ID</th>
-                  <th>Tên sản phẩm</th>
-                  <th>Thương hiệu</th>
-                  <th>Giá gốc</th>
-                  <th>Tồn kho</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="7" className="text-center py-5">Đang tải dữ liệu...</td></tr>
-                ) : products.length === 0 ? (
-                  <tr><td colSpan="7" className="text-center py-5 text-muted">Không tìm thấy sản phẩm nào</td></tr>
-                ) : (
-                  products.map(p => (
-                    <tr key={p.id}>
-                      <td>
-                        <img 
-                          src={p.imageUrl || "/src/admin/assets/images/default-product.png"} 
-                          alt="" 
-                          className="avatar avatar-md rounded object-fit-cover" 
-                          style={{ width: '45px', height: '45px' }}
-                        />
-                      </td>
-                      <td><span className="text-muted fw-bold">#{p.id}</span></td>
-                      <td>
-                        <div className="fw-bold text-dark">{p.name}</div>
-                        <small className="text-muted">{p.categoryName}</small>
-                      </td>
-                      <td>{p.brand}</td>
-                      <td><span className="text-danger fw-bold">{p.price?.toLocaleString()}đ</span></td>
-                      <td>
-                        <span className={`fw-bold ${p.stock <= 5 ? 'text-danger' : 'text-dark'}`}>
-                          {p.stock !== null ? p.stock : 0}
-                        </span>
-                        {p.stock === 0 && <span className="ms-1 badge bg-secondary small">Hết hàng</span>}
-                      </td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Link to={`/admin/edit-product/${p.id}`} className="btn btn-sm btn-light border" title="Chỉnh sửa">
-                            <i className="bi bi-pencil-square text-primary"></i>
-                          </Link>
-                          <button onClick={() => handleDelete(p.id)} className="btn btn-sm btn-light border" title="Xoá">
-                            <i className="bi bi-trash text-danger"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+      </div>
+
+      <div className="card border-0 shadow-sm overflow-hidden">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="bg-light">
+              <tr>
+                <th className="px-4">Sản phẩm</th>
+                <th>Thương hiệu</th>
+                <th>Tồn kho khả dụng</th>
+                <th className="text-center">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="4" className="text-center py-5"><div className="spinner-border spinner-border-sm text-primary"></div> Đang tải...</td></tr>
+              ) : products.length === 0 ? (
+                <tr><td colSpan="4" className="text-center py-5 text-muted">Không tìm thấy dữ liệu</td></tr>
+              ) : (
+                products.map(p => (
+                  <tr key={p.id}>
+                    <td className="px-4">
+                       <div className="d-flex align-items-center">
+                          <img src={p.imageUrl || "/src/admin/assets/images/default-product.png"} className="rounded me-3 border" style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                          <div>
+                             <div className="fw-bold text-dark small">{p.name}</div>
+                             <small className="text-muted">SKU: #{p.id}</small>
+                          </div>
+                       </div>
+                    </td>
+                    <td><span className="badge bg-light text-dark fw-normal border">{p.brand}</span></td>
+                    <td>
+                       <div className="d-flex align-items-center">
+                          <span className={`fs-5 fw-bold me-2 ${p.stock <= 5 ? 'text-danger' : 'text-success'}`}>
+                             {p.stock}
+                          </span>
+                          {p.stock <= 5 && <span className="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2" style={{ fontSize: '10px' }}>Sắp hết</span>}
+                       </div>
+                    </td>
+                    <td className="text-center">
+                       <button 
+                         className="btn btn-sm btn-outline-primary"
+                         data-bs-toggle="modal" 
+                         data-bs-target="#stockModal"
+                         onClick={() => {
+                            setSelectedProduct(p);
+                            setNewQuantity(p.stock);
+                         }}
+                       >
+                          <i className="bi bi-gear-fill me-1"></i> Điều chỉnh kho
+                       </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal Cập nhật kho */}
+      <div className="modal fade" id="stockModal" tabIndex="-1" aria-hidden="true">
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content border-0 shadow">
+            <div className="modal-header border-bottom-0">
+              <h5 className="modal-title fw-bold">Điều chỉnh hàng tồn kho</h5>
+              <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form onSubmit={handleUpdateStock}>
+              <div className="modal-body py-4">
+                {selectedProduct && (
+                   <div className="mb-4 d-flex align-items-center p-3 bg-light rounded">
+                      <img src={selectedProduct.imageUrl} className="rounded me-3 border" style={{ width: '60px', height: '60px', objectFit: 'cover' }} />
+                      <div>
+                         <div className="fw-bold">{selectedProduct.name}</div>
+                         <div className="text-muted small">Mã SP: #{selectedProduct.id}</div>
+                      </div>
+                   </div>
                 )}
-              </tbody>
-            </table>
+                <div className="mb-3">
+                  <label className="form-label fw-bold">Số lượng tồn kho mới</label>
+                  <div className="input-group input-group-lg">
+                    <input 
+                      type="number" 
+                      className="form-control text-center fw-bold" 
+                      min="0"
+                      value={newQuantity}
+                      onChange={e => setNewQuantity(e.target.value)}
+                    />
+                    <span className="input-group-text">Cái</span>
+                  </div>
+                  <div className="form-text mt-2 text-danger">
+                    <i className="bi bi-exclamation-triangle me-1"></i> Hành động này sẽ cập nhật số lượng thực tế trong kho.
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer border-top-0 pt-0">
+                <button type="button" className="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" className="btn btn-primary px-4 fw-bold" disabled={updating}>
+                  {updating ? 'Đang lưu...' : 'Xác nhận cập nhật'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatImageUrl } from '../../utils';
 
 export default function Topbar({ toggleSidebar, toggleMobileSidebar, isSidebarCollapsed }) {
   const { user } = useAuth();
@@ -51,7 +52,7 @@ export default function Topbar({ toggleSidebar, toggleMobileSidebar, isSidebarCo
           {/* Avatar Profile Link */}
           <li className="ms-3">
             <Link to="/admin/profile" title="Chỉnh sửa hồ sơ cá nhân">
-              <img src={user?.avatarUrl || "/src/admin/assets/images/avatar/avatar-1.jpg"} alt="User Avatar" className="avatar avatar-sm rounded-circle shadow-sm" style={{ border: '2px solid #fff' }} />
+              <img src={formatImageUrl(user?.avatarUrl) || "/src/admin/assets/images/avatar/avatar-1.jpg"} alt="User Avatar" className="avatar avatar-sm rounded-circle shadow-sm" style={{ border: '2px solid #fff' }} />
             </Link>
           </li>
         </ul>

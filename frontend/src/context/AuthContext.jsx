@@ -17,23 +17,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Chỉ tự động đăng nhập cho Khách hàng (userToken)
-    // adminToken sẽ được dùng riêng cho ProtectedRoute của Dashboard
-    const userToken = localStorage.getItem('userToken');
+    // Ưu tiên adminToken nếu có, nếu không thì dùng userToken
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
     
-    if (userToken) {
+    if (token) {
       setIsLoggedIn(true);
       fetch('http://localhost:8080/api/users/profile', {
-        headers: { 'Authorization': `Bearer ${userToken}` }
+        headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.ok ? res.json() : (logout(), null))
       .then(data => {
         if (data) {
           setUser({ 
-            token: userToken, 
-            name: data.fullName || (data.email ? data.email.split('@')[0] : 'Khách hàng'), 
+            token, 
+            name: data.fullName || (data.email ? data.email.split('@')[0] : 'Tài khoản'), 
             email: data.email, 
-            role: 'USER' 
+            role: localStorage.getItem('userRole'),
+            avatarUrl: data.avatarUrl
           });
         }
       })
@@ -50,19 +50,26 @@ export const AuthProvider = ({ children }) => {
     if (role === 'ADMIN' || role === 'EMPLOYEE') {
        localStorage.setItem('adminToken', token);
        localStorage.setItem('isAdminAuthenticated', 'true');
-       // Không set isLoggedIn = true cho Admin ở Store để tránh hiện tên Admin trên Header
-       setIsLoggedIn(false);
-       setUser(null);
     } else {
        localStorage.setItem('userToken', token);
        localStorage.removeItem('isAdminAuthenticated');
-       setIsLoggedIn(true);
-       setUser({ ...userData, token, role });
     }
+    
+    setIsLoggedIn(true);
+    setUser({ 
+      ...userData, 
+      token, 
+      role,
+      name: userData.fullName || userData.name || 'Tài khoản'
+    });
+  };
+
+  const updateUserInfo = (newData) => {
+    setUser(prev => ({ ...prev, ...newData }));
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, updateUserInfo }}>
       {children}
     </AuthContext.Provider>
   );

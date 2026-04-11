@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { formatImageUrl } from '../../utils';
 
 // Import các Tab Components
 import DashboardTab from './components/DashboardTab';
@@ -58,8 +59,12 @@ export default function Profile() {
         <div className="col-lg-3">
           <div className="card border-0 shadow-sm rounded-4 overflow-hidden sticky-top" style={{ top: '80px', zIndex: 10 }}>
             <div className="p-4 text-center bg-danger bg-opacity-10">
-              <div className="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style={{ width: '80px', height: '80px' }}>
-                <i className="bi bi-person fs-1 text-danger"></i>
+              <div className="bg-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm overflow-hidden" style={{ width: '80px', height: '80px' }}>
+                {authUser?.avatarUrl ? (
+                   <img src={formatImageUrl(authUser.avatarUrl)} alt="Avatar" className="w-100 h-100 object-fit-cover" />
+                ) : (
+                   <i className="bi bi-person fs-1 text-danger"></i>
+                )}
               </div>
               <h6 className="fw-bold mb-0">{authUser?.name || authUser?.fullName || 'Người dùng'}</h6>
               <small className="text-muted">{authUser?.email || 'email@example.com'}</small>

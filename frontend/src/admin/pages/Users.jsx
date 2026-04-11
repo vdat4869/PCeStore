@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import apiClient from '../../services/api';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -6,16 +7,11 @@ export default function Users() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const response = await fetch('http://localhost:8080/api/admin/users?size=50', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.content || []);
-      }
+      setLoading(true);
+      const response = await apiClient.get('/admin/users?size=50');
+      setUsers(response.data.content || []);
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi tải danh sách người dùng:", err);
     } finally {
       setLoading(false);
     }
@@ -27,19 +23,12 @@ export default function Users() {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}/role?role=${newRole}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        alert('Cập nhật quyền thành công!');
-        fetchUsers();
-      } else {
-        alert('Có lỗi xảy ra khi phân quyền!');
-      }
+      await apiClient.put(`/admin/users/${userId}/role?role=${newRole}`);
+      alert('Cập nhật quyền thành công!');
+      fetchUsers();
     } catch (error) {
       console.error(error);
+      alert('Có lỗi xảy ra khi phân quyền!');
     }
   };
 
@@ -48,60 +37,38 @@ export default function Users() {
       return;
     }
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}/hard`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        alert('Đã xóa vĩnh viễn tài khoản!');
-        fetchUsers();
-      } else {
-        alert('Lỗi: Bạn không thể xóa tài khoản này!');
-      }
+      await apiClient.delete(`/admin/users/${userId}/hard`);
+      alert('Đã xóa vĩnh viễn tài khoản!');
+      fetchUsers();
     } catch (error) {
       console.error(error);
+      alert('Lỗi: Bạn không thể xóa tài khoản này!');
     }
   };
 
   const handleStatusChange = async (userId, currentStatus) => {
     const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}/status?status=${newStatus}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        fetchUsers();
-      } else {
-        alert('Có lỗi xảy ra khi cập nhật trạng thái hoạt động!');
-      }
+      await apiClient.put(`/admin/users/${userId}/status?status=${newStatus}`);
+      fetchUsers();
     } catch (error) {
       console.error(error);
+      alert('Có lỗi xảy ra khi cập nhật trạng thái hoạt động!');
     }
   };
 
   const handleSoftDelete = async (userId) => {
     if (!window.confirm("Bạn muốn xóa (vô hiệu hóa tạm thời) tài khoản này?")) return;
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) fetchUsers();
+      await apiClient.delete(`/admin/users/${userId}`);
+      fetchUsers();
     } catch (error) { console.error(error); }
   };
 
   const handleRestore = async (userId) => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch(`http://localhost:8080/api/admin/users/${userId}/restore`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) fetchUsers();
+      await apiClient.post(`/admin/users/${userId}/restore`);
+      fetchUsers();
     } catch (error) { console.error(error); }
   };
 

@@ -31,7 +31,12 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
         </li>
         <li>
           <Link className={getNavLinkClass('/admin/products')} to="/admin/products">
-            <i className="ti ti-box-seam"></i><span className="nav-text">Products</span>
+            <i className="ti ti-box-seam"></i><span className="nav-text">Inventory</span>
+          </Link>
+        </li>
+        <li>
+          <Link className={getNavLinkClass('/admin/categories')} to="/admin/categories">
+            <i className="ti ti-category"></i><span className="nav-text">Categories</span>
           </Link>
         </li>
         <li>
@@ -54,11 +59,22 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
             <i className="ti ti-receipt"></i><span className="nav-text">Reports</span>
           </Link>
         </li>
-        <li>
-          <Link className={getNavLinkClass('/admin/reviews')} to="/admin/reviews">
-            <i className="ti ti-star"></i><span className="nav-text">Reviews</span>
-          </Link>
-        </li>
+         <li>
+           <Link className={getNavLinkClass('/admin/reviews')} to="/admin/reviews">
+             <i className="ti ti-star"></i><span className="nav-text">Reviews</span>
+           </Link>
+         </li>
+         <li className="px-4 py-2 mt-2"><small className="nav-text">Settings</small></li>
+         <li>
+           <Link className={getNavLinkClass('/admin/notifications')} to="/admin/notifications">
+             <i className="ti ti-bell"></i><span className="nav-text">Notifications</span>
+           </Link>
+         </li>
+         <li>
+           <Link className={getNavLinkClass('/admin/email-templates')} to="/admin/email-templates">
+             <i className="ti ti-mail"></i><span className="nav-text">Email Templates</span>
+           </Link>
+         </li>
 
         <li>
           <a className="nav-link text-danger mt-4" href="#" onClick={handleLogout}>

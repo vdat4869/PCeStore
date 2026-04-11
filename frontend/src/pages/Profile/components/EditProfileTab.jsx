@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function EditProfileTab() {
+  const { updateUserInfo } = useAuth();
   const [formData, setFormData] = useState({ fullName: '', phone: '' });
   const [avatar, setAvatar] = useState(null);
   const [message, setMessage] = useState(null);
@@ -26,13 +28,17 @@ export default function EditProfileTab() {
         phone: formData.phone && formData.phone.trim() !== '' ? formData.phone : null
       };
       await apiClient.put('/users/profile', payload);
-      // Handle avatar upload separately or together if form-data
+      updateUserInfo({ fullName: formData.fullName, phone: formData.phone });
+      
+      // Handle avatar upload separately
       if (avatar) {
         const uploadForm = new FormData();
         uploadForm.append('file', avatar);
-        await apiClient.post('/users/profile/avatar', uploadForm, {
+        const avatarRes = await apiClient.post('/users/profile/avatar', uploadForm, {
            headers: { 'Content-Type': 'multipart/form-data' }
         });
+        // Backend returns the path like "/uploads/avatars/filename.jpg"
+        updateUserInfo({ avatarUrl: avatarRes.data });
       }
       setMessage({ type: 'success', text: 'Cập nhật thông tin thành công!' });
     } catch (err) {

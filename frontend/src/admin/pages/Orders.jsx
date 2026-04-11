@@ -1,82 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import apiClient from '../../services/api';
 
 export default function Orders() {
-  const [orders, setOrders] = useState([
-    { id: 'ORD001', customer: 'Lê Minh Tâm', date: '2026-04-06', amount: '25,000,000₫', status: 'PENDING', payment: 'PAID' },
-    { id: 'ORD002', customer: 'Nguyễn Bích Vy', date: '2026-04-06', amount: '12,500,000₫', status: 'CONFIRMED', payment: 'UNPAID' }
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const updateStatus = (id, newStatus) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
-    alert(`Đã cập nhật đơn ${id} sang trạng thái ${newStatus}`);
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      // Gọi API lấy toàn bộ đơn hàng cho Admin
+      const res = await apiClient.get('/v1/orders/admin/all');
+      setOrders(res.data || []);
+    } catch (err) {
+      console.error("Lỗi khi tải đơn hàng:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getBadgeClass = (status) => {
-    switch(status) {
-      case 'PENDING': return 'bg-danger text-white';
-      case 'CONFIRMED': return 'bg-info text-dark';
-      case 'SHIPPING': return 'bg-warning text-dark';
-      case 'DELIVERED': return 'bg-success text-white';
-      default: return 'bg-secondary';
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      await apiClient.put(`/v1/orders/admin/${orderId}/status?status=${newStatus}`);
+      alert(`Đã cập nhật đơn hàng #${orderId} sang trạng thái ${newStatus}`);
+      fetchOrders();
+    } catch (err) {
+      alert("Lỗi khi cập nhật: " + (err.response?.data?.message || err.message));
     }
+  };
+
+  const getStatusBadge = (status) => {
+     const configs = {
+        'PENDING': { label: 'Chờ xử lý', class: 'bg-secondary bg-opacity-10 text-secondary border-secondary' },
+        'PAID': { label: 'Đã thanh toán', class: 'bg-success bg-opacity-10 text-success border-success' },
+        'CONFIRMED': { label: 'Đã xác nhận', class: 'bg-primary bg-opacity-10 text-primary border-primary' },
+        'SHIPPING': { label: 'Đang giao', class: 'bg-warning bg-opacity-10 text-warning border-warning' },
+        'DELIVERED': { label: 'Thành công', class: 'bg-info bg-opacity-10 text-info border-info' },
+        'CANCELLED': { label: 'Đã hủy', class: 'bg-danger bg-opacity-10 text-danger border-danger' }
+     };
+     const config = configs[status] || { label: status, class: 'bg-light text-dark' };
+     return <span className={`badge border ${config.class}`} style={{ fontWeight: '500' }}>{config.label}</span>;
   };
 
   return (
     <div className="container-fluid">
-      <div className="row">
+      <div className="row mb-4">
         <div className="col-12">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <div className="">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
               <h1 className="fs-3 mb-1">Vận hành đơn hàng</h1>
-              <p className="mb-0 text-muted">Xử lý quy trình: Xác nhận → Đóng gói → Giao hàng</p>
+              <p className="text-secondary mb-0">Theo dõi luồng xử lý đơn: Thanh toán → Xác nhận → Giao hàng</p>
             </div>
+            <button className="btn btn-outline-secondary" onClick={fetchOrders} disabled={loading}>
+              <i className="bi bi-arrow-clockwise me-1"></i> Làm mới
+            </button>
           </div>
         </div>
       </div>
-      <div className="row">
-        <div className="col-12">
-          <div className="card shadow-sm border-0 table-responsive">
-            <table className="table mb-0 text-nowrap table-hover align-middle">
-              <thead className="table-light border-light">
-                <tr>
-                  <th>Mã đơn</th>
-                  <th>Khách hàng</th>
-                  <th>Ngày đặt</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác vận hành</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-5 text-muted">Trống</td></tr>
-                ) : (
-                  orders.map(o => (
-                    <tr key={o.id}>
-                      <td className="fw-bold text-primary">{o.id}</td>
-                      <td>{o.customer}</td>
-                      <td>{o.date}</td>
-                      <td><span className={`badge ${getBadgeClass(o.status)}`}>{o.status}</span></td>
-                      <td>
-                        <div className="d-flex gap-2">
-                           {o.status === 'PENDING' && (
-                             <button onClick={() => updateStatus(o.id, 'CONFIRMED')} className="btn btn-sm btn-outline-success">Xác nhận đơn</button>
-                           )}
-                           {o.status === 'CONFIRMED' && (
-                             <button onClick={() => updateStatus(o.id, 'SHIPPING')} className="btn btn-sm btn-outline-warning">Chuyển Giao hàng</button>
-                           )}
-                           {o.status === 'SHIPPING' && (
-                             <button onClick={() => updateStatus(o.id, 'DELIVERED')} className="btn btn-sm btn-outline-info">Báo đã giao</button>
-                           )}
-                           <button className="btn btn-sm btn-light">Chi tiết</button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+
+      <div className="card shadow-sm border-0 overflow-hidden">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="bg-light text-muted">
+              <tr>
+                <th className="px-4 py-3">Mã đơn</th>
+                <th className="py-3">Ngày đặt</th>
+                <th className="py-3 text-end px-4">Tổng tiền</th>
+                <th className="py-3 text-center">Trạng thái</th>
+                <th className="py-3 text-center px-4">Thao tác xử lý</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="5" className="text-center py-5"><div className="spinner-border spinner-border-sm text-primary"></div> Đang tải...</td></tr>
+              ) : orders.length === 0 ? (
+                <tr><td colSpan="5" className="text-center py-5 text-muted small">Hệ thống chưa ghi nhận đơn hàng nào</td></tr>
+              ) : (
+                orders.map(o => (
+                  <tr key={o.id}>
+                    <td className="px-4 fw-bold text-dark">#{o.id}</td>
+                    <td>
+                       <div className="small">{new Date(o.orderDate).toLocaleDateString('vi-VN')}</div>
+                       <small className="text-muted" style={{ fontSize: '10px' }}>{new Date(o.orderDate).toLocaleTimeString('vi-VN')}</small>
+                    </td>
+                    <td className="text-end px-4 fw-bold text-primary">
+                       {o.totalAmount?.toLocaleString()}₫
+                    </td>
+                    <td className="text-center">
+                       {getStatusBadge(o.status)}
+                    </td>
+                    <td className="text-center px-4">
+                      <div className="btn-group shadow-sm">
+                         {o.status === 'PAID' && (
+                           <button onClick={() => handleUpdateStatus(o.id, 'CONFIRMED')} className="btn btn-sm btn-primary">Xác nhận</button>
+                         )}
+                         {o.status === 'CONFIRMED' && (
+                           <button onClick={() => handleUpdateStatus(o.id, 'SHIPPING')} className="btn btn-sm btn-warning">Giao hàng</button>
+                         )}
+                         {o.status === 'SHIPPING' && (
+                           <button onClick={() => handleUpdateStatus(o.id, 'DELIVERED')} className="btn btn-sm btn-info text-white">Xong</button>
+                         )}
+                         {(o.status !== 'DELIVERED' && o.status !== 'CANCELLED') && (
+                            <button onClick={() => handleUpdateStatus(o.id, 'CANCELLED')} className="btn btn-sm btn-outline-danger px-2" title="Hủy đơn">
+                               <i className="bi bi-x-lg"></i>
+                            </button>
+                         )}
+                         <Link to={`/admin/orders/${o.id}`} className="btn btn-sm btn-light border" title="Chi tiết">
+                            <i className="bi bi-eye"></i>
+                         </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

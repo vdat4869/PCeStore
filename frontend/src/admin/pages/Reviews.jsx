@@ -69,9 +69,9 @@ export default function Reviews() {
                             <small className="text-muted">ID SP: #{r.productId}</small>
                           </td>
                           <td>
-                            <div className="small">{r.userName || 'Ẩn danh'}</div>
-                            <small className="text-muted">{r.userEmail}</small>
-                          </td>
+                             <div className="fw-bold small">{r.userFullName || 'Khách ẩn danh'}</div>
+                             <small className="text-muted d-block">{r.userEmail}</small>
+                           </td>
                           <td>
                             <span className="text-warning">
                               {Array.from({ length: r.rating }).map((_, i) => (

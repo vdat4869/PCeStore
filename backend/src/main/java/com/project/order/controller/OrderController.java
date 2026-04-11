@@ -131,4 +131,21 @@ public class OrderController {
         orderService.deleteAllOrders(userId);
         return ResponseEntity.ok("All orders deleted successfully");
     }
+
+    // --- Admin Endpoints ---
+
+    @GetMapping("/admin/all")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<List<Order>> getAllOrdersForAdmin() {
+        // Simple list returning all orders from the service
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
+    @PutMapping("/admin/{orderId}/status")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<Order> updateOrderStatus(
+            @PathVariable Long orderId, 
+            @RequestParam com.project.order.entity.OrderStatus status) {
+        return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
+    }
 }

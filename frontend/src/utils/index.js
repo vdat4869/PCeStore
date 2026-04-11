@@ -5,3 +5,10 @@ export const formatCurrency = (amount) => {
     currency: 'VND',
   }).format(amount);
 };
+
+export const formatImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  // Giả sử Backend chạy ở localhost:8080
+  return `http://localhost:8080${path.startsWith('/') ? '' : '/'}${path}`;
+};

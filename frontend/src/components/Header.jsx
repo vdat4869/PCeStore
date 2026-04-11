@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { formatImageUrl } from '../utils';
 
 const Header = () => {
   const { cartCount } = useCart();
@@ -104,18 +105,22 @@ const Header = () => {
                   type="button" 
                   onClick={() => setIsAccountOpen(!isAccountOpen)}
                 >
-                  <i className={`bi bi-person-circle fs-3 me-2 ${isLoggedIn ? 'text-primary' : ''}`} style={{ color: isLoggedIn ? '' : '#888', fontSize: '1.8rem' }}></i>
+                  {isLoggedIn && user?.role !== 'ADMIN' && user?.avatarUrl ? (
+                    <img src={formatImageUrl(user.avatarUrl)} alt="" className="rounded-circle me-2 object-fit-cover shadow-sm" style={{ width: '32px', height: '32px', border: '1px solid #eee' }} />
+                  ) : (
+                    <i className={`bi bi-person-circle fs-3 me-2 ${isLoggedIn ? 'text-primary' : ''}`} style={{ color: isLoggedIn ? '' : '#888', fontSize: '1.8rem' }}></i>
+                  )}
                   <div className="text-start small d-none d-lg-block">
                     <div className="text-muted" style={{ fontSize: '11px', marginBottom: '-2px' }}>
-                      {isLoggedIn ? 'Xin chào,' : 'Đăng nhập/Đăng ký'}
+                      {isLoggedIn && user?.role !== 'ADMIN' ? 'Xin chào,' : 'Đăng nhập/Đăng ký'}
                     </div>
                     <div className="text-dark fw-bold" style={{ fontSize: '14px' }}>
-                      {isLoggedIn ? (user?.name || 'Tài khoản') : 'Tài khoản'} <i className={`bi bi-caret-down-fill ${isLoggedIn ? '' : 'text-muted'}`} style={{ fontSize: '10px' }}></i>
+                      {isLoggedIn && user?.role !== 'ADMIN' ? (user?.name || 'Tài khoản') : 'Tài khoản'} <i className={`bi bi-caret-down-fill ${(isLoggedIn && user?.role !== 'ADMIN') ? '' : 'text-muted'}`} style={{ fontSize: '10px' }}></i>
                     </div>
                   </div>
                 </button>
                 <ul className={`dropdown-menu dropdown-menu-end shadow border-0 mt-2 ${isAccountOpen ? 'show' : ''}`} style={{ zIndex: 11000 }}>
-                  {isLoggedIn ? (
+                  {isLoggedIn && user?.role !== 'ADMIN' ? (
                     <>
                       <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person me-2"></i>Thông tin cá nhân</Link></li>
                       <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Đơn hàng của tôi</Link></li>

@@ -1,46 +1,60 @@
 import React, { useState, useEffect } from 'react';
+import apiClient from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileEmp() {
+  const { user, updateUserInfo } = useAuth();
   const [profile, setProfile] = useState({ fullName: '', email: '', phone: '' });
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    fetch('http://localhost:8080/api/users/profile', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    .then(res => res.ok ? res.json() : null)
-    .then(data => data && setProfile(data))
-    .catch(err => console.error(err));
-  }, []);
+    if (user) {
+      setProfile({
+        fullName: user.name || user.fullName || '',
+        email: user.email || '',
+        phone: user.phone || ''
+      });
+    }
+    // Fetch fresh data from server to be sure
+    apiClient.get('/users/profile')
+      .then(res => {
+        setProfile({
+          fullName: res.data.fullName || '',
+          email: res.data.email || '',
+          phone: res.data.phone || ''
+        });
+      })
+      .catch(console.error);
+  }, [user]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('adminToken');
-    const res = await fetch('http://localhost:8080/api/users/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(profile)
-    });
-    if (res.ok) alert('Cập nhật hồ sơ thành công!');
+    try {
+      setLoading(true);
+      await apiClient.put('/users/profile', {
+        fullName: profile.fullName,
+        phone: profile.phone
+      });
+      updateUserInfo({ fullName: profile.fullName, phone: profile.phone });
+      alert('Cập nhật hồ sơ thành công!');
+    } catch (err) {
+      alert('Lỗi khi cập nhật hồ sơ');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChangePassword = async (e) => {
       e.preventDefault();
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:8080/api/users/change-password', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ oldPassword, newPassword })
-      });
-      if (res.ok) {
-          alert('Đổi mật khẩu thành công!');
-          setOldPassword('');
-          setNewPassword('');
-      } else {
-          alert('Mật khẩu cũ không chính xác!');
+      try {
+        await apiClient.put('/users/change-password', { oldPassword, newPassword });
+        alert('Đổi mật khẩu thành công!');
+        setOldPassword('');
+        setNewPassword('');
+      } catch (err) {
+        alert(err.response?.data?.message || 'Mật khẩu cũ không chính xác!');
       }
   };
 
@@ -65,13 +79,15 @@ export default function ProfileEmp() {
                       </div>
                       <div className="mb-3">
                          <label className="form-label small">Họ và tên</label>
-                         <input type="text" className="form-control" value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})} />
+                         <input type="text" className="form-control" value={profile.fullName} onChange={e => setProfile({...profile, fullName: e.target.value})} required />
                       </div>
                       <div className="mb-4">
                          <label className="form-label small">Số điện thoại</label>
                          <input type="text" className="form-control" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} />
                       </div>
-                      <button type="submit" className="btn btn-primary px-4 fw-bold shadow-none">Lưu thay đổi</button>
+                      <button type="submit" className="btn btn-primary px-4 fw-bold shadow-none" disabled={loading}>
+                        {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+                      </button>
                    </form>
                 </div>
              </div>

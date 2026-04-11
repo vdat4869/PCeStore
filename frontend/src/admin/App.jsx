@@ -14,7 +14,10 @@ import Users from './pages/Users';
 import Reviews from './pages/Reviews';
 import Docs from './pages/Docs';
 import NotFound from './pages/NotFound';
-import Profile from '../pages/Profile';
+import AdminProfile from './pages/AdminProfile';
+import AdminNotifications from './pages/AdminNotifications';
+import EmailTemplates from './pages/EmailTemplates';
+import Categories from './pages/Categories';
 
 function App() {
   return (
@@ -23,13 +26,16 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="products" element={<Inventory />} />
+          <Route path="categories" element={<Categories />} />
           <Route path="create-product" element={<CreateProduct />} />
           <Route path="edit-product/:id" element={<EditProduct />} />
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />
           <Route path="orders" element={<Orders />} />
           <Route path="reviews" element={<Reviews />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path="profile" element={<AdminProfile />} />
+          <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="email-templates" element={<EmailTemplates />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
