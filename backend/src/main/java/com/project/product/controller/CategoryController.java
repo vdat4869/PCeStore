@@ -42,7 +42,7 @@ public class CategoryController {
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
-        category.setIsDeleted(true);
+        category.setDeleted(true);
         categoryRepository.save(category);
         return ResponseEntity.ok().build();
     }

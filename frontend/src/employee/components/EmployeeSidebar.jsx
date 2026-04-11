@@ -26,10 +26,26 @@ export default function EmployeeSidebar({ isCollapsed, isMobileShow }) {
         <div className="ms-2 badge bg-info text-dark small">Employee</div>
       </div>
       <ul className="nav flex-column">
+        <li className="px-4 py-2"><small className="nav-text text-uppercase fw-bold text-muted" style={{ fontSize: '10px' }}>Chung</small></li>
+        <li>
+          <Link className={getNavLinkClass('/employee/dashboard')} to="/employee/dashboard">
+            <i className="ti ti-dashboard"></i><span className="nav-text">Dashboard</span>
+          </Link>
+        </li>
         <li className="px-4 py-2"><small className="nav-text text-uppercase fw-bold text-muted" style={{ fontSize: '10px' }}>Vận hành</small></li>
         <li>
           <Link className={getNavLinkClass('/employee/orders')} to="/employee/orders">
             <i className="ti ti-shopping-cart"></i><span className="nav-text">Quản lý đơn hàng</span>
+          </Link>
+        </li>
+        <li>
+          <Link className={getNavLinkClass('/employee/inventory')} to="/employee/inventory">
+            <i className="ti ti-box-seam"></i><span className="nav-text">Quản lý kho hàng</span>
+          </Link>
+        </li>
+        <li>
+          <Link className={getNavLinkClass('/employee/inventory-history')} to="/employee/inventory-history">
+            <i className="ti ti-history"></i><span className="nav-text">Lịch sử nhập/xuất</span>
           </Link>
         </li>
         <li>
