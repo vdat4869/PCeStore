@@ -73,7 +73,7 @@ public class UserService {
                 user.getEmail(),
                 profile.getFullName() != null ? profile.getFullName() : user.getFullName(),
                 profile.getPhone() != null ? profile.getPhone() : user.getPhone(),
-                profile.getAvatarUrl()
+                formatAvatarUrl(profile.getAvatarUrl())
         );
     }
 
@@ -83,7 +83,9 @@ public class UserService {
         
         profile.setFullName(request.getFullName());
         profile.setPhone(request.getPhone());
-        profile.setAvatarUrl(request.getAvatarUrl());
+        if (request.getAvatarUrl() != null) {
+            profile.setAvatarUrl(request.getAvatarUrl());
+        }
 
         userProfileRepository.save(profile);
         auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Cập nhật hồ sơ từ " + user.getEmail(), null));
@@ -93,7 +95,7 @@ public class UserService {
                 user.getEmail(),
                 profile.getFullName(),
                 profile.getPhone(),
-                profile.getAvatarUrl()
+                formatAvatarUrl(profile.getAvatarUrl())
         );
     }
 
@@ -264,5 +266,12 @@ public class UserService {
         userProfileRepository.save(profile);
         auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Cập nhật ảnh đại diện mơi: " + fileName, null));
         return fileName;
+    }
+
+    private String formatAvatarUrl(String avatar) {
+        if (avatar == null || avatar.isEmpty()) return null;
+        if (avatar.startsWith("http")) return avatar;
+        if (avatar.startsWith("/uploads/avatars/")) return avatar;
+        return "/uploads/avatars/" + avatar;
     }
 }

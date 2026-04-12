@@ -74,6 +74,7 @@ custom:
 sepay:
   merchant-id: ${SEPAY_MERCHANT_ID:sandbox_merchant}
   secret-key: ${SEPAY_SECRET_KEY:sandbox_secret}
+  api-token: ${SEPAY_API_TOKEN:}
 
 # --- Cấu hình Rate Limiting ---
 bucket4j:

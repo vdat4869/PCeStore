@@ -178,7 +178,7 @@ public class ReviewService {
         List<Order> orders = orderRepository.findByUserId(userId);
         for (Order order : orders) {
             // Lọc ra order hoàn thành
-            if (order.getStatus() == OrderStatus.COMPLETED) {
+            if (order.getStatus() == OrderStatus.DELIVERED) {
                 // Duyệt item trong order
                 for (OrderItem item : order.getOrderItems()) {
                     if (item.getProduct().getId().equals(productId)) {

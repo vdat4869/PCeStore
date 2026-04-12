@@ -98,7 +98,9 @@ public class AuthController {
     public ResponseEntity<String> logout(HttpServletRequest request, Principal principal) {
         // Invalidate JWT (Blacklist)
         String authHeader = request.getHeader("Authorization");
-        tokenManagementService.invalidateToken(authHeader);
+        if (authHeader != null && !authHeader.isEmpty()) {
+            tokenManagementService.invalidateToken(authHeader);
+        }
         
         // Delete Refresh Tokens
         if (principal != null) {

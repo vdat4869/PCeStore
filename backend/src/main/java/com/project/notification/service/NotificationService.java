@@ -121,6 +121,24 @@ public class NotificationService {
         preferenceRepository.save(pref);
     }
 
+    @Transactional
+    public void updatePreferencesBulk(User user, java.util.Map<String, Boolean> prefs) {
+        prefs.forEach((key, value) -> {
+            NotificationType type = null;
+            if ("orderUpdatesEmail".equals(key)) type = NotificationType.ORDER_CONFIRMATION;
+            else if ("orderUpdatesWeb".equals(key)) type = NotificationType.ORDER_STATUS_UPDATE;
+            else if ("promotionsEmail".equals(key)) type = NotificationType.PROMOTIONS;
+            else if ("securityAlertsEmail".equals(key)) type = NotificationType.SYSTEM_ALERT;
+                
+            if (type != null) {
+                com.project.notification.entity.NotificationPreference pref = preferenceRepository.findByUserAndType(user, type)
+                        .orElse(new com.project.notification.entity.NotificationPreference(user, type, true));
+                pref.setEnabled(value);
+                preferenceRepository.save(pref);
+            }
+        });
+    }
+
     public java.util.List<com.project.notification.entity.NotificationPreference> getPreferences(User user) {
         return preferenceRepository.findByUser(user);
     }

@@ -23,9 +23,9 @@ public class ReviewController {
         this.reviewService = reviewService;
     }
 
-    // API Admin: Liệt kê toàn bộ đánh giá hệ thống
+    // API Admin/Employee: Liệt kê toàn bộ đánh giá hệ thống
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<Page<ReviewResponse>> getAllReviews(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -85,8 +85,8 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.updateReview(id, request));
     }
 
-    // Xóa được thực hiện bởi chủ hoặc Admin
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    // Xóa được thực hiện bởi chủ, Admin hoặc Nhân viên điều hành
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('EMPLOYEE')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteReview(@PathVariable Long id) {
         reviewService.deleteReview(id);

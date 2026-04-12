@@ -67,7 +67,18 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public InventoryResponse updateStock(InventoryRequest request) {
-        log.info("ADMIN cập nhật tồn kho [ProductID: {}, Qty: {}]", request.getProductId(), request.getQuantity());
+        String actor = "System";
+        try {
+            Object principal = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof com.project.common.security.CustomUserDetails) {
+                com.project.common.security.CustomUserDetails userDetails = (com.project.common.security.CustomUserDetails) principal;
+                actor = userDetails.getUser().getRole().name() + " (" + userDetails.getUser().getEmail() + ")";
+            }
+        } catch (Exception e) {
+            log.warn("Could not determine current user for inventory log: {}", e.getMessage());
+        }
+
+        log.info("{} cập nhật tồn kho [ProductID: {}, Qty: {}]", actor, request.getProductId(), request.getQuantity());
         
         Inventory inventory = inventoryRepository.findByProductIdWithLock(request.getProductId())
                 .orElseGet(() -> createEmptyInventory(request.getProductId()));
@@ -75,7 +86,8 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setQuantity(request.getQuantity());
         Inventory saved = inventoryRepository.save(inventory);
 
-        saveHistory(request.getProductId(), request.getQuantity(), InventoryHistory.HistoryType.UPDATE, "Admin manual update", request.getReferenceId());
+        saveHistory(request.getProductId(), request.getQuantity(), InventoryHistory.HistoryType.UPDATE, 
+                    actor + " manual update", request.getReferenceId());
 
         return mapToResponse(saved);
     }

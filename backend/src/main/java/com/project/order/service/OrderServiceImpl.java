@@ -31,7 +31,6 @@ public class OrderServiceImpl implements OrderService {
     private final com.project.payment.repository.PaymentRepository paymentRepository;
     private final InventoryService inventoryService;
 
-    private static final String ORDER_NOT_FOUND_MSG = "Order not found with id: ";
 
     @Override
     @Transactional
@@ -59,9 +58,6 @@ public class OrderServiceImpl implements OrderService {
                 throw new RuntimeException("error.inventory.insufficient_stock");
             }
 
-            // Reserve stock
-            inventoryService.reserveStock(new InventoryRequest(product.getId(), itemDto.getQuantity(), null));
-
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
                     .quantity(itemDto.getQuantity())
@@ -72,24 +68,46 @@ public class OrderServiceImpl implements OrderService {
             total = total.add(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(itemDto.getQuantity())));
         }
 
-        // Create Shipping details
-        Shipping shipping = shippingService.createShippingForOrder(order, requestDTO.getShippingAddress());
-        order.setShipping(shipping);
-        total = total.add(shipping.getShippingCost());
-
         order.setTotalAmount(total);
-        return orderRepository.save(order);
+
+        // 1. Lưu Order trước để lấy ID dùng cho referenceId và Shipping
+        Order savedOrder = orderRepository.saveAndFlush(order);
+        
+        // 2. Dự phòng (Reserve) kho với referenceId duy nhất cho từng sản phẩm trong đơn
+        for (OrderItem item : savedOrder.getOrderItems()) {
+            inventoryService.reserveStock(new InventoryRequest(
+                item.getProduct().getId(), 
+                item.getQuantity(), 
+                "RESERVE-ORDER-" + savedOrder.getId() + "-ITEM-" + item.getId()
+            ));
+        }
+        
+        // 2. Tạo thông tin Shipping dựa trên Order đã có ID
+        Shipping shipping = shippingService.createShippingForOrder(savedOrder, requestDTO.getShippingAddress());
+        
+        // Cập nhật lại tổng tiền bao gồm phí ship
+        BigDecimal finalTotal = total.add(shipping.getShippingCost());
+        savedOrder.setTotalAmount(finalTotal);
+        
+        // 3. Thiết lập quan hệ 2 chiều
+        savedOrder.setShipping(shipping);
+        shipping.setOrder(savedOrder);
+
+        // 4. Lưu lại toàn bộ (Cascade sẽ lưu Shipping)
+        return orderRepository.save(savedOrder);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Order getOrderById(Long id) {
-        return orderRepository.findById(id)
+        return orderRepository.findByIdWithItems(id)
                 .orElseThrow(() -> new RuntimeException("error.order.not_found"));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+        return orderRepository.findAllWithDetails();
     }
 
     @Override
@@ -101,11 +119,20 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
+        if (status == OrderStatus.CANCELLED) {
+            cancelOrder(orderId);
+            return getOrderById(orderId);
+        }
+
         Order order = getOrderById(orderId);
         if (status == OrderStatus.PAID && order.getStatus() != OrderStatus.PAID) {
             for (OrderItem item : order.getOrderItems()) {
                 inventoryService.confirmStock(new InventoryRequest(item.getProduct().getId(), item.getQuantity(), "CONFIRM-" + orderId + "-" + item.getId()));
             }
+            paymentRepository.findByOrderId(orderId).ifPresent(p -> {
+                p.setStatus(com.project.payment.entity.PaymentStatus.COMPLETED);
+                paymentRepository.save(p);
+            });
             if (order.getShipping() != null) {
                 order.getShipping().setStatus(com.project.shipping.entity.ShippingStatus.IN_TRANSIT);
             }
@@ -119,7 +146,7 @@ public class OrderServiceImpl implements OrderService {
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public void cancelOrder(Long orderId) {
         Order order = getOrderById(orderId);
-        if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.SHIPPED || order.getStatus() == OrderStatus.COMPLETED) {
+        if (order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.SHIPPING || order.getStatus() == OrderStatus.DELIVERED) {
             throw new RuntimeException("error.order.cannot_cancel_status");
         }
         

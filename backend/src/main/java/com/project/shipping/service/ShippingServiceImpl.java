@@ -26,10 +26,8 @@ public class ShippingServiceImpl implements ShippingService {
     }
 
     @Override
-    @Transactional
     public Shipping createShippingForOrder(Order order, String deliveryAddress) {
         BigDecimal cost = calculateShippingCost(deliveryAddress);
-        // Fixed: replaced System.currentTimeMillis() with UUID to prevent collision under concurrency
         String tCode = "VN-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
 
         Shipping shipping = Shipping.builder()
@@ -40,7 +38,7 @@ public class ShippingServiceImpl implements ShippingService {
                 .trackingCode(tCode)
                 .build();
 
-        return shippingRepository.save(shipping);
+        return shipping;
     }
 
     @Override

@@ -66,6 +66,26 @@ public class PaymentController {
     }
 
     /**
+     * Manually triggers a synchronization with SePay for all pending payments.
+     */
+    @PostMapping("/sync")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<Map<String, String>> syncPayments() {
+        paymentService.syncWithSePay();
+        return ResponseEntity.ok(Map.of("message", "Synchronization process started"));
+    }
+
+    /**
+     * Triggers reconciliation for a specific order.
+     */
+    @PostMapping("/reconcile/{orderId}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
+    public ResponseEntity<Map<String, String>> reconcileOrder(@PathVariable Long orderId) {
+        paymentService.reconcileOrder(orderId);
+        return ResponseEntity.ok(Map.of("message", "Reconciliation triggered for order #" + orderId));
+    }
+
+    /**
      * Retrieves payment information by order ID with security ownership check.
      */
     @GetMapping("/order/{orderId}")

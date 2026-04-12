@@ -13,10 +13,19 @@ import java.util.Map;
 
 public class SecurityUtils {
 
+    // THỨ TỰ TRƯỜNG BẮT BUỘC THEO TÀI LIỆU CHÍNH THỨC SEPAY TERMINAL 2024
     private static final List<String> SIGNED_FIELDS = Arrays.asList(
-            "merchant", "operation", "payment_method", "order_amount", "currency",
-            "order_invoice_number", "order_description", "customer_id",
-            "success_url", "error_url", "cancel_url"
+            "order_amount",
+            "merchant",
+            "currency",
+            "operation",
+            "order_description",
+            "order_invoice_number",
+            "customer_id",
+            "payment_method",
+            "success_url",
+            "error_url",
+            "cancel_url"
     );
 
     private SecurityUtils() {
@@ -25,14 +34,16 @@ public class SecurityUtils {
 
     public static String generateSePaySignature(Map<String, String> fields, String secretKey) {
         try {
-            List<String> signed = new ArrayList<>();
+            List<String> signedParts = new ArrayList<>();
+            // BẮT BUỘC duyệt theo danh sách chuẩn này để lấy đúng thứ tự
             for (String field : SIGNED_FIELDS) {
-                if (fields.containsKey(field)) {
-                    signed.add(field + "=" + fields.get(field));
-                }
+                String value = fields.get(field);
+                // Nếu trường trống, SePay thường mong đợi key= (không có giá trị)
+                signedParts.add(field + "=" + (value != null ? value : ""));
             }
 
-            String data = String.join(",", signed);
+            // JOIN bằng dấu phẩy (,) - Chuẩn SePay Terminal
+            String data = String.join(",", signedParts);
 
             Mac sha256Hmac = Mac.getInstance("HmacSHA256");
             SecretKeySpec secretKeySpec = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
@@ -41,7 +52,7 @@ public class SecurityUtils {
             byte[] hmacBytes = sha256Hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hmacBytes);
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new IllegalStateException("Error generating HMAC-SHA256 signature", e);
+            throw new IllegalStateException("Error generating SePay HMAC-SHA256 signature", e);
         }
     }
 }

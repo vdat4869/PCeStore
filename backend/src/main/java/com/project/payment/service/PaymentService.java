@@ -15,6 +15,17 @@ public interface PaymentService {
     Payment getPaymentByOrderId(Long orderId, Long userId);
     Payment updatePaymentStatus(Long paymentId, PaymentStatus status, String transactionId);
 
+    Payment getPaymentById(Long id);
     Map<String, String> initiateSePayCheckout(Long paymentId);
     void processSePayIpn(SePayIpnRequest request);
+
+    /**
+     * Synchronizes local payments with SePay transaction history.
+     */
+    void syncWithSePay();
+
+    /**
+     * Reconciles a specific order against SePay transactions.
+     */
+    void reconcileOrder(Long orderId);
 }

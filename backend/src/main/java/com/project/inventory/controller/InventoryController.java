@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * Cung cấp các API kiểm tra, cập nhật và trừ kho để phục vụ việc bán hàng.
  */
 @RestController
-@RequestMapping("/api/inventory")
+@RequestMapping("/api/v1/inventory")
 @Tag(name = "Inventory", description = "Quản lý tồn kho sản phẩm")
 public class InventoryController {
 

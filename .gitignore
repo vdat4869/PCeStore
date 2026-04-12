@@ -61,3 +61,14 @@ yarn-error.log*
 pnpm-debug.log*
 backend/.env
 frontend/discount.js
+
+# =========================
+# Upload / Media Files
+# =========================
+uploads/
+backend/uploads/
+frontend/public/uploads/
+frontend/sepay-pg-node-1.0.0.tgz
+frontend/package/LICENSE
+frontend/package/README.md
+frontend/package/package.json

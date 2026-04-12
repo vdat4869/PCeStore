@@ -1,5 +1,6 @@
 package com.project.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLDelete;
@@ -20,6 +21,7 @@ public class User extends BaseEntity {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -56,6 +58,7 @@ public class User extends BaseEntity {
     private boolean mfaEnabled = false;
 
     @Column(name = "mfa_secret")
+    @JsonIgnore
     private String mfaSecret;
 
     // Default constructor (bắt buộc bởi JPA)

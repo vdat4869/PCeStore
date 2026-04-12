@@ -6,5 +6,6 @@ public enum NotificationType {
     ORDER_CONFIRMATION,
     ORDER_STATUS_UPDATE,
     SYSTEM_ALERT,
-    EMAIL_CHANGE
+    EMAIL_CHANGE,
+    PROMOTIONS
 }

@@ -7,6 +7,7 @@ import com.project.payment.entity.Payment;
 import com.project.payment.service.PaymentService;
 import com.project.shipping.entity.ShippingStatus;
 import com.project.shipping.service.ShippingService;
+import com.project.cart.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ public class OrderController {
     private final OrderService orderService;
     private final PaymentService paymentService;
     private final ShippingService shippingService;
+    private final CartService cartService;
 
     @PostMapping("/create")
     public ResponseEntity<Map<String, Object>> createOrder(@jakarta.validation.Valid @RequestBody OrderRequestDTO requestDTO) {
@@ -49,12 +51,52 @@ public class OrderController {
         response.put("orderId", order.getId());
         response.put("payment", payment);
 
+        // 3. Clear customer cart after successful order creation
+        try {
+            com.project.auth.entity.User user = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser();
+            cartService.clearCart(user);
+        } catch (Exception e) {
+            // Mock fallback if user is hardcoded to 1L
+        }
+
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
-        return ResponseEntity.ok(orderService.getOrderById(id));
+    public ResponseEntity<Map<String, Object>> getOrderById(@PathVariable Long id) {
+        Order o = orderService.getOrderById(id);
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", o.getId());
+        map.put("totalAmount", o.getTotalAmount());
+        map.put("status", o.getStatus());
+        map.put("orderDate", o.getOrderDate());
+        
+        if (o.getShipping() != null) {
+            Map<String, Object> sMap = new HashMap<>();
+            sMap.put("status", o.getShipping().getStatus());
+            sMap.put("trackingCode", o.getShipping().getTrackingCode());
+            sMap.put("deliveryAddress", o.getShipping().getDeliveryAddress());
+            map.put("shipping", sMap);
+        }
+        
+        Payment p = paymentService.getPaymentByOrderId(o.getId());
+        if (p != null) {
+            map.put("paymentStatus", p.getStatus());
+            map.put("paymentMethod", p.getPaymentMethod());
+        }
+        
+        java.util.List<Map<String, Object>> items = new java.util.ArrayList<>();
+        for (com.project.order.entity.OrderItem item : o.getOrderItems()) {
+            Map<String, Object> iMap = new HashMap<>();
+            iMap.put("productName", item.getProduct().getName());
+            iMap.put("imageUrl", item.getProduct().getImageUrl());
+            iMap.put("quantity", item.getQuantity());
+            iMap.put("price", item.getPrice());
+            items.add(iMap);
+        }
+        map.put("items", items);
+        
+        return ResponseEntity.ok(map);
     }
 
     @GetMapping("/history")
@@ -98,6 +140,7 @@ public class OrderController {
             for (com.project.order.entity.OrderItem item : o.getOrderItems()) {
                 Map<String, Object> iMap = new HashMap<>();
                 iMap.put("productName", item.getProduct().getName());
+                iMap.put("imageUrl", item.getProduct().getImageUrl());
                 iMap.put("quantity", item.getQuantity());
                 iMap.put("price", item.getPrice());
                 items.add(iMap);
@@ -136,16 +179,65 @@ public class OrderController {
 
     @GetMapping("/admin/all")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
-    public ResponseEntity<List<Order>> getAllOrdersForAdmin() {
-        // Simple list returning all orders from the service
-        return ResponseEntity.ok(orderService.getAllOrders());
+    public ResponseEntity<List<Map<String, Object>>> getAllOrdersForAdmin() {
+        List<Order> orders = orderService.getAllOrders();
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Order o : orders) {
+            result.add(mapOrderToResponse(o));
+        }
+        return ResponseEntity.ok(result);
     }
 
     @PutMapping("/admin/{orderId}/status")
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
-    public ResponseEntity<Order> updateOrderStatus(
+    public ResponseEntity<Map<String, Object>> updateOrderStatus(
             @PathVariable Long orderId, 
             @RequestParam com.project.order.entity.OrderStatus status) {
-        return ResponseEntity.ok(orderService.updateOrderStatus(orderId, status));
+        Order updated = orderService.updateOrderStatus(orderId, status);
+        return ResponseEntity.ok(mapOrderToResponse(updated));
+    }
+
+    private Map<String, Object> mapOrderToResponse(Order o) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", o.getId());
+        map.put("totalAmount", o.getTotalAmount());
+        map.put("status", o.getStatus());
+        map.put("orderDate", o.getOrderDate());
+        
+        // Customer info
+        String name = "Khách hàng";
+        String email = o.getCreatedBy();
+        
+        if (o.getUser() != null) {
+            name = o.getUser().getFullName() != null ? o.getUser().getFullName() : o.getUser().getEmail();
+            email = o.getUser().getEmail();
+        } else if (o.getCreatedBy() != null && o.getCreatedBy().contains("@")) {
+            name = o.getCreatedBy().split("@")[0];
+        }
+        
+        map.put("customerName", name);
+        map.put("customerEmail", email);
+
+        // Shipping info
+        if (o.getShipping() != null) {
+            Map<String, Object> sMap = new HashMap<>();
+            sMap.put("status", o.getShipping().getStatus());
+            sMap.put("trackingCode", o.getShipping().getTrackingCode());
+            map.put("shipping", sMap);
+        }
+
+        // Payment info
+        Payment p = paymentService.getPaymentByOrderId(o.getId());
+        if (p != null) {
+            map.put("paymentStatus", p.getStatus());
+            map.put("paymentMethod", p.getPaymentMethod());
+        }
+
+        return map;
+    }
+
+    @GetMapping("/payments/{paymentId}/sepay-fields")
+    public ResponseEntity<Map<String, String>> getSePayFields(@PathVariable Long paymentId) {
+        return ResponseEntity.ok(paymentService.initiateSePayCheckout(paymentId));
     }
 }

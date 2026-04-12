@@ -34,11 +34,24 @@ public class Order extends BaseEntity {
     @Column(name = "order_date", nullable = false)
     private LocalDateTime orderDate;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
+    private com.project.auth.entity.User user;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> orderItems = new ArrayList<>();
 
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private com.project.shipping.entity.Shipping shipping;
+
+    // --- Helpers ---
+    public com.project.auth.entity.User getUser() {
+        return user;
+    }
+
+    public void setUser(com.project.auth.entity.User user) {
+        this.user = user;
+    }
 
     public Order() {
     }

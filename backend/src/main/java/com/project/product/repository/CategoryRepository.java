@@ -14,4 +14,6 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     // Tìm kiếm danh mục bất kể trạng thái xóa
     @Query(value = "SELECT * FROM categories WHERE id = :id", nativeQuery = true)
     Optional<Category> findByIdIncludingDeleted(@Param("id") Long id);
+
+    boolean existsByName(String name);
 }

@@ -63,6 +63,14 @@ public class NotificationController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/preferences/bulk")
+    public ResponseEntity<Void> bulkUpdatePreferences(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody java.util.Map<String, Boolean> request) {
+        notificationService.updatePreferencesBulk(userDetails.getUser(), request);
+        return ResponseEntity.ok().build();
+    }
+
     // --- Gửi hàng loạt (Chỉ Admin) ---
     @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/broadcast")

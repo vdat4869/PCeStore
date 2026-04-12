@@ -1,5 +1,6 @@
 package com.project.order.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLRestriction;
@@ -17,6 +18,7 @@ public class OrderItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonIgnore
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)

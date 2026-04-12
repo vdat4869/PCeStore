@@ -12,27 +12,31 @@ import java.util.List;
 public class DataInitializer implements CommandLineRunner {
 
     private final CategoryRepository categoryRepository;
+    private final com.project.support.repository.ComplaintRepository complaintRepository;
 
-    public DataInitializer(CategoryRepository categoryRepository) {
+    public DataInitializer(CategoryRepository categoryRepository, com.project.support.repository.ComplaintRepository complaintRepository) {
         this.categoryRepository = categoryRepository;
+        this.complaintRepository = complaintRepository;
     }
 
     @Override
     public void run(String... args) {
-        // Tự động thêm một số danh mục mẫu nếu database đang trống
-        if (categoryRepository.count() == 0) {
-            List<Category> defaultCategories = Arrays.asList(
-                new Category(null, "CPU - Bộ vi xử lý"),
-                new Category(null, "VGA - Card màn hình"),
-                new Category(null, "Mainboard - Bo mạch chủ"),
-                new Category(null, "RAM - Bộ nhớ trong"),
-                new Category(null, "SSD/HDD - Ổ cứng"),
-                new Category(null, "PSU - Nguồn máy tính"),
-                new Category(null, "Case - Vỏ máy tính"),
-                new Category(null, "Monitor - Màn hình")
-            );
-            categoryRepository.saveAll(defaultCategories);
-            System.out.println(">> Đã khởi tạo danh mục sản phẩm mẫu thành công.");
+        // Init Categories
+        List<String> defaultCategoryNames = Arrays.asList(
+            "CPU", "Mainboard", "RAM", "VGA", "SSD", "HDD", "Nguồn", "Case", "Tản nhiệt", "Màn hình",
+            "Laptop", "Bàn phím", "Chuột", "Tai nghe", "Thiết bị mạng", "Máy In, UPS", "Camera"
+        );
+
+        for (String name : defaultCategoryNames) {
+            if (!categoryRepository.existsByName(name)) {
+                categoryRepository.save(new Category(null, name));
+            }
+        }
+        
+        // Init Complaints if empty
+        if (complaintRepository.count() == 0) {
+            complaintRepository.save(new com.project.support.entity.Complaint(1L, "Nguyễn Văn An", "Lỗi VGA bị crash"));
+            complaintRepository.save(new com.project.support.entity.Complaint(2L, "Trần Thị Bé", "Giao hàng chậm 2 ngày"));
         }
     }
 }
