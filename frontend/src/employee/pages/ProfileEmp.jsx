@@ -46,6 +46,22 @@ export default function ProfileEmp() {
     }
   };
 
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiClient.post('/users/profile/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      updateUserInfo({ avatarUrl: res.data });
+      alert('Cập nhật ảnh đại diện thành công!');
+    } catch (err) {
+      alert('Lỗi cập nhật ảnh đại diện');
+    }
+  };
+
   const handleChangePassword = async (e) => {
       e.preventDefault();
       try {
@@ -72,6 +88,16 @@ export default function ProfileEmp() {
                    <h5 className="mb-0 fs-6">Thông tin tài khoản</h5>
                 </div>
                 <div className="card-body p-4">
+                   <div className="d-flex align-items-center gap-3 mb-4">
+                      <img src={user?.avatarUrl ? `http://localhost:8080${user.avatarUrl}` : "https://ui-avatars.com/api/?name=" + (profile.fullName || 'NV') + "&background=random"} alt="Avatar" className="rounded-circle" style={{width: 72, height: 72, objectFit: 'cover'}} />
+                      <div>
+                         <label className="btn btn-sm btn-outline-primary mb-1">
+                            Đổi ảnh đại diện
+                            <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
+                         </label>
+                         <div className="small text-muted">JPG, GIF hoặc PNG. Tối đa 5MB</div>
+                      </div>
+                   </div>
                    <form onSubmit={handleUpdate}>
                       <div className="mb-3">
                          <label className="form-label small text-muted">Email (Tài khoản được cấp)</label>

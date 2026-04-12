@@ -40,7 +40,7 @@ export default function Cart() {
     }
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!isLoggedIn) {
       setIsLoginModalOpen(true);
       return;
@@ -51,57 +51,16 @@ export default function Cart() {
       return;
     }
 
-    setLoading(true);
-    setMessage(null);
-    try {
-      const itemsToOrder = cartItems.filter(i => selectedItems.includes(i.productId));
-
-      // ✅ VALIDATE: Kiểm tra productId hợp lệ trước khi gọi API
-      const invalidItems = itemsToOrder.filter(i => !i.productId || Number(i.productId) <= 0);
-      if (invalidItems.length > 0) {
-        console.error('[Checkout] Phát hiện sản phẩm có productId không hợp lệ:', invalidItems);
-        setMessage({ type: 'error', text: 'Có sản phẩm không hợp lệ trong giỏ hàng. Vui lòng xoá và thêm lại.' });
-        setLoading(false);
-        return;
-      }
-
-      const payload = {
-        items: itemsToOrder.map(i => ({
-          productId: Number(i.productId), // Đảm bảo luôn là số
-          quantity: Number(i.quantity),
-        })),
-        shippingAddress: 'Sẽ nhập ở bước tiếp theo',
-        paymentMethod: 'BANK_TRANSFER',
-        discountCode: discountPercent > 0 ? discountCode : null,
-      };
-
-      // 🔍 DEBUG: Log payload trước khi gửi
-      console.log('[Checkout] Payload gửi lên API:', JSON.stringify(payload, null, 2));
-
-      const response = await apiClient.post('/v1/orders/create', payload);
-      console.log('[Checkout] Kết quả:', response.data);
-      setMessage({ type: 'success', text: `Đặt hàng thành công! Mã đơn hàng: ${response.data.orderId}` });
-      
-      // Xoá sản phẩm đã đặt khỏi giỏ hàng
-      itemsToOrder.forEach(i => removeFromCart(i.productId));
-      setSelectedItems([]);
-    } catch (error) {
-      console.error('[Checkout] Lỗi:', error);
-      const errData = error.response?.data;
-      
-      let errMsg = 'Đặt hàng thất bại. Vui lòng thử lại.';
-      if (errData && typeof errData === 'object') {
-        // Lỗi Validation từ DTO — trả về dạng Map { field: message }
-        errMsg = Object.values(errData).join(', ');
-      } else if (typeof errData === 'string' && errData.trim().length > 0) {
-        // Lỗi RuntimeException — trả về dạng String thuần
-        errMsg = errData;
-      }
-      
-      setMessage({ type: 'error', text: errMsg });
-    } finally {
-      setLoading(false);
-    }
+    const itemsToOrder = cartItems.filter(i => selectedItems.includes(i.productId));
+    
+    // Chuyền hướng sang trang checkout và mang theo danh sách sản phẩm đã chọn
+    navigate('/checkout', { 
+      state: { 
+        items: itemsToOrder,
+        discountPercent,
+        discountCode
+      } 
+    });
   };
   
   const handleApplyDiscount = () => {
@@ -199,14 +158,21 @@ export default function Cart() {
                     />
                   </div>
 
-                  <Link to={`/products/${item.productId}`}>
-                    <div className="bg-light rounded-3 p-2 flex-shrink-0" style={{ width: '90px', height: '90px' }}>
-                      <img
-                        src={item.image || '/src/admin/assets/images/product-1.png'}
-                        alt={item.productName}
-                        className="img-fluid w-100 h-100"
-                        style={{ objectFit: 'contain' }}
-                      />
+                    <Link to={`/products/${item.productId}`}>
+                    <div className="bg-light rounded-3 p-2 flex-shrink-0 d-flex align-items-center justify-content-center" style={{ width: '90px', height: '90px', overflow: 'hidden' }}>
+                      {item.imageUrl || item.image ? (
+                        <img
+                          src={item.imageUrl || item.image}
+                          alt={item.productName}
+                          className="img-fluid w-100 h-100"
+                          style={{ objectFit: 'contain' }}
+                        />
+                      ) : (
+                        <div className="d-flex flex-column align-items-center justify-content-center text-muted" style={{ fontSize: '10px' }}>
+                          <i className="bi bi-image fs-2"></i>
+                          <span>No Image</span>
+                        </div>
+                      )}
                     </div>
                   </Link>
 

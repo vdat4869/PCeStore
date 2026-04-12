@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import { formatCurrency } from '../../utils';
 import { validateDiscountCode } from '../../utils/discounts';
@@ -20,8 +20,13 @@ const PAYMENT_METHODS = [
 ];
 
 export default function Checkout() {
-  const { cartItems } = useCart(); // selectedItems không nằm trong CartContext
+  const { cartItems, clearCart, removeFromCart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Try to get data from location state, fallback to empty
+  const stateData = location.state || {};
+  const [items] = useState(stateData.items || []);
   const [form, setForm] = useState({
     fullName: '',
     phone: '',
@@ -35,7 +40,6 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
   const [showDiscount, setShowDiscount] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -84,8 +88,7 @@ export default function Checkout() {
     setForm(prev => ({ ...prev, ward: e.target.value }));
   };
  
-  // Tạm thời fix lỗi: lấy toàn bộ cartItems (hoặc có thể nhận selectedItems từ router state)
-  const items = cartItems;
+  // 86: items đã được lấy từ state ở trên
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const discountAmount = subtotal * discountPercent;
@@ -152,15 +155,24 @@ export default function Checkout() {
 
       const { orderId, payment } = orderResponse.data;
 
+      // Xóa sản phẩm đã đặt khỏi giỏ hàng local
+      items.forEach(i => removeFromCart(i.productId));
+
       // 2. Xử lý theo phương thức thanh toán
       if (paymentMethod === 'BANK_TRANSFER') {
-        const sepayResponse = await apiClient.post(`/v1/payments/${payment.id}/sepay-checkout`);
+        // Lấy thông tin fields để POST sang SePay
+        const sepayResponse = await apiClient.get(`/v1/orders/payments/${payment.id}/sepay-fields`);
         const fields = sepayResponse.data;
         
         // Redirect tới SePay Checkout bằng POST form
         const checkoutForm = document.createElement('form');
         checkoutForm.method = 'POST';
-        checkoutForm.action = 'https://checkout.sepay.vn/checkout';
+        // Tự động chọn URL Sandbox hoặc Production dựa trên merchant ID
+        const isSandbox = fields.merchant?.startsWith('SP-TEST-');
+        checkoutForm.action = isSandbox 
+          ? 'https://pay-sandbox.sepay.vn/v1/checkout/init'
+          : 'https://pay.sepay.vn/v1/checkout/init';
+        checkoutForm.target = '_top';
         
         Object.keys(fields).forEach(key => {
           const input = document.createElement('input');
@@ -173,8 +185,8 @@ export default function Checkout() {
         document.body.appendChild(checkoutForm);
         checkoutForm.submit();
       } else {
-        // COD hoặc phương thức khác: Hiện màn hình thành công
-        setOrderSuccess(true);
+        // Chuyển sang trang thanh toán nội bộ (COD)
+        navigate(`/payment/${orderId}`);
       }
     } catch (err) {
       console.error('Submit Error:', err);
@@ -185,60 +197,8 @@ export default function Checkout() {
     }
   };
 
-  // ============================================================
-  // ĐẶT HÀNG THÀNH CÔNG
-  // ============================================================
-  if (orderSuccess) {
-    return (
-      <div className="container py-5">
-        <div className="row justify-content-center">
-          <div className="col-md-6">
-            <div className="card border-0 shadow-sm text-center">
-              <div className="card-body p-5">
-                <div className="mb-3">
-                  <span className="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center" style={{ width: '80px', height: '80px' }}>
-                    <i className="bi bi-check-circle fs-1"></i>
-                  </span>
-                </div>
-                <h3 className="fw-bold mb-2" style={{ color: '#2b3452' }}>Đặt hàng thành công!</h3>
-                <p className="text-muted mb-1">Mã đơn hàng: <strong className="text-danger">#PCE{Date.now().toString().slice(-6)}</strong></p>
-                <p className="text-muted small mb-4">
-                  Chúng tôi sẽ liên hệ bạn qua số điện thoại <strong>{form.phone}</strong> để xác nhận đơn hàng.
-                </p>
-
-                <div className="bg-light rounded-3 p-3 mb-4 text-start">
-                  <div className="d-flex justify-content-between mb-1">
-                    <span className="text-muted small">Tổng tiền:</span>
-                    <span className="fw-bold text-danger">{formatCurrency(total)}</span>
-                  </div>
-                  <div className="d-flex justify-content-between mb-1">
-                    <span className="text-muted small">Thanh toán:</span>
-                    <span className="small">{PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label}</span>
-                  </div>
-                  <div className="d-flex justify-content-between">
-                    <span className="text-muted small">Giao đến:</span>
-                    <span className="small text-end" style={{ maxWidth: '200px' }}>{form.address}, {form.ward}, {form.district}, {form.province}</span>
-                  </div>
-                </div>
-
-                <div className="d-flex gap-3 justify-content-center">
-                  <Link to="/products" className="btn btn-outline-danger px-4">
-                    <i className="bi bi-bag me-1"></i>Tiếp tục mua
-                  </Link>
-                  <Link to="/" className="btn btn-danger px-4">
-                    <i className="bi bi-house me-1"></i>Về trang chủ
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container pb-5">
+    <div className="container pb-5" style={{ marginTop: '160px' }}>
       {/* Breadcrumb */}
       <nav aria-label="breadcrumb" className="mb-3">
         <ol className="breadcrumb small">
@@ -380,7 +340,7 @@ export default function Checkout() {
           {/* CỘT PHẢI — Tóm tắt đơn hàng */}
           {/* ============================================================ */}
           <div className="col-lg-5">
-            <div className="card border-0 shadow-sm sticky-top" style={{ top: '20px' }}>
+            <div className="card border-0 shadow-sm sticky-top" style={{ top: '100px' }}>
               <div className="card-body p-4">
                 <h5 className="fw-bold mb-4">
                   <i className="bi bi-bag text-danger me-2"></i>Đơn hàng của bạn ({totalQuantity} sản phẩm)
@@ -390,9 +350,21 @@ export default function Checkout() {
                 <div className="d-flex flex-column gap-3 mb-4">
                   {items.map(item => (
                     <div className="d-flex align-items-center gap-3" key={item.productId}>
-                      <div className="bg-light rounded-2 p-1 flex-shrink-0 position-relative" style={{ width: '56px', height: '56px' }}>
-                        <img src={item.imageUrl} alt="" className="img-fluid w-100 h-100" style={{ objectFit: 'contain' }} />
-                        <span className="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '10px' }}>
+                      <div className="bg-light rounded-2 p-1 flex-shrink-0 position-relative d-flex align-items-center justify-content-center" style={{ width: '64px', height: '64px', overflow: 'hidden' }}>
+                        {item.imageUrl || item.image ? (
+                          <img 
+                            src={item.imageUrl || item.image} 
+                            alt="" 
+                            className="img-fluid w-100 h-100" 
+                            style={{ objectFit: 'contain' }} 
+                          />
+                        ) : (
+                          <div className="d-flex flex-column align-items-center justify-content-center text-muted" style={{ fontSize: '9px' }}>
+                            <i className="bi bi-image fs-5"></i>
+                            <span>No Image</span>
+                          </div>
+                        )}
+                        <span className="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-danger" style={{ fontSize: '10px', zIndex: 1 }}>
                           x{item.quantity}
                         </span>
                       </div>

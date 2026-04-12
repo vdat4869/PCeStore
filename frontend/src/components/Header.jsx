@@ -12,6 +12,20 @@ const Header = () => {
   // Trạng thái đóng/mở menu (React-controlled)
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [activeMenuId, setActiveMenuId] = useState(1);
+
+  const megaMenuData = [
+    { id: 1, name: "PC Gaming, Đồ Hoạ, AI", icon: "bi-pc-display", sub: ["Lắp đặt phòng net", "PC Workstation", "Build PC Gaming", "PC AI"] },
+    { id: 2, name: "PC văn phòng - doanh nghiệp", icon: "bi-building", sub: ["PC Đồng bộ Dell", "PC Đồng bộ HP", "PC Mini", "PC All in One"] },
+    { id: 3, name: "CPU, Mainboard, VGA", icon: "bi-cpu", sub: ["CPU AMD", "CPU Intel", "Mainboard B760", "VGA NVIDIA", "VGA AMD"] },
+    { id: 4, name: "RAM, SSD, HDD", icon: "bi-memory", sub: ["RAM DDR5", "RAM DDR4", "SSD chuẩn cắm", "SSD gắn ngoài", "HDD lưu trữ"] },
+    { id: 5, name: "Laptop", icon: "bi-laptop", sub: ["Laptop Gaming", "Laptop Văn phòng", "Macbook", "Phụ kiện Laptop"] },
+    { id: 6, name: "Màn hình, Tivi, Máy chiếu", icon: "bi-display", sub: ["Màn hình Gaming", "Màn hình Đồ hoạ", "Tivi", "Máy chiếu"] },
+    { id: 7, name: "Case, Tản, Nguồn", icon: "bi-box", sub: ["Vỏ Case", "Tản nhiệt khí", "Tản nhiệt nước", "Nguồn PC"] },
+    { id: 8, name: "Phím, chuột, tai nghe", icon: "bi-mouse", sub: ["Bàn phím cơ", "Chuột Gaming", "Tai nghe Over-ear", "Lót chuột"] },
+    { id: 9, name: "Bàn, ghế", icon: "bi-ui-radios", sub: ["Bàn chữ Z", "Ghế Công thái học", "Ghế Gaming", "Giá đỡ màn hình"] },
+    { id: 10, name: "Thiết bị mạng", icon: "bi-router", sub: ["Router Wifi 6", "Switch", "Cáp mạng", "USB Wifi"] },
+  ];
   
   // Refs để xử lý click outside
   const categoryRef = useRef(null);
@@ -45,8 +59,8 @@ const Header = () => {
           <ul className="nav small">
             <li className="nav-item"><Link to="/khuyen-mai" className="nav-link text-white py-1 px-2"><i className="bi bi-gift me-1"></i>Khuyến mãi</Link></li>
             <li className="nav-item"><Link to="/tra-gop" className="nav-link text-white py-1 px-2"><i className="bi bi-credit-card me-1"></i>Trả góp</Link></li>
-            <li className="nav-item"><Link to="/bang-gia" className="nav-link text-white py-1 px-2"><i className="bi bi-card-list me-1"></i>Bảng giá</Link></li>
-            <li className="nav-item"><Link to="/build-pc" className="nav-link text-white py-1 px-2"><i className="bi bi-pc-display me-1"></i>Xây dựng cấu hình</Link></li>
+            <li className="nav-item"><Link to="/order-tracking" className="nav-link text-white py-1 px-2"><i className="bi bi-box-seam me-1"></i>Tra cứu đơn hàng</Link></li>
+            <li className="nav-item"><Link to="/build-pc" className="nav-link text-white py-1 px-2 fw-bold text-warning"><i className="bi bi-pc-display me-1"></i>Xây dựng cấu hình</Link></li>
             <li className="nav-item"><Link to="/bao-hanh" className="nav-link text-white py-1 px-2"><i className="bi bi-shield-check me-1"></i>Chính sách bảo hành</Link></li>
           </ul>
           <div className="small fw-bold">
@@ -76,14 +90,58 @@ const Header = () => {
                 >
                   <i className="bi bi-list me-1"></i> Danh mục
                 </button>
-                <ul className={`dropdown-menu shadow border-0 ${isCategoryOpen ? 'show' : ''}`} style={{ zIndex: 11000 }}>
-                  <li><Link className="dropdown-item" to="/products?category=pc-gaming" onClick={() => setIsCategoryOpen(false)}>PC Gaming</Link></li>
-                  <li><Link className="dropdown-item" to="/products?category=pc-van-phong" onClick={() => setIsCategoryOpen(false)}>PC Văn Phòng</Link></li>
-                  <li><hr className="dropdown-divider" /></li>
-                  <li><Link className="dropdown-item" to="/products?category=vga" onClick={() => setIsCategoryOpen(false)}>VGA - Card màn hình</Link></li>
-                  <li><Link className="dropdown-item" to="/products?category=cpu" onClick={() => setIsCategoryOpen(false)}>CPU - Vi xử lý</Link></li>
-                  <li><Link className="dropdown-item" to="/products?category=ram" onClick={() => setIsCategoryOpen(false)}>RAM - Bộ nhớ trong</Link></li>
-                </ul>
+                {isCategoryOpen && (
+                  <div className="dropdown-menu shadow border-0 show p-0 d-none d-md-flex" style={{ zIndex: 11000, width: '800px', position: 'absolute', top: '100%', left: 0, marginTop: '2px', minHeight: '350px' }}>
+                     {/* Cột trái: Main categories */}
+                     <div className="bg-white border-end py-2" style={{ width: '35%', overflowY: 'auto' }}>
+                        {megaMenuData.map(item => (
+                           <div 
+                              key={item.id}
+                              className={`py-2 px-3 fw-medium d-flex align-items-center justify-content-between ${activeMenuId === item.id ? 'bg-light text-danger' : 'text-dark'}`}
+                              style={{ cursor: 'pointer', fontSize: '13px' }}
+                              onMouseEnter={() => setActiveMenuId(item.id)}
+                              onClick={() => { setIsCategoryOpen(false); navigate(`/products?q=${encodeURIComponent(item.name)}`); }}
+                           >
+                              <span><i className={`bi ${item.icon} me-2 ${activeMenuId === item.id ? 'text-danger' : 'text-secondary'}`}></i>{item.name}</span>
+                              <i className="bi bi-chevron-right small text-muted" style={{ fontSize: '10px' }}></i>
+                           </div>
+                        ))}
+                     </div>
+                     {/* Cột phải: Subcategories */}
+                     <div className="bg-light p-4" style={{ width: '65%', overflowY: 'auto' }}>
+                        <div className="d-flex align-items-center gap-2 mb-3">
+                           <i className="bi bi-fire text-danger fs-5"></i>
+                           <h6 className="mb-0 fw-bold">Gợi ý cho bạn</h6>
+                        </div>
+                        <div className="row g-3">
+                           {megaMenuData.find(x => x.id === activeMenuId)?.sub.map((sub, idx) => (
+                              <div className="col-6" key={idx}>
+                                 <Link 
+                                    to={`/products?q=${encodeURIComponent(sub)}`} 
+                                    className="text-decoration-none text-dark small fw-medium d-block py-1 px-2 rounded hover-bg-white transition-all"
+                                    onClick={() => setIsCategoryOpen(false)}
+                                    style={{
+                                       transition: 'all 0.2s',
+                                    }}
+                                    onMouseOver={(e) => { e.currentTarget.classList.add('text-danger', 'bg-white', 'shadow-sm') }}
+                                    onMouseOut={(e) => { e.currentTarget.classList.remove('text-danger', 'bg-white', 'shadow-sm') }}
+                                 >
+                                    {sub}
+                                 </Link>
+                              </div>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+                )}
+                {/* Mobile Dropdown (Fallbacks) */}
+                {isCategoryOpen && (
+                   <ul className="dropdown-menu shadow border-0 show d-block d-md-none" style={{ zIndex: 11000, width: '100%' }}>
+                     {megaMenuData.map(item => (
+                        <li key={item.id}><Link className="dropdown-item" to={`/products?q=${encodeURIComponent(item.name)}`} onClick={() => setIsCategoryOpen(false)}>{item.name}</Link></li>
+                     ))}
+                   </ul>
+                )}
                 <input type="text" className="form-control" placeholder="Bạn tìm gì..." />
                 <button className="btn btn-danger px-4" type="button">
                   <i className="bi bi-search"></i>

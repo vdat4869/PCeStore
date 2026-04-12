@@ -14,6 +14,8 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState('description');
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -22,12 +24,17 @@ export default function ProductDetail() {
         const res = await apiClient.get(`/products/${id}`);
         setProduct(res.data);
         
-        // Sau khi có SP, tải SP liên quan (cùng category)
         if (res.data.categoryId) {
           const relatedRes = await apiClient.get(`/products?categoryId=${res.data.categoryId}&size=5`);
-          // Lọc bỏ SP hiện tại
           setRelatedProducts(relatedRes.data.content.filter(p => p.id !== Number(id)));
         }
+
+        // Fetch ratings & reviews metadata
+        const avgRes = await apiClient.get(`/reviews/product/${id}/average`);
+        setAverageRating(avgRes.data || 0);
+
+        const revRes = await apiClient.get(`/reviews/product/${id}?size=1`);
+        setTotalReviews(revRes.data.totalElements || 0);
       } catch (err) {
         console.error("Lỗi tải chi tiết SP:", err);
       } finally {
@@ -171,11 +178,18 @@ export default function ProductDetail() {
                   <i className="bi bi-upc-scan me-1"></i>Mã SP: <strong>PRD{String(product.id).padStart(3, '0')}</strong>
                 </span>
                 <span className="text-secondary">|</span>
-                <span>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <i key={star} className={`bi bi-star${star <= 4 ? '-fill text-warning' : ' text-muted'}`}></i>
-                  ))}
-                  <span className="ms-1">(0 đánh giá)</span>
+                <span className="d-flex align-items-center">
+                  {[1, 2, 3, 4, 5].map(star => {
+                    let starClass = "bi-star text-muted";
+                    if (averageRating >= star) {
+                        starClass = "bi-star-fill text-warning";
+                    } else if (averageRating >= star - 0.5) {
+                        starClass = "bi-star-half text-warning";
+                    }
+                    return <i key={star} className={`bi ${starClass}`}></i>;
+                  })}
+                  <span className="ms-1 fw-bold text-dark">{averageRating.toFixed(1)}</span>
+                  <span className="ms-1">({totalReviews} đánh giá)</span>
                 </span>
               </div>
 
@@ -193,19 +207,35 @@ export default function ProductDetail() {
                 </small>
               </div>
 
-              {/* Thông tin nhanh */}
-              <div className="bg-light rounded-3 p-3 mb-4">
-                <h6 className="fw-semibold mb-2">
-                  <i className="bi bi-info-circle text-primary me-2"></i>Thông tin nhanh
-                </h6>
-                <div className="row g-2">
-                  {Object.entries(product.specs || {}).slice(0, 4).map(([key, value]) => (
-                    <div className="col-6" key={key}>
-                      <small className="text-muted d-block">{key}</small>
-                      <small className="fw-semibold">{value}</small>
+              {/* Thông tin nhanh & Khuyến mãi */}
+              <div className="row g-3 mb-4">
+                 <div className="col-12 col-md-6">
+                    <div className="bg-light rounded p-3 h-100 border">
+                      <h6 className="fw-bold mb-2 fs-6">
+                        <i className="bi bi-info-circle-fill text-secondary me-2"></i>Thông số kỹ thuật
+                      </h6>
+                      <div className="small">
+                        {Object.entries(product.specs || {}).slice(0, 5).map(([key, value]) => (
+                          <div className="d-flex justify-content-between border-bottom py-1" key={key}>
+                            <span className="text-muted">{key}:</span>
+                            <span className="fw-medium text-end" style={{ maxWidth: '60%' }}>{value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                 </div>
+                 <div className="col-12 col-md-6">
+                    <div className="rounded p-3 h-100" style={{ backgroundColor: '#fff3f4', border: '1px dashed #e30019' }}>
+                      <h6 className="fw-bold fs-6" style={{ color: '#e30019' }}>
+                        <i className="bi bi-gift-fill me-2"></i>Khuyến mãi đặc biệt
+                      </h6>
+                      <ul className="list-unstyled mb-0 small">
+                        <li className="mb-2"><i className="bi bi-check-circle-fill text-success me-2"></i>Tặng kèm Áo thun Độc quyền áp dụng cho đơn hàng PC.</li>
+                        <li className="mb-2"><i className="bi bi-check-circle-fill text-success me-2"></i>Giảm lến đến 500k khi mua kèm Màn Hình.</li>
+                        <li className="mb-0"><i className="bi bi-check-circle-fill text-success me-2"></i>Hỗ trợ trả góp 0% qua MPOS.</li>
+                      </ul>
+                    </div>
+                 </div>
               </div>
 
               {/* Trạng thái kho */}
@@ -253,21 +283,29 @@ export default function ProductDetail() {
               </div>
 
               {/* Nút hành động */}
-              <div className="d-flex gap-3 flex-wrap">
-                <button
-                  className="btn btn-danger btn-lg fw-bold px-5"
-                  disabled={product.stock === 0}
-                  onClick={handleBuyNow}
-                >
-                  <i className="bi bi-bag-check me-2"></i>MUA NGAY
-                </button>
-                <button
-                  className="btn btn-outline-danger btn-lg fw-bold px-4"
-                  disabled={product.stock === 0}
-                  onClick={handleAddToCart}
-                >
-                  <i className="bi bi-cart-plus me-2"></i>THÊM VÀO GIỎ
-                </button>
+              <div className="row g-2 mt-2">
+                <div className="col-12 col-sm-6">
+                   <button
+                     className="btn btn-danger w-100 p-3 rounded"
+                     disabled={product.stock === 0}
+                     onClick={handleBuyNow}
+                     style={{ backgroundColor: '#e30019', borderColor: '#e30019' }}
+                   >
+                     <div className="fw-bold fs-5 text-uppercase">Mua ngay</div>
+                     <small className="fw-normal d-none d-lg-block">Giao hàng tận nơi toàn quốc</small>
+                   </button>
+                </div>
+                <div className="col-12 col-sm-6">
+                   <button
+                     className="btn bg-white w-100 p-3 rounded"
+                     disabled={product.stock === 0}
+                     onClick={handleAddToCart}
+                     style={{ border: '2px solid #e30019', color: '#e30019' }}
+                   >
+                     <div className="fw-bold fs-5 text-uppercase">Thêm vào giỏ</div>
+                     <small className="fw-normal d-none d-lg-block">Tiếp tục mua sắm</small>
+                   </button>
+                </div>
               </div>
 
               {/* Chính sách */}
@@ -398,39 +436,23 @@ export default function ProductDetail() {
           </h4>
           <div className="row">
             {relatedProducts.map(rp => (
-              <div className="col-6 col-md-3 mb-4" key={rp.id}>
-                <Link to={`/products/${rp.id}`} className="text-decoration-none text-dark">
-                  <div className="card h-100 product-card border-0 shadow-sm overflow-hidden">
-                    <div className="text-center p-3 bg-light">
-                      <img
-                        src={rp.imageUrl}
-                        alt={rp.name}
-                        className="img-fluid"
-                        style={{ height: '140px', objectFit: 'contain' }}
-                      />
+               <div className="mb-3" key={rp.id} style={{ width: '20%', flex: '0 0 20%' }}>
+                 <Link to={`/products/${rp.id}`} className="text-decoration-none text-dark">
+                   <div className="card h-100 product-card position-relative overflow-hidden bg-white border shadow-sm transition-all hover-shadow" style={{ borderRadius: 6, transition: 'all 0.3s' }}>
+                     <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>HOT</span>
+                     <div className="text-center p-3 bg-white position-relative">
+                      <img src={rp.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={rp.name} style={{ height: '160px', objectFit: 'contain' }} />
                     </div>
-                    <div className="card-body p-3">
-                      <span className="text-muted small" style={{ fontSize: '11px' }}>{rp.categoryName}</span>
-                      <h6 className="fw-bold mt-1" style={{
-                        fontSize: '13px',
-                        minHeight: '36px',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
-                        {rp.name}
-                      </h6>
-                      <div className="text-danger fw-bold">{formatCurrency(rp.price)}</div>
-                      {rp.stock > 0 ? (
-                        <small className="text-success"><i className="bi bi-check-circle-fill me-1"></i>Còn hàng</small>
-                      ) : (
-                        <small className="text-secondary"><i className="bi bi-x-circle-fill me-1"></i>Hết hàng</small>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              </div>
+                     <div className="card-body p-3 d-flex flex-column">
+                        <h6 className="fw-medium mb-2 text-truncate-2" style={{ height: '40px', fontSize: '14px', lineHeight: '1.4' }}>{rp.name}</h6>
+                        <div className="text-danger fw-bold fs-6 mb-2">{formatCurrency(rp.price)}</div>
+                        <div className="d-flex flex-wrap gap-1 mt-auto">
+                           <span className="badge bg-light text-secondary border fw-normal"><i className="bi bi-cpu me-1"></i>{rp.brand}</span>
+                        </div>
+                     </div>
+                   </div>
+                 </Link>
+               </div>
             ))}
           </div>
         </div>

@@ -6,14 +6,26 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  const logout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('isAdminAuthenticated');
-    localStorage.removeItem('userRole');
-    setIsLoggedIn(false);
-    setUser(null);
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
+      if (token) {
+        await fetch('http://localhost:8080/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+    } catch (err) {
+      console.error('Lỗi khi logout backend:', err);
+    } finally {
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isAdminAuthenticated');
+      localStorage.removeItem('userRole');
+      setIsLoggedIn(false);
+      setUser(null);
+    }
   };
 
   useEffect(() => {
@@ -44,8 +56,12 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = (token, role, userData = {}) => {
+  const login = (token, role, userData = {}, refreshToken = null) => {
     localStorage.setItem('userRole', role);
+    
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
     
     if (role === 'ADMIN' || role === 'EMPLOYEE') {
        localStorage.setItem('adminToken', token);

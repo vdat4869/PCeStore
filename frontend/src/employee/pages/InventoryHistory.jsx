@@ -25,7 +25,7 @@ export default function InventoryHistory() {
     if (!selectedProductId) return;
     try {
       setLoading(true);
-      const res = await apiClient.get(`/inventory/history/${selectedProductId}?size=50`);
+      const res = await apiClient.get(`/v1/inventory/history/${selectedProductId}?size=50`);
       setHistory(res.data.content || []);
     } catch (err) {
       console.error(err);

@@ -19,7 +19,7 @@ export default function Home() {
       try {
         const [catRes, prodRes] = await Promise.all([
           apiClient.get('/categories'),
-          apiClient.get('/products?size=4') // Mặc định lấy 4 cái đầu làm flash sale
+          apiClient.get('/products?size=5') // Lấy 5 cái đầu làm flash sale theo layout 5 cột
         ]);
         
         setCategories(catRes.data);
@@ -40,7 +40,7 @@ export default function Home() {
   useEffect(() => {
     if (!activeTab) return;
     
-    apiClient.get(`/products?categoryId=${activeTab}&size=4`)
+    apiClient.get(`/products?categoryId=${activeTab}&size=10`)
       .then(res => setTabProducts(res.data.content || []))
       .catch(err => console.error("Lỗi tải sản phẩm theo danh mục:", err));
   }, [activeTab]);
@@ -105,28 +105,26 @@ export default function Home() {
         </div>
 
         {/* Products Grid */}
-        <div className="row">
+        <div className="row g-2">
           {tabProducts.map((p) => (
-            <div className="col-12 col-sm-6 col-md-3 mb-4" key={p.id}>
+             <div className="mb-3" key={p.id} style={{ width: '20%', flex: '0 0 20%' }}>
               <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
-                <div className="card h-100 product-card position-relative overflow-hidden bg-white border-0 shadow-sm">
-                  <div className="text-center bg-light p-3">
-                    <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '180px', objectFit: 'contain' }} />
+                 <div className="card h-100 product-card position-relative overflow-hidden bg-white border shadow-sm transition-all hover-shadow" style={{ borderRadius: 6, transition: 'all 0.3s' }}>
+                   <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>HOT</span>
+                   <div className="text-center p-3 bg-white position-relative">
+                    <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '160px', objectFit: 'contain' }} />
                   </div>
-                  <div className="card-body d-flex flex-column">
-                    <h6 className="card-title fw-bold text-truncate-2" style={{ minHeight: '40px', fontSize: '14px' }}>{p.name}</h6>
-                    <div className="mt-auto">
-                      <div className="text-danger fw-bold fs-5">{formatCurrency(p.price)}</div>
-                    </div>
-                  </div>
-                  <div className="card-footer bg-white border-top-0 text-center pb-3">
-                    <button
-                      className="btn btn-outline-danger w-100 fw-bold"
-                      onClick={(e) => { e.preventDefault(); handleAddToCart(p); }}
-                    >
-                      <i className="bi bi-cart-plus me-1"></i>Thêm vào giỏ
-                    </button>
-                  </div>
+                   <div className="card-body p-3 d-flex flex-column">
+                      <h6 className="fw-medium mb-2 text-truncate-2" style={{ height: '40px', fontSize: '14px', lineHeight: '1.4' }}>{p.name}</h6>
+                      <div className="text-danger fw-bold fs-6 mb-2">{formatCurrency(p.price)}</div>
+                      {/* Specs Badges */}
+                      <div className="d-flex flex-wrap gap-1 mt-auto">
+                         <span className="badge bg-light text-secondary border fw-normal"><i className="bi bi-cpu me-1"></i>{p.brand}</span>
+                      </div>
+                   </div>
+                   <div className="card-footer bg-white border-top-0 p-3 pt-0">
+                      <button className="btn btn-dark fw-bold btn-sm w-100" onClick={(e) => { e.preventDefault(); handleAddToCart(p); }}>Liên hệ</button>
+                   </div>
                 </div>
               </Link>
             </div>
@@ -138,28 +136,26 @@ export default function Home() {
         <h4 className="fw-bold text-uppercase mb-3 mt-5">
           <i className="bi bi-lightning-charge-fill text-warning me-2"></i>Sản phẩm <span className="text-danger">Mới Nhất</span>
         </h4>
-        <div className="row">
+        <div className="row g-2">
           {flashSaleProducts.map((p) => (
-            <div className="col-12 col-sm-6 col-md-3 mb-4" key={p.id}>
+             <div className="mb-3" key={p.id} style={{ width: '20%', flex: '0 0 20%' }}>
               <Link to={`/products/${p.id}`} className="text-decoration-none text-dark">
-                <div className="card h-100 product-card position-relative overflow-hidden bg-white border-0 shadow-sm">
-                  <div className="text-center bg-light p-3">
-                    <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '180px', objectFit: 'contain' }} />
+                 <div className="card h-100 product-card position-relative overflow-hidden bg-white border shadow-sm transition-all hover-shadow" style={{ borderRadius: 6, transition: 'all 0.3s' }}>
+                   <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>MỚI</span>
+                   <div className="text-center p-3 bg-white position-relative">
+                    <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '160px', objectFit: 'contain' }} />
                   </div>
-                  <div className="card-body d-flex flex-column">
-                    <h6 className="card-title fw-bold text-truncate-2" style={{ minHeight: '40px', fontSize: '14px' }}>{p.name}</h6>
-                    <div className="mt-auto">
-                      <div className="text-danger fw-bold fs-5">{formatCurrency(p.price)}</div>
-                    </div>
-                  </div>
-                  <div className="card-footer bg-white border-top-0 text-center pb-3">
-                    <button
-                      className="btn btn-outline-danger w-100 fw-bold"
-                      onClick={(e) => { e.preventDefault(); handleAddToCart(p); }}
-                    >
-                      <i className="bi bi-cart-plus me-1"></i>Thêm vào giỏ
-                    </button>
-                  </div>
+                   <div className="card-body p-3 d-flex flex-column">
+                      <h6 className="fw-medium mb-2 text-truncate-2" style={{ height: '40px', fontSize: '14px', lineHeight: '1.4' }}>{p.name}</h6>
+                      <div className="text-danger fw-bold fs-6 mb-2">{formatCurrency(p.price)}</div>
+                      {/* Specs Badges */}
+                      <div className="d-flex flex-wrap gap-1 mt-auto">
+                         <span className="badge bg-light text-secondary border fw-normal"><i className="bi bi-cpu me-1"></i>{p.brand}</span>
+                      </div>
+                   </div>
+                   <div className="card-footer bg-white border-top-0 p-3 pt-0">
+                      <button className="btn btn-dark fw-bold btn-sm w-100" onClick={(e) => { e.preventDefault(); handleAddToCart(p); }}>Liên hệ</button>
+                   </div>
                 </div>
               </Link>
             </div>

@@ -1,10 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../services/api';
 
 export default function Complaints() {
-  const [complaints, setComplaints] = useState([
-    { id: 1, customer: "Nguyễn Văn An", issue: "Lỗi VGA bị crash", status: "PENDING", date: "2026-04-05" },
-    { id: 2, customer: "Trần Thị Bé", issue: "Giao hàng chậm 2 ngày", status: "PROCESSING", date: "2026-04-06" }
-  ]);
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchComplaints();
+  }, []);
+
+  const fetchComplaints = async () => {
+    try {
+      const response = await apiClient.get('/v1/complaints');
+      setComplaints(response.data);
+    } catch (error) {
+      console.error("Lỗi tải khiếu nại:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProcess = async (id) => {
+    const response = prompt("Nhập kết quả xử lý hỗ trợ khách hàng (VD: Đã hoàn tiền, Đã gọi điện xin lỗi):");
+    if (response) {
+      try {
+        await apiClient.put(`/v1/complaints/${id}/resolve`, { solution: response });
+        alert("Tiếp nhận và xử lý trạng thái thành công!");
+        fetchComplaints(); // Tải lại dữ liệu sau khi sửa
+      } catch (error) {
+        console.error("Lỗi xử lý khiếu nại:", error);
+        alert("Có lỗi xảy ra khi cập nhật trạng thái.");
+      }
+    }
+  };
 
   return (
     <div className="container-fluid">
@@ -43,17 +71,24 @@ export default function Complaints() {
                     <tbody>
                       {complaints.map(c => (
                         <tr key={c.id}>
-                          <td>#{c.id}</td>
-                          <td>{c.customer}</td>
-                          <td>{c.issue}</td>
-                          <td>{c.date}</td>
+                          <td>#{c.orderId || c.id}</td>
+                          <td>{c.customerName}</td>
                           <td>
-                            <span className={`badge ${c.status === 'PENDING' ? 'bg-danger' : 'bg-warning'}`}>
+                             <div>{c.issue}</div>
+                             {c.solution && <small className="text-success d-block"><i className="bi bi-arrow-return-right me-1"></i>{c.solution}</small>}
+                          </td>
+                          <td>{c.createdDate?.split('T')[0] || c.date}</td>
+                          <td>
+                            <span className={`badge ${c.status === 'PENDING' ? 'bg-danger' : c.status === 'RESOLVED' ? 'bg-success' : 'bg-warning'}`}>
                                {c.status}
                             </span>
                           </td>
                           <td>
-                             <button className="btn btn-sm btn-primary">Xử lý ngay</button>
+                             {c.status !== 'RESOLVED' ? (
+                                <button className="btn btn-sm btn-primary" onClick={() => handleProcess(c.id)}>Xử lý ngay</button>
+                             ) : (
+                                <button className="btn btn-sm btn-secondary" disabled>Đã xử lý</button>
+                             )}
                           </td>
                         </tr>
                       ))}

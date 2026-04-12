@@ -4,11 +4,15 @@ import apiClient from '../../services/api';
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [keyword, setKeyword] = useState('');
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/admin/users?size=50');
+      const endpoint = keyword.trim() 
+        ? `/admin/users/search?keyword=${encodeURIComponent(keyword)}&size=50` 
+        : '/admin/users?size=50';
+      const response = await apiClient.get(endpoint);
       setUsers(response.data.content || []);
     } catch (err) {
       console.error("Lỗi tải danh sách người dùng:", err);
@@ -19,7 +23,7 @@ export default function Users() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [keyword]); // fetch when keyword changes (could debounce, or button trigger, but simple search on change/enter)
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -79,7 +83,22 @@ export default function Users() {
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div className="">
               <h1 className="fs-3 mb-1">Quản lý người dùng</h1>
-              <p className="mb-0">Thiết lập vai trò và quản lý tài khoản email khách hàng</p>
+              <p className="mb-0 text-muted">Thiết lập vai trò và quản lý tài khoản email khách hàng</p>
+            </div>
+          </div>
+          
+          <div className="card shadow-sm border-0 mb-4 bg-white">
+            <div className="card-body p-3">
+              <div className="input-group" style={{ maxWidth: '400px' }}>
+                <span className="input-group-text bg-light border-end-0"><i className="bi bi-search text-muted"></i></span>
+                <input 
+                  type="text" 
+                  className="form-control border-start-0 bg-light" 
+                  placeholder="Tìm theo email hoặc tên..." 
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </div>

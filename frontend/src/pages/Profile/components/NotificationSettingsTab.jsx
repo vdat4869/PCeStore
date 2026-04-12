@@ -20,9 +20,19 @@ export default function NotificationSettingsTab() {
     try {
       setLoading(true);
       const res = await apiClient.get('/notifications/preferences');
-      setPreferences(res.data);
+      // Map API list to current local state structure
+      if (Array.isArray(res.data)) {
+        const newPrefs = { ...preferences };
+        res.data.forEach(p => {
+          if (p.type === 'ORDER_CONFIRMATION') newPrefs.orderUpdatesEmail = p.isEnabled;
+          else if (p.type === 'ORDER_STATUS_UPDATE') newPrefs.orderUpdatesWeb = p.isEnabled;
+          else if (p.type === 'PROMOTIONS') newPrefs.promotionsEmail = p.isEnabled;
+          else if (p.type === 'SYSTEM_ALERT') newPrefs.securityAlertsEmail = p.isEnabled;
+        });
+        setPreferences(newPrefs);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Lỗi khi tải cài đặt thông báo:", err);
     } finally {
       setLoading(false);
     }
@@ -32,9 +42,12 @@ export default function NotificationSettingsTab() {
     e.preventDefault();
     try {
       setSaving(true);
-      await apiClient.put('/notifications/preferences', preferences);
+      setMessage(null);
+      await apiClient.put('/notifications/preferences/bulk', preferences);
       setMessage({ type: 'success', text: 'Đã lưu cài đặt thông báo!' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
+      console.error(err);
       setMessage({ type: 'danger', text: 'Lỗi khi lưu cài đặt.' });
     } finally {
       setSaving(false);

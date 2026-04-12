@@ -1,14 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../services/api';
 
 export default function ReviewsMan() {
-  const [reviews, setReviews] = useState([
-    { id: 1, user: 'Hoàng Long', product: 'RTX 4090 Rog Strix', comment: 'Hàng quá đỉnh, giao nhanh!', rating: 5, status: 'PENDING' },
-    { id: 2, user: 'Mai Lan', product: 'Bàn phím cơ AKKO', comment: 'Switch hơi ồn so với clip', rating: 3, status: 'PENDING' }
-  ]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAction = (id, newStatus) => {
-    setReviews(reviews.map(r => r.id === id ? { ...r, status: newStatus } : r));
-    alert(`Đã ${newStatus === 'APPROVED' ? 'duyệt' : 'ẩn'} đánh giá này`);
+  useEffect(() => {
+    fetchPendingReviews();
+  }, []);
+
+  const fetchPendingReviews = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/reviews?size=100');
+      // Lấy danh sách ID đã duyệt lưu trong localStorage để không hiển thị lại
+      const approvedIds = JSON.parse(localStorage.getItem('approved_review_ids') || '[]');
+      
+      const pendingList = (res.data.content || []).filter(r => !approvedIds.includes(r.id)).map(r => ({
+         id: r.id,
+         user: r.userFullName || 'Khách hàng',
+         product: r.productName,
+         comment: r.comment,
+         rating: r.rating,
+         status: 'PENDING'
+      }));
+      setReviews(pendingList);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (id, newStatus) => {
+    if (newStatus === 'HIDDEN') {
+      if (!window.confirm("Bạn có chắc muốn xóa/ẩn đánh giá này khỏi hệ thống?")) return;
+      try {
+        await apiClient.delete(`/reviews/${id}`);
+        setReviews(reviews.filter(r => r.id !== id));
+        alert('Đã xóa đánh giá thành công!');
+      } catch (err) {
+        alert('Lỗi khi xóa đánh giá: ' + err.message);
+      }
+    } else if (newStatus === 'APPROVED') {
+       // Cập nhật localStorage
+       const approvedIds = JSON.parse(localStorage.getItem('approved_review_ids') || '[]');
+       if (!approvedIds.includes(id)) {
+           approvedIds.push(id);
+           localStorage.setItem('approved_review_ids', JSON.stringify(approvedIds));
+       }
+       setReviews(reviews.filter(r => r.id !== id));
+       alert('Đã duyệt đánh giá! Đánh giá sẽ được hiển thị công khai bình thường.');
+    }
   };
 
   return (

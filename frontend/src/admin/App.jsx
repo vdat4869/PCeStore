@@ -10,6 +10,7 @@ import CreateProduct from './pages/CreateProduct';
 import EditProduct from './pages/EditProduct';
 import Reports from './pages/Reports';
 import Orders from './pages/Orders';
+import OrderDetail from './pages/OrderDetail';
 import Users from './pages/Users';
 import Reviews from './pages/Reviews';
 import Docs from './pages/Docs';
@@ -32,6 +33,7 @@ function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />
           <Route path="orders" element={<Orders />} />
+          <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="profile" element={<AdminProfile />} />
           <Route path="notifications" element={<AdminNotifications />} />

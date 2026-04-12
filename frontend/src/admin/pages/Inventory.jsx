@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../services/api';
 
 export default function Inventory() {
@@ -9,6 +10,8 @@ export default function Inventory() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [newQuantity, setNewQuantity] = useState(0);
   const [updating, setUpdating] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
 
   const fetchProducts = async () => {
     try {
@@ -31,14 +34,27 @@ export default function Inventory() {
     if (!selectedProduct) return;
     try {
       setUpdating(true);
-      await apiClient.put('/inventory/update', {
+      await apiClient.put('/v1/inventory/update', {
         productId: selectedProduct.id,
-        quantity: parseInt(newQuantity)
+        quantity: parseInt(newQuantity),
+        referenceId: "MANUAL-" + Date.now()
       });
-      alert(`Đã cập nhật tồn kho cho #${selectedProduct.id} thành công!`);
-      const modal = bootstrap.Modal.getInstance(document.getElementById('stockModal'));
-      modal.hide();
-      fetchProducts();
+      
+      const modalElement = document.getElementById('stockModal');
+      // Sử dụng cách đóng an toàn hơn qua data-bs-dismiss hoặc kiểm tra window.bootstrap
+      if (window.bootstrap) {
+        const modal = window.bootstrap.Modal.getInstance(modalElement);
+        if (modal) modal.hide();
+      } else {
+        // Fallback: Click nút close ẩn để đóng modal nếu không tìm thấy biến bootstrap
+        modalElement.querySelector('[data-bs-dismiss="modal"]')?.click();
+      }
+      
+      // Đợi modal đóng xong rồi mới báo success để tránh kẹt focus
+      setTimeout(() => {
+        alert(`Đã cập nhật tồn kho cho #${selectedProduct.id} thành công!`);
+        fetchProducts();
+      }, 300);
     } catch (err) {
       alert("Lỗi: " + (err.response?.data?.message || "Không thể cập nhật"));
     } finally {
@@ -63,9 +79,11 @@ export default function Inventory() {
               <button className="btn btn-outline-secondary me-2" onClick={fetchProducts}>
                 <i className="bi bi-arrow-clockwise"></i> Làm mới
               </button>
-              <Link to="/admin/create-product" className="btn btn-primary">
-                <i className="bi bi-plus-lg me-1"></i> Nhập SP mới
-              </Link>
+              {isAdmin && (
+                <Link to="../create-product" className="btn btn-primary">
+                  <i className="bi bi-plus-lg me-1"></i> Nhập SP mới
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -126,7 +144,7 @@ export default function Inventory() {
                     </td>
                     <td className="text-center">
                        <button 
-                         className="btn btn-sm btn-outline-primary"
+                         className="btn btn-sm btn-outline-primary mb-1 me-1"
                          data-bs-toggle="modal" 
                          data-bs-target="#stockModal"
                          onClick={() => {
@@ -134,8 +152,24 @@ export default function Inventory() {
                             setNewQuantity(p.stock);
                          }}
                        >
-                          <i className="bi bi-gear-fill me-1"></i> Điều chỉnh kho
+                          <i className="bi bi-gear-fill me-1"></i> Kho
                        </button>
+                       {isAdmin && (
+                         <button 
+                           className="btn btn-sm btn-outline-danger mb-1"
+                           onClick={async () => {
+                             if (!window.confirm("CẢNH BÁO: Xoá sản phẩm này?")) return;
+                             try {
+                               await apiClient.delete(`/products/${p.id}`);
+                               fetchProducts();
+                             } catch (err) {
+                               alert("Không thể xoá sản phẩm: " + (err.response?.data?.message || err.message));
+                             }
+                           }}
+                         >
+                            <i className="bi bi-trash-fill"></i>
+                         </button>
+                       )}
                     </td>
                   </tr>
                 ))
@@ -146,7 +180,7 @@ export default function Inventory() {
       </div>
 
       {/* Modal Cập nhật kho */}
-      <div className="modal fade" id="stockModal" tabIndex="-1" aria-hidden="true">
+      <div className="modal fade" id="stockModal" tabIndex="-1">
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content border-0 shadow">
             <div className="modal-header border-bottom-0">

@@ -9,6 +9,9 @@ export default function EditProfileTab() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [newEmail, setNewEmail] = useState('');
+  const [emailMessage, setEmailMessage] = useState(null);
+
   useEffect(() => {
     apiClient.get('/users/profile')
       .then(res => setFormData({ 
@@ -30,14 +33,12 @@ export default function EditProfileTab() {
       await apiClient.put('/users/profile', payload);
       updateUserInfo({ fullName: formData.fullName, phone: formData.phone });
       
-      // Handle avatar upload separately
       if (avatar) {
         const uploadForm = new FormData();
         uploadForm.append('file', avatar);
         const avatarRes = await apiClient.post('/users/profile/avatar', uploadForm, {
            headers: { 'Content-Type': 'multipart/form-data' }
         });
-        // Backend returns the path like "/uploads/avatars/filename.jpg"
         updateUserInfo({ avatarUrl: avatarRes.data });
       }
       setMessage({ type: 'success', text: 'Cập nhật thông tin thành công!' });
@@ -48,6 +49,30 @@ export default function EditProfileTab() {
     }
   };
 
+  const handlDeactivate = async () => {
+    if(window.confirm('BẠN CÓ CHẮC CHẮN MUỐN XÓA TÀI KHOẢN? Hành động này không thể hoàn tác!')) {
+      try {
+          await apiClient.delete('/users/deactivate');
+          alert('Tài khoản đã được vô hiệu hóa. Bạn sẽ bị đăng xuất.');
+          window.location.href = '/login';
+      } catch (err) {
+          alert(err.response?.data?.message || 'Có lỗi xảy ra khi xóa tài khoản');
+      }
+    }
+  };
+
+  const handleRequestEmailChange = async () => {
+    if (!newEmail || newEmail.trim() === '') return;
+    try {
+        setEmailMessage({ type: 'info', text: 'Đang gửi yêu cầu...' });
+        await apiClient.post('/users/email-change?newEmail=' + encodeURIComponent(newEmail));
+        setEmailMessage({ type: 'success', text: 'Vui lòng kiểm tra email mới để xác nhận!' });
+        setNewEmail('');
+    } catch(err) {
+        setEmailMessage({ type: 'danger', text: err.response?.data?.message || 'Có lỗi xảy ra' });
+    }
+  };
+
   return (
     <div className="card border-0 shadow-sm">
       <div className="card-body p-4">
@@ -55,7 +80,7 @@ export default function EditProfileTab() {
         
         {message && <div className={`alert alert-${message.type}`}>{message.text}</div>}
         
-        <form onSubmit={handleUpdate}>
+        <form onSubmit={handleUpdate} className="mb-5">
           <div className="mb-3">
             <label className="form-label text-muted small">Họ và tên</label>
             <input 
@@ -88,6 +113,34 @@ export default function EditProfileTab() {
             {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
           </button>
         </form>
+
+        <hr />
+        
+        <div className="mt-4">
+            <h6 className="fw-bold mb-3">Đổi Địa Chỉ Email</h6>
+            {emailMessage && <div className={`alert alert-${emailMessage.type} small py-2`}>{emailMessage.text}</div>}
+            <div className="input-group mb-3">
+                <input 
+                    type="email" 
+                    className="form-control" 
+                    placeholder="Nhập email mới" 
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                />
+                <button className="btn btn-outline-secondary" type="button" onClick={handleRequestEmailChange}>Mã Xác Nhận</button>
+            </div>
+            <small className="text-muted d-block mb-4">Một email chứa đường dẫn xác nhận sẽ được gửi tới hòm thư mới của bạn.</small>
+        </div>
+
+        <hr />
+
+        <div className="mt-4">
+            <h6 className="fw-bold text-danger mb-3">Vùng Nguy Hiểm</h6>
+            <p className="text-muted small">Vô hiệu hóa tài khoản sẽ xóa tài khoản vĩnh viễn khỏi hệ thống và bạn không thể đăng nhập lại.</p>
+            <button type="button" className="btn btn-outline-danger btn-sm fw-bold" onClick={handlDeactivate}>
+                Vô Hiệu Hóa Tài Khoản
+            </button>
+        </div>
       </div>
     </div>
   );

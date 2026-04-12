@@ -109,7 +109,7 @@ export default function Orders() {
                                <i className="bi bi-x-lg"></i>
                             </button>
                          )}
-                         <Link to={`/admin/orders/${o.id}`} className="btn btn-sm btn-light border" title="Chi tiết">
+                         <Link to={`${o.id}`} className="btn btn-sm btn-light border" title="Chi tiết">
                             <i className="bi bi-eye"></i>
                          </Link>
                       </div>

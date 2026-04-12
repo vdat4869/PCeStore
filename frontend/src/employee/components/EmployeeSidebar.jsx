@@ -39,7 +39,7 @@ export default function EmployeeSidebar({ isCollapsed, isMobileShow }) {
           </Link>
         </li>
         <li>
-          <Link className={getNavLinkClass('/employee/inventory')} to="/employee/inventory">
+          <Link className={getNavLinkClass('/employee/products')} to="/employee/products">
             <i className="ti ti-box-seam"></i><span className="nav-text">Quản lý kho hàng</span>
           </Link>
         </li>
