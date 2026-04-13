@@ -8,6 +8,7 @@ import com.project.payment.service.PaymentService;
 import com.project.shipping.entity.ShippingStatus;
 import com.project.shipping.service.ShippingService;
 import com.project.cart.service.CartService;
+import com.project.user.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,7 @@ public class OrderController {
     private final PaymentService paymentService;
     private final ShippingService shippingService;
     private final CartService cartService;
+    private final UserProfileRepository userProfileRepository;
 
     @PostMapping("/create")
     public ResponseEntity<Map<String, Object>> createOrder(@jakarta.validation.Valid @RequestBody OrderRequestDTO requestDTO) {
@@ -65,26 +67,9 @@ public class OrderController {
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getOrderById(@PathVariable Long id) {
         Order o = orderService.getOrderById(id);
-        Map<String, Object> map = new HashMap<>();
-        map.put("id", o.getId());
-        map.put("totalAmount", o.getTotalAmount());
-        map.put("status", o.getStatus());
-        map.put("orderDate", o.getOrderDate());
+        Map<String, Object> response = mapOrderToResponse(o);
         
-        if (o.getShipping() != null) {
-            Map<String, Object> sMap = new HashMap<>();
-            sMap.put("status", o.getShipping().getStatus());
-            sMap.put("trackingCode", o.getShipping().getTrackingCode());
-            sMap.put("deliveryAddress", o.getShipping().getDeliveryAddress());
-            map.put("shipping", sMap);
-        }
-        
-        Payment p = paymentService.getPaymentByOrderId(o.getId());
-        if (p != null) {
-            map.put("paymentStatus", p.getStatus());
-            map.put("paymentMethod", p.getPaymentMethod());
-        }
-        
+        // Add items which are usually needed for details but not list
         java.util.List<Map<String, Object>> items = new java.util.ArrayList<>();
         for (com.project.order.entity.OrderItem item : o.getOrderItems()) {
             Map<String, Object> iMap = new HashMap<>();
@@ -94,9 +79,9 @@ public class OrderController {
             iMap.put("price", item.getPrice());
             items.add(iMap);
         }
-        map.put("items", items);
+        response.put("items", items);
         
-        return ResponseEntity.ok(map);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/history")
@@ -202,27 +187,50 @@ public class OrderController {
         map.put("id", o.getId());
         map.put("totalAmount", o.getTotalAmount());
         map.put("status", o.getStatus());
-        map.put("orderDate", o.getOrderDate());
+        map.put("orderDate", (o.getOrderDate() != null ? o.getOrderDate() : o.getCreatedAt()));
         
         // Customer info
         String name = "Khách hàng";
         String email = o.getCreatedBy();
+        String phone = "Chưa cập nhật";
         
         if (o.getUser() != null) {
             name = o.getUser().getFullName() != null ? o.getUser().getFullName() : o.getUser().getEmail();
             email = o.getUser().getEmail();
+            phone = o.getUser().getPhone();
+            
+            // Fallback to UserProfile if User.phone is null
+            if (phone == null || phone.trim().isEmpty()) {
+                userProfileRepository.findByUserId(o.getUser().getId())
+                    .ifPresent(profile -> {
+                        if (profile.getPhone() != null) {
+                            o.getUser().setPhone(profile.getPhone()); // Carry over for this response
+                        }
+                    });
+                phone = o.getUser().getPhone() != null ? o.getUser().getPhone() : "Chưa cập nhật";
+            }
         } else if (o.getCreatedBy() != null && o.getCreatedBy().contains("@")) {
             name = o.getCreatedBy().split("@")[0];
         }
         
         map.put("customerName", name);
         map.put("customerEmail", email);
+        map.put("customerPhone", phone);
 
-        // Shipping info
+        // Shipping Address object for frontend modal expectations
+        Map<String, Object> addrMap = new HashMap<>();
+        addrMap.put("fullName", name);
+        addrMap.put("phone", phone);
+        addrMap.put("street", (o.getShippingAddress() != null ? o.getShippingAddress() : ""));
+        addrMap.put("city", ""); // Optional
+        map.put("shippingAddress", addrMap);
+
+        // Shipping status info
         if (o.getShipping() != null) {
             Map<String, Object> sMap = new HashMap<>();
             sMap.put("status", o.getShipping().getStatus());
             sMap.put("trackingCode", o.getShipping().getTrackingCode());
+            sMap.put("deliveryAddress", o.getShipping().getDeliveryAddress());
             map.put("shipping", sMap);
         }
 
@@ -234,6 +242,24 @@ public class OrderController {
         }
 
         return map;
+    }
+
+    @GetMapping("/guest-track")
+    public ResponseEntity<Map<String, Object>> guestTrack(
+            @RequestParam String phone,
+            @RequestParam String orderCode) {
+        
+        Long orderId;
+        try {
+            // Clean up code like "DH-001" to get numerical "1"
+            String cleanId = orderCode.replaceAll("[^0-9]", "");
+            orderId = Long.parseLong(cleanId);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Order order = orderService.getOrderByGuest(orderId, phone);
+        return ResponseEntity.ok(mapOrderToResponse(order));
     }
 
     @GetMapping("/payments/{paymentId}/sepay-fields")

@@ -23,6 +23,14 @@ public class ComplaintController {
         return ResponseEntity.ok(complaintService.getAllComplaints());
     }
 
+    @PostMapping
+    public ResponseEntity<Complaint> createComplaint(@RequestBody java.util.Map<String, Object> body) {
+        Long orderId = Long.valueOf(body.get("orderId").toString());
+        String customerName = body.get("customerName").toString();
+        String issue = body.get("issue").toString();
+        return ResponseEntity.ok(complaintService.createComplaint(new Complaint(orderId, customerName, issue)));
+    }
+
     @PutMapping("/{id}/resolve")
     @PreAuthorize("hasRole('ADMIN') or hasRole('EMPLOYEE')")
     public ResponseEntity<Complaint> resolveComplaint(

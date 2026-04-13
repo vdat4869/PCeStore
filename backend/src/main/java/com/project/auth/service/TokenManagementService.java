@@ -43,7 +43,7 @@ public class TokenManagementService {
                     
                     RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user.getId());
                     String accessToken = generateAccessToken(user);
-                    return new AuthResponse(accessToken, newRefreshToken.getToken(), user.getRole().name());
+                    return new AuthResponse(accessToken, newRefreshToken.getToken(), user.getRole().name(), user.getId());
                 })
                 .orElseThrow(() -> new IllegalArgumentException("error.auth.refresh_invalid"));
     }

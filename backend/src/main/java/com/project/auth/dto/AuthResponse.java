@@ -6,6 +6,7 @@ public class AuthResponse {
     private String refreshToken;
     private boolean mfaRequired;
     private String role;
+    private Long userId;
 
     public AuthResponse() {
     }
@@ -14,6 +15,14 @@ public class AuthResponse {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.role = role;
+        this.mfaRequired = false;
+    }
+
+    public AuthResponse(String accessToken, String refreshToken, String role, Long userId) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.role = role;
+        this.userId = userId;
         this.mfaRequired = false;
     }
 
@@ -51,5 +60,13 @@ public class AuthResponse {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

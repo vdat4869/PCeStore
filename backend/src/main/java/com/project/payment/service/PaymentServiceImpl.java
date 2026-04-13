@@ -133,7 +133,7 @@ public class PaymentServiceImpl implements PaymentService {
         fields.put("merchant", merchantId);
         fields.put("currency", "VND");
         fields.put("operation", "PURCHASE");
-        fields.put("order_description", "Thanh toan don hang D" + payment.getOrderId());
+        fields.put("order_description", "Thanh toan don hang DH-00" + payment.getOrderId());
         
         String uniqueInvoice = "INV-" + payment.getOrderId() + "-" + System.currentTimeMillis();
         fields.put("order_invoice_number", uniqueInvoice);
@@ -193,13 +193,20 @@ public class PaymentServiceImpl implements PaymentService {
             headers.set("Authorization", "Bearer " + apiToken);
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            SePayTransactionResponse response = restTemplate.exchange(url, HttpMethod.GET, entity, SePayTransactionResponse.class).getBody();
+            // Fetch as String first to log raw JSON
+            String rawJson = restTemplate.exchange(url, HttpMethod.GET, entity, String.class).getBody();
+            log.info("SePay API Raw Response: {}", rawJson);
 
-            if (response != null && response.getTransactions() != null) {
-                processTransactions(response.getTransactions());
+            if (rawJson != null) {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                SePayTransactionResponse response = mapper.readValue(rawJson, SePayTransactionResponse.class);
+                if (response != null && response.getTransactions() != null) {
+                    processTransactions(response.getTransactions());
+                }
             }
         } catch (Exception e) {
             log.error("Error during SePay sync: {}", e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -211,38 +218,60 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private void processTransactions(List<SePayTransactionResponse.SePayTransactionDTO> transactions) {
+        log.info("Processing {} transactions from SePay sync API", transactions.size());
         for (SePayTransactionResponse.SePayTransactionDTO tx : transactions) {
-            String content = tx.getTransaction_content();
-            if (content == null) continue;
+            String content = tx.getTransactionContent();
+            if (content == null) {
+                log.debug("Skipping transaction with null content (ID: {})", tx.getId());
+                continue;
+            }
+
+            log.info("Analyzing SePay Transaction: Content='{}', Amount={}", content, tx.getAmountIn());
 
             Long orderId = extractOrderIdFromContent(content);
             if (orderId != null) {
-                paymentRepository.findByOrderId(orderId).ifPresent(payment -> {
+                paymentRepository.findByOrderId(orderId).ifPresentOrElse(payment -> {
                     if (payment.getStatus() == PaymentStatus.PENDING) {
-                        BigDecimal txAmount = new BigDecimal(tx.getAmount_in());
+                        BigDecimal txAmount = new BigDecimal(tx.getAmountIn());
                         if (txAmount.compareTo(payment.getAmount()) >= 0) {
-                            log.info("Match found for Order #{}. Updating status to PAID.", orderId);
+                            log.info("Reconciliation SUCCESS: Order #{} matched with amount {}. Updating to PAID.", orderId, txAmount);
                             payment.setStatus(PaymentStatus.COMPLETED);
-                            payment.setTransactionId(tx.getReference_number() != null ? tx.getReference_number() : tx.getCode());
+                            payment.setTransactionId(tx.getReferenceNumber() != null ? tx.getReferenceNumber() : tx.getCode());
                             payment.setPaymentDate(LocalDateTime.now());
                             paymentRepository.save(payment);
                             orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+                        } else {
+                            log.warn("Reconciliation FAILED for Order #{}: Amount {} is less than required {}.", orderId, txAmount, payment.getAmount());
                         }
+                    } else {
+                        log.info("Order #{} payment already has status: {}", orderId, payment.getStatus());
                     }
-                });
+                }, () -> log.warn("Reconciliation FAILED: Order #{} extracted but no pending payment record found.", orderId));
+            } else {
+                log.debug("No Order ID found in content: '{}'", content);
             }
         }
     }
 
     private Long extractOrderIdFromContent(String content) {
+        if (content == null) return null;
+        content = content.toUpperCase();
         try {
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(?:D|INV-)(\\d+)");
-            java.util.regex.Matcher matcher = pattern.matcher(content);
-            if (matcher.find()) {
-                return Long.parseLong(matcher.group(1));
+            // Case 1: Broad prefix match (DH, INV, ORD, D)
+            java.util.regex.Pattern p1 = java.util.regex.Pattern.compile("(?:DH|INV|ORD|D)[- ]*0*(\\d+)");
+            java.util.regex.Matcher m1 = p1.matcher(content);
+            if (m1.find()) {
+                return Long.parseLong(m1.group(1));
+            }
+            
+            // Case 2: Numeric fallback - find any number sequence of 1-6 digits not part of something else
+            java.util.regex.Pattern p2 = java.util.regex.Pattern.compile("\\b(\\d{1,6})\\b");
+            java.util.regex.Matcher m2 = p2.matcher(content);
+            if (m2.find()) {
+                return Long.parseLong(m2.group(1));
             }
         } catch (Exception e) {
-            // ignore
+            log.error("Error extracting order ID from content '{}': {}", content, e.getMessage());
         }
         return null;
     }

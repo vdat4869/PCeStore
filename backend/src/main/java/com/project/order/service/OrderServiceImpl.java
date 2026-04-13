@@ -185,6 +185,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Order getOrderByGuest(Long orderId, String phone) {
+        Order order = getOrderById(orderId);
+        // Verify that the user associated with the order has the specified phone number
+        if (order.getUser() != null && phone.equals(order.getUser().getPhone())) {
+            return order;
+        }
+        throw new RuntimeException("error.order.not_found_or_unauthorized");
+    }
+
+    @Override
     @Transactional
     public void deleteAllOrders(Long userId) {
         List<Order> orders = orderRepository.findByUserId(userId);

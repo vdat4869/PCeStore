@@ -4,6 +4,11 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.project.auth.dto.AuthResponse;
 import com.project.auth.dto.LoginRequest;
+import com.project.auth.dto.MfaSetupResponse;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.project.auth.entity.AuthProvider;
 import com.project.auth.entity.RefreshToken;
 import com.project.auth.entity.User;
@@ -23,9 +28,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.sql.SQLException;
+import java.util.Base64;
 import java.util.UUID;
 
 @Service
@@ -88,7 +95,7 @@ public class UserAuthenticationService {
         String jwtToken = tokenManagementService.generateAccessToken(user);
         RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
 
-        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name());
+        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name(), user.getId());
     }
 
     @Transactional
@@ -113,11 +120,11 @@ public class UserAuthenticationService {
         String jwtToken = tokenManagementService.generateAccessToken(user);
         RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
 
-        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name());
+        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name(), user.getId());
     }
 
     @Transactional
-    public String generateMfaSecret(String email) {
+    public MfaSetupResponse generateMfaSecret(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
         
@@ -127,8 +134,24 @@ public class UserAuthenticationService {
         user.setMfaSecret(key.getKey());
         userRepository.save(user);
         
-        // Trả về secret để FE tạo QR code hoặc hiển thị cho người dùng
-        return key.getKey();
+        String otpauthUri = String.format("otpauth://totp/PCeStore:%s?secret=%s&issuer=PCeStore", email, key.getKey());
+        String qrCodeBase64 = generateQrCodeBase64(otpauthUri);
+
+        return new MfaSetupResponse(key.getKey(), qrCodeBase64);
+    }
+
+    private String generateQrCodeBase64(String content) {
+        try {
+            QRCodeWriter qrCodeWriter = new QRCodeWriter();
+            BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);
+            
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
+            
+            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not generate QR code", e);
+        }
     }
 
     @Transactional
@@ -168,7 +191,7 @@ public class UserAuthenticationService {
             String jwtToken = tokenManagementService.generateAccessToken(user);
             RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
 
-            return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name());
+            return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name(), user.getId());
 
         } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
             loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "error.auth.google_failed");

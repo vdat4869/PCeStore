@@ -70,15 +70,15 @@ public class AuthController {
 
     @PostMapping("/mfa/setup")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> setupMfa(Principal principal) {
-        String secret = authenticationService.generateMfaSecret(principal.getName());
-        return ResponseEntity.ok(secret);
+    public ResponseEntity<MfaSetupResponse> setupMfa(Principal principal) {
+        MfaSetupResponse response = authenticationService.generateMfaSecret(principal.getName());
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/mfa/enable")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> enableMfa(Principal principal, @RequestParam int code) {
-        authenticationService.enableMfa(principal.getName(), code);
+    public ResponseEntity<String> enableMfa(Principal principal, @Valid @RequestBody EnableMfaRequest request) {
+        authenticationService.enableMfa(principal.getName(), request.getOtp());
         return ResponseEntity.ok("success.auth.mfa_enabled");
     }
 

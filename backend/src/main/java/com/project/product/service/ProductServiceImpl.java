@@ -58,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public Page<ProductResponse> searchProducts(String name, Pageable pageable) {
-        return productRepository.findByNameContainingIgnoreCase(name, pageable).map(this::mapToResponse);
+        return productRepository.findByKeyword(name, pageable).map(this::mapToResponse);
     }
 
     /**

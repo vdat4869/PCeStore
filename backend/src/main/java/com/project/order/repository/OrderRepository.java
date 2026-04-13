@@ -17,7 +17,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserId(@Param("userId") Long userId);
 
     // Tìm kiếm đơn hàng cụ thể kèm theo items (Tránh LazyInitializationException)
-    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems oi LEFT JOIN FETCH oi.product WHERE o.id = :id")
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems oi LEFT JOIN FETCH oi.product LEFT JOIN FETCH o.user WHERE o.id = :id")
     Optional<Order> findByIdWithItems(@Param("id") Long id);
 
     // Tìm kiếm đơn hàng bất kể trạng thái xóa (Dùng cho Admin)

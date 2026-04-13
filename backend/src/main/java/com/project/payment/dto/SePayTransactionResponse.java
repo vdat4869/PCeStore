@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 public class SePayTransactionResponse {
     private int status;
     private int count;
@@ -22,13 +23,25 @@ public class SePayTransactionResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
     public static class SePayTransactionDTO {
         private Long id;
-        private String transaction_content;
-        private String amount_in;
-        private String reference_number;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("content")
+        private String transactionContent;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("amount_in")
+        private String amountIn;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("reference_number")
+        private String referenceNumber;
+        
         private String code;
-        private String transaction_date;
-        private String account_number;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("transaction_date")
+        private String transactionDate;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("account_number")
+        private String accountNumber;
     }
 }

@@ -24,6 +24,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     @EntityGraph(attributePaths = {"category"})
+    @Query("SELECT p FROM Product p JOIN p.category c WHERE " +
+           "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+           "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<Product> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"category"})
     Page<Product> findByCategoryId(Long categoryId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"category"})

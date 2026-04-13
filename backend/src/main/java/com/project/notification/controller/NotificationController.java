@@ -50,9 +50,16 @@ public class NotificationController {
 
     // --- Quản lý Tùy chọn (Preferences) ---
     @GetMapping("/preferences")
-    public ResponseEntity<List<com.project.notification.entity.NotificationPreference>> getPreferences(
+    public ResponseEntity<java.util.List<com.project.notification.dto.NotificationPreferenceResponse>> getPreferences(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(notificationService.getPreferences(userDetails.getUser()));
+        if (userDetails == null) {
+            return ResponseEntity.status(401).build();
+        }
+        java.util.List<com.project.notification.dto.NotificationPreferenceResponse> responses = notificationService.getPreferences(userDetails.getUser())
+                .stream()
+                .map(p -> new com.project.notification.dto.NotificationPreferenceResponse(p.getType(), p.isEnabled()))
+                .toList();
+        return ResponseEntity.ok(responses);
     }
 
     @PutMapping("/preferences")

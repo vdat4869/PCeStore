@@ -16,4 +16,5 @@ public interface OrderService {
     void deleteOrder(Long orderId);
     void restoreOrder(Long orderId);
     void deleteAllOrders(Long userId);
+    Order getOrderByGuest(Long orderId, String phone);
 }
