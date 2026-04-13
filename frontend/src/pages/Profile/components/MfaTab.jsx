@@ -27,7 +27,7 @@ export default function MfaTab() {
     e.preventDefault();
     try {
       setLoading(true);
-      await apiClient.post('/auth/mfa/enable', { otp });
+      await apiClient.post('/auth/mfa/enable', { otp: parseInt(otp, 10) });
       setMessage({ type: 'success', text: 'Kích hoạt Bảo mật 2 lớp (MFA) thành công!' });
       setQrCode(null);
       setSecret(null);

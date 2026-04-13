@@ -62,6 +62,22 @@ export default function OrdersTab() {
     }
   };
 
+  const handleComplaint = async (orderId, customerName) => {
+    const issue = window.prompt("Mô tả vấn đề bạn đang gặp phải (Sản phẩm lỗi, Giao sai hàng, v.v.):");
+    if (!issue) return;
+
+    try {
+      await apiClient.post('/v1/complaints', {
+        orderId,
+        customerName: customerName || user?.fullName || user?.email,
+        issue
+      });
+      alert("Đã gửi yêu cầu hỗ trợ! Chúng tôi sẽ phản hồi sớm nhất qua email của bạn.");
+    } catch (err) {
+      alert("Lỗi khi gửi yêu cầu. Vui lòng thử lại sau.");
+    }
+  };
+
   const [trackOrder, setTrackOrder] = useState(null);
   const [showTrackModal, setShowTrackModal] = useState(false);
 
@@ -179,7 +195,15 @@ export default function OrdersTab() {
                       {order.status === 'PENDING' && (
                         <button className="btn btn-sm btn-outline-danger" onClick={() => handleCancelOrder(order.id)}>Huỷ đơn</button>
                       )}
-                      <button className="btn btn-sm btn-outline-primary" onClick={() => fetchOrderDetail(order.id)}>Chi Tiết Đơn Hàng</button>
+                      <button className="btn btn-sm btn-outline-primary" onClick={() => fetchOrderDetail(order.id)}>Xem Chi Tiết</button>
+                      {order.status === 'DELIVERED' && (
+                        <Link to={`/products/${order.items?.[0]?.productId || ''}`} className="btn btn-sm btn-success ms-2">
+                          <i className="bi bi-star-fill me-1"></i>Đánh giá
+                        </Link>
+                      )}
+                      <button className="btn btn-sm btn-outline-secondary ms-2" onClick={() => handleComplaint(order.id, order.customerName)}>
+                        <i className="bi bi-chat-dots me-1"></i>Hỗ trợ/Khiếu nại
+                      </button>
                     </div>
                     <div className="text-end">
                       <small className="text-muted">Tổng cộng: </small>

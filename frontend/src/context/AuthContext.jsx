@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }) => {
         if (data) {
           setUser({ 
             token, 
+            id: data.id,
             name: data.fullName || (data.email ? data.email.split('@')[0] : 'Tài khoản'), 
             email: data.email, 
             role: localStorage.getItem('userRole'),

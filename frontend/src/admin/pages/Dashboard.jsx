@@ -1,8 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Chart from 'react-apexcharts';
+import apiClient from '../../services/api';
+import { formatCurrency } from '../../utils';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalOrders: 0,
+    totalCustomers: 0,
+    totalProfit: 0,
+    totalPurchases: 0,
+    totalExpenses: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get('/v1/admin/dashboard/stats');
+      setStats(res.data);
+    } catch (err) {
+      console.error("Lỗi khi tải thống kê:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const salesPurchaseOptions = {
     colors: ['#f7a085', '#E66239'],
     chart: {
@@ -94,8 +122,8 @@ export default function Dashboard() {
               </div>
               <div>
                 <h2 className="mb-3 fs-6">Tổng doanh thu</h2>
-                <h3 className="fw-bold mb-0">$0</h3>
-                <p className="text-primary mb-0 small">0% so với tháng trước</p>
+                <h3 className="fw-bold mb-0">{formatCurrency(stats.totalRevenue)}</h3>
+                <p className="text-primary mb-0 small">Phát sinh từ đơn hàng thật</p>
               </div>
             </div>
           </div>
@@ -107,9 +135,9 @@ export default function Dashboard() {
                 <i className="ti ti-repeat fs-4"></i>
               </div>
               <div>
-                <h2 className="mb-3 fs-6">Tổng mua hàng</h2>
-                <h3 className="fw-bold mb-0">$0</h3>
-                <p className="text-success mb-0 small">0% so với tháng trước</p>
+                <h2 className="mb-3 fs-6">Vốn nhập hàng (Ước tính)</h2>
+                <h3 className="fw-bold mb-0">{formatCurrency(stats.totalPurchases)}</h3>
+                <p className="text-success mb-0 small">Lấy giá trị 80% doanh thu</p>
               </div>
             </div>
           </div>
@@ -135,9 +163,9 @@ export default function Dashboard() {
                 <i className="ti ti-notes fs-4"></i>
               </div>
               <div>
-                <h2 className="mb-3 fs-6">Hóa đơn đến hạn</h2>
-                <h3 className="fw-bold mb-0">$0</h3>
-                <p className="text-warning mb-0 small">0% so với tháng trước</p>
+                <h2 className="mb-3 fs-6">Khách hàng</h2>
+                <h3 className="fw-bold mb-0">{stats.totalCustomers}</h3>
+                <p className="text-warning mb-0 small">Người dùng đã đăng ký</p>
               </div>
             </div>
           </div>
@@ -150,8 +178,8 @@ export default function Dashboard() {
             <div className="card-body p-4">
               <div className="d-flex justify-content-between border-bottom pb-5 mb-3">
                 <div>
-                  <h3 className="fw-bold h4">$0</h3>
-                  <span>Tổng lợi nhuận</span>
+                  <h3 className="fw-bold h4">{formatCurrency(stats.totalProfit)}</h3>
+                  <span>Tổng lợi nhuận (20%)</span>
                 </div>
                 <div>
                   <i className="ti ti-layers-subtract fs-1 text-primary"></i>

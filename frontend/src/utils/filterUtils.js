@@ -82,6 +82,39 @@ export const extractSpecs = (name, categoryName = '') => {
      }
   }
 
+  // 6. Monitor Specifics
+  if (cat.includes('MÀN HÌNH') || upperName.includes('MONITOR')) {
+    // Resolution
+    if (upperName.includes('4K') || upperName.includes('2160P')) specs['Độ phân giải'] = '4K UHD';
+    else if (upperName.includes('2K') || upperName.includes('QHD') || upperName.includes('1440P')) specs['Độ phân giải'] = '2K QHD';
+    else if (upperName.includes('FHD') || upperName.includes('1080P')) specs['Độ phân giải'] = 'Full HD';
+
+    // Refresh Rate
+    const hzMatch = upperName.match(/(\d+)\s*HZ/);
+    if (hzMatch) specs['Tần số quét'] = hzMatch[0];
+
+    // Panel
+    if (upperName.includes('IPS')) specs['Tấm nền'] = 'IPS';
+    else if (upperName.includes('VA')) specs['Tấm nền'] = 'VA';
+    else if (upperName.includes('TN')) specs['Tấm nền'] = 'TN';
+    else if (upperName.includes('OLED')) specs['Tấm nền'] = 'OLED';
+  }
+
+  // 7. Gear Specifics (Keyboard/Mouse/Headset)
+  if (cat.includes('PHÍM') || cat.includes('CHUỘT') || cat.includes('TAI NGHE') || upperName.includes('KEYBOARD') || upperName.includes('MOUSE') || upperName.includes('HEADSET')) {
+    if (upperName.includes('WIRELESS') || upperName.includes('KHÔNG DÂY') || upperName.includes('BLUETOOTH')) specs['Kết nối'] = 'Không dây';
+    else specs['Kết nối'] = 'Có dây';
+
+    if (upperName.includes('MECHANICAL') || upperName.includes('PHÍM CƠ') || upperName.includes('HOT-SWAP')) specs['Loại'] = 'Cơ (Mechanical)';
+  }
+
+  // 8. Laptop Specifics
+  if (cat.includes('LAPTOP') || upperName.includes('MACBOOK')) {
+    if (upperName.includes('GAMING')) specs['Dòng Laptop'] = 'Gaming';
+    else if (upperName.includes('MACBOOK')) specs['Dòng Laptop'] = 'Macbook';
+    else specs['Dòng Laptop'] = 'Văn phòng';
+  }
+
   return specs;
 };
 

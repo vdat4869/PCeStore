@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 
 export default function SecurityTab() {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
   const [emailForm, setEmailForm] = useState({ newEmail: '' });
   const [message, setMessage] = useState(null);
@@ -54,6 +56,7 @@ export default function SecurityTab() {
       await apiClient.delete('/users/deactivate');
       alert("Tài khoản đã được xóa!");
       logout();
+      navigate('/login');
     } catch (err) {
       alert(err.response?.data?.message || "Lỗi khi xóa tài khoản.");
     }

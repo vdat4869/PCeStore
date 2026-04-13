@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { formatImageUrl } from '../utils';
 
-const Header = () => {
+const Header = ({ minimal = false }) => {
   const { cartCount } = useCart();
   const { isLoggedIn, logout, user } = useAuth();
   const navigate = useNavigate();
@@ -15,16 +15,13 @@ const Header = () => {
   const [activeMenuId, setActiveMenuId] = useState(1);
 
   const megaMenuData = [
-    { id: 1, name: "PC Gaming, Đồ Hoạ, AI", icon: "bi-pc-display", sub: ["Lắp đặt phòng net", "PC Workstation", "Build PC Gaming", "PC AI"] },
-    { id: 2, name: "PC văn phòng - doanh nghiệp", icon: "bi-building", sub: ["PC Đồng bộ Dell", "PC Đồng bộ HP", "PC Mini", "PC All in One"] },
-    { id: 3, name: "CPU, Mainboard, VGA", icon: "bi-cpu", sub: ["CPU AMD", "CPU Intel", "Mainboard B760", "VGA NVIDIA", "VGA AMD"] },
-    { id: 4, name: "RAM, SSD, HDD", icon: "bi-memory", sub: ["RAM DDR5", "RAM DDR4", "SSD chuẩn cắm", "SSD gắn ngoài", "HDD lưu trữ"] },
-    { id: 5, name: "Laptop", icon: "bi-laptop", sub: ["Laptop Gaming", "Laptop Văn phòng", "Macbook", "Phụ kiện Laptop"] },
-    { id: 6, name: "Màn hình, Tivi, Máy chiếu", icon: "bi-display", sub: ["Màn hình Gaming", "Màn hình Đồ hoạ", "Tivi", "Máy chiếu"] },
-    { id: 7, name: "Case, Tản, Nguồn", icon: "bi-box", sub: ["Vỏ Case", "Tản nhiệt khí", "Tản nhiệt nước", "Nguồn PC"] },
-    { id: 8, name: "Phím, chuột, tai nghe", icon: "bi-mouse", sub: ["Bàn phím cơ", "Chuột Gaming", "Tai nghe Over-ear", "Lót chuột"] },
-    { id: 9, name: "Bàn, ghế", icon: "bi-ui-radios", sub: ["Bàn chữ Z", "Ghế Công thái học", "Ghế Gaming", "Giá đỡ màn hình"] },
-    { id: 10, name: "Thiết bị mạng", icon: "bi-router", sub: ["Router Wifi 6", "Switch", "Cáp mạng", "USB Wifi"] },
+    { id: 1, name: "CPU, Mainboard, VGA", icon: "bi-cpu", sub: ["CPU", "Mainboard", "VGA"] },
+    { id: 2, name: "RAM, SSD, HDD", icon: "bi-memory", sub: ["RAM", "SSD", "HDD"] },
+    { id: 3, name: "Vỏ Case, Tản nhiệt, Nguồn", icon: "bi-box", sub: ["Case", "Tản nhiệt", "Nguồn"] },
+    { id: 4, name: "Màn hình máy tính", icon: "bi-display", sub: ["Màn hình Gaming", "Màn hình Đồ họa", "Màn hình 4K"] },
+    { id: 5, name: "Laptop & Macbook", icon: "bi-laptop", sub: ["Laptop Gaming", "Macbook", "Laptop Văn phòng"] },
+    { id: 6, name: "Bàn phím, Chuột, Tai nghe", icon: "bi-mouse", sub: ["Bàn phím", "Chuột", "Tai nghe"] },
+    { id: 7, name: "Build PC theo yêu cầu", icon: "bi-pc-display", sub: ["PC Gaming", "PC Workstation", "PC Văn phòng"] },
   ];
   
   // Refs để xử lý click outside
@@ -83,13 +80,15 @@ const Header = () => {
             {/* Search Bar */}
             <div className="col-12 col-md-5 mb-3 mb-md-0">
               <div className="input-group" ref={categoryRef}>
-                <button 
-                  className={`btn btn-outline-secondary dropdown-toggle bg-light text-dark fw-medium ${isCategoryOpen ? 'show' : ''}`} 
-                  type="button" 
-                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                >
-                  <i className="bi bi-list me-1"></i> Danh mục
-                </button>
+                {!minimal && (
+                  <button 
+                    className={`btn btn-outline-secondary dropdown-toggle bg-light text-dark fw-medium ${isCategoryOpen ? 'show' : ''}`} 
+                    type="button" 
+                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  >
+                    <i className="bi bi-list me-1"></i> Danh mục
+                  </button>
+                )}
                 {isCategoryOpen && (
                   <div className="dropdown-menu shadow border-0 show p-0 d-none d-md-flex" style={{ zIndex: 11000, width: '800px', position: 'absolute', top: '100%', left: 0, marginTop: '2px', minHeight: '350px' }}>
                      {/* Cột trái: Main categories */}
@@ -142,67 +141,90 @@ const Header = () => {
                      ))}
                    </ul>
                 )}
-                <input type="text" className="form-control" placeholder="Bạn tìm gì..." />
-                <button className="btn btn-danger px-4" type="button">
-                  <i className="bi bi-search"></i>
-                </button>
+                {!minimal ? (
+                  <>
+                    <input type="text" className="form-control" placeholder="Bạn tìm gì..." />
+                    <button className="btn btn-danger px-4" type="button">
+                      <i className="bi bi-search"></i>
+                    </button>
+                  </>
+                ) : (
+                  <div className="d-flex align-items-center h-100 ps-3 border-start ms-3">
+                    <h4 className="mb-0 fw-bold text-dark">
+                      {window.location.pathname.includes('login') ? 'Đăng nhập' : 
+                       window.location.pathname.includes('register') || window.location.pathname.includes('signup') ? 'Đăng ký' : 
+                       window.location.pathname.includes('forgot-password') ? 'Khôi phục mật khẩu' : ''}
+                    </h4>
+                  </div>
+                )}
               </div>
-              <div className="small mt-1 text-muted d-none d-md-flex gap-3">
-                <Link to="/products?q=VGA" className="text-decoration-none text-secondary">VGA</Link>
-                <Link to="/products?q=CPU" className="text-decoration-none text-secondary">CPU AMD</Link>
-                <Link to="/products?q=RAM" className="text-decoration-none text-secondary">RAM</Link>
-                <Link to="/products?q=Màn hình" className="text-decoration-none text-secondary">Màn hình</Link>
-              </div>
+              {!minimal && (
+                <div className="small mt-1 text-muted d-none d-md-flex gap-3">
+                  <Link to="/products?q=VGA" className="text-decoration-none text-secondary">VGA</Link>
+                  <Link to="/products?q=CPU" className="text-decoration-none text-secondary">CPU</Link>
+                  <Link to="/products?q=Laptop" className="text-decoration-none text-secondary">Laptop</Link>
+                  <Link to="/products?q=Màn hình" className="text-decoration-none text-secondary">Màn hình</Link>
+                  <Link to="/products?q=RAM" className="text-decoration-none text-secondary">RAM</Link>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
             <div className="col-12 col-md-4 text-center text-md-end d-flex justify-content-center justify-content-md-end align-items-center gap-4">
-              <div className="dropdown" ref={accountRef}>
-                <button 
-                  className={`btn border-0 d-flex align-items-center p-0 dropdown-toggle no-caret ${isAccountOpen ? 'show' : ''}`} 
-                  type="button" 
-                  onClick={() => setIsAccountOpen(!isAccountOpen)}
-                >
-                  {isLoggedIn && user?.role !== 'ADMIN' && user?.avatarUrl ? (
-                    <img src={formatImageUrl(user.avatarUrl)} alt="" className="rounded-circle me-2 object-fit-cover shadow-sm" style={{ width: '32px', height: '32px', border: '1px solid #eee' }} />
-                  ) : (
-                    <i className={`bi bi-person-circle fs-3 me-2 ${isLoggedIn ? 'text-primary' : ''}`} style={{ color: isLoggedIn ? '' : '#888', fontSize: '1.8rem' }}></i>
-                  )}
-                  <div className="text-start small d-none d-lg-block">
-                    <div className="text-muted" style={{ fontSize: '11px', marginBottom: '-2px' }}>
-                      {isLoggedIn && user?.role !== 'ADMIN' ? 'Xin chào,' : 'Đăng nhập/Đăng ký'}
-                    </div>
-                    <div className="text-dark fw-bold" style={{ fontSize: '14px' }}>
-                      {isLoggedIn && user?.role !== 'ADMIN' ? (user?.name || 'Tài khoản') : 'Tài khoản'} <i className={`bi bi-caret-down-fill ${(isLoggedIn && user?.role !== 'ADMIN') ? '' : 'text-muted'}`} style={{ fontSize: '10px' }}></i>
-                    </div>
+              {minimal ? (
+                <Link to="/" className="text-danger text-decoration-none fw-medium">
+                  Bạn cần giúp đỡ?
+                </Link>
+              ) : (
+                <>
+                  <div className="dropdown" ref={accountRef}>
+                    <button 
+                      className={`btn border-0 d-flex align-items-center p-0 dropdown-toggle no-caret ${isAccountOpen ? 'show' : ''}`} 
+                      type="button" 
+                      onClick={() => setIsAccountOpen(!isAccountOpen)}
+                    >
+                      {isLoggedIn && user?.role !== 'ADMIN' && user?.avatarUrl ? (
+                        <img src={formatImageUrl(user.avatarUrl)} alt="" className="rounded-circle me-2 object-fit-cover shadow-sm" style={{ width: '32px', height: '32px', border: '1px solid #eee' }} />
+                      ) : (
+                        <i className={`bi bi-person-circle fs-3 me-2 ${isLoggedIn ? 'text-primary' : ''}`} style={{ color: isLoggedIn ? '' : '#888', fontSize: '1.8rem' }}></i>
+                      )}
+                      <div className="text-start small d-none d-lg-block">
+                        <div className="text-muted" style={{ fontSize: '11px', marginBottom: '-2px' }}>
+                          {isLoggedIn && user?.role !== 'ADMIN' ? 'Xin chào,' : 'Đăng nhập/Đăng ký'}
+                        </div>
+                        <div className="text-dark fw-bold" style={{ fontSize: '14px' }}>
+                          {isLoggedIn && user?.role !== 'ADMIN' ? (user?.name || 'Tài khoản') : 'Tài khoản'} <i className={`bi bi-caret-down-fill ${(isLoggedIn && user?.role !== 'ADMIN') ? '' : 'text-muted'}`} style={{ fontSize: '10px' }}></i>
+                        </div>
+                      </div>
+                    </button>
+                    <ul className={`dropdown-menu dropdown-menu-end shadow border-0 mt-2 ${isAccountOpen ? 'show' : ''}`} style={{ zIndex: 11000 }}>
+                      {isLoggedIn && user?.role !== 'ADMIN' ? (
+                        <>
+                          <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person me-2"></i>Thông tin cá nhân</Link></li>
+                          <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Đơn hàng của tôi</Link></li>
+                          <li><hr className="dropdown-divider" /></li>
+                          <li><button className="dropdown-item py-2 text-danger" onClick={handleLogout}><i className="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
+                        </>
+                      ) : (
+                        <>
+                          <li><Link className="dropdown-item py-2" to="/login" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</Link></li>
+                          <li><Link className="dropdown-item py-2" to="/signup" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person-plus me-2"></i>Đăng ký thành viên</Link></li>
+                        </>
+                      )}
+                    </ul>
                   </div>
-                </button>
-                <ul className={`dropdown-menu dropdown-menu-end shadow border-0 mt-2 ${isAccountOpen ? 'show' : ''}`} style={{ zIndex: 11000 }}>
-                  {isLoggedIn && user?.role !== 'ADMIN' ? (
-                    <>
-                      <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person me-2"></i>Thông tin cá nhân</Link></li>
-                      <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Đơn hàng của tôi</Link></li>
-                      <li><hr className="dropdown-divider" /></li>
-                      <li><button className="dropdown-item py-2 text-danger" onClick={handleLogout}><i className="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
-                    </>
-                  ) : (
-                    <>
-                      <li><Link className="dropdown-item py-2" to="/login" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</Link></li>
-                      <li><Link className="dropdown-item py-2" to="/signup" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person-plus me-2"></i>Đăng ký thành viên</Link></li>
-                    </>
-                  )}
-                </ul>
-              </div>
-              
-              <Link to="/cart" className="text-dark text-decoration-none d-flex align-items-center position-relative">
-                <div className="position-relative">
-                  <i className="bi bi-cart3 fs-3 text-secondary"></i>
-                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
-                    {cartCount}
-                  </span>
-                </div>
-                <span className="ms-3 fw-bold d-none d-lg-block">Giỏ hàng</span>
-              </Link>
+                  
+                  <Link to="/cart" className="text-dark text-decoration-none d-flex align-items-center position-relative">
+                    <div className="position-relative">
+                      <i className="bi bi-cart3 fs-3 text-secondary"></i>
+                      <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
+                        {cartCount}
+                      </span>
+                    </div>
+                    <span className="ms-3 fw-bold d-none d-lg-block">Giỏ hàng</span>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

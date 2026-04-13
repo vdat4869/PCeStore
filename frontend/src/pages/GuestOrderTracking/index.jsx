@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import apiClient from '../../services/api';
 
 export default function GuestOrderTracking() {
   const [phone, setPhone] = useState('');
@@ -8,7 +8,7 @@ export default function GuestOrderTracking() {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null); // Giả lập dữ liệu trả về
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (!phone || !orderCode) {
       setError('Vui lòng nhập đầy đủ Số điện thoại và Mã đơn hàng.');
@@ -17,28 +17,29 @@ export default function GuestOrderTracking() {
     
     setError('');
     setLoading(true);
-
-    // Mock API Call delay
-    setTimeout(() => {
-      // Mock Data 
-      if (orderCode.includes('ORD')) {
-        setResult({
-          status: 'SHIPPING',
-          date: new Date().toLocaleDateString('vi-VN'),
-          items: 2,
-          total: 12500000,
-          updates: [
-            { time: '10:00 12/04/2026', msg: 'Đơn hàng đang được giao đến bạn.' },
-            { time: '08:30 11/04/2026', msg: 'Đã xuất kho PCeStore.' },
-            { time: '14:20 10/04/2026', msg: 'Đặt hàng thành công. Chờ xử lý.' }
-          ]
-        });
-      } else {
-        setResult(null);
-        setError('Không tìm thấy đơn hàng. Vui lòng kiểm tra lại mã vận đơn.');
-      }
+    
+    try {
+      // Gọi API thật từ server
+      const res = await apiClient.get(`/v1/orders/guest-track?phone=${phone}&orderCode=${orderCode}`);
+      setResult(res.data);
+    } catch (err) {
+      setResult(null);
+      setError('Không tìm thấy đơn hàng. Vui lòng kiểm tra lại thông tin Số điện thoại và Mã đơn hàng.');
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      'PENDING': 'CHỜ XỬ LÝ',
+      'PAID': 'ĐÃ THANH TOÁN',
+      'CONFIRMED': 'ĐÃ XÁC NHẬN',
+      'SHIPPING': 'ĐANG GIAO HÀNG',
+      'DELIVERED': 'GIAO THÀNH CÔNG',
+      'CANCELLED': 'ĐÃ HỦY'
+    };
+    return labels[status] || status;
   };
 
   return (
@@ -91,40 +92,50 @@ export default function GuestOrderTracking() {
         <div className="card border-0 shadow-sm border-top border-danger border-4">
           <div className="card-body p-4">
             <h5 className="fw-bold mb-4 border-bottom pb-3 d-flex justify-content-between align-items-center">
-              <span>Thông tin vận đơn: <span className="text-danger">{orderCode.toUpperCase()}</span></span>
-              <span className="badge bg-primary px-3 py-2 fs-6">ĐANG GIAO HÀNG</span>
+              <span>Thông tin đơn hàng: <span className="text-danger">DH-00{result.id}</span></span>
+              <span className={`badge ${result.status === 'DELIVERED' ? 'bg-success' : 'bg-primary'} px-3 py-2 fs-6`}>
+                {getStatusLabel(result.status)}
+              </span>
             </h5>
             
             <div className="row mb-4">
               <div className="col-sm-4 mb-3 mb-sm-0">
                 <div className="text-muted small">Ngày đặt:</div>
-                <div className="fw-bold">{result.date}</div>
+                <div className="fw-bold">{new Date(result.orderDate).toLocaleDateString('vi-VN')}</div>
               </div>
               <div className="col-sm-4 mb-3 mb-sm-0">
-                <div className="text-muted small">Số lượng SP:</div>
-                <div className="fw-bold">{result.items} sản phẩm</div>
+                <div className="text-muted small">Sản phẩm:</div>
+                <div className="fw-bold">{result.items?.length || 0} sản phẩm</div>
               </div>
               <div className="col-sm-4">
                 <div className="text-muted small">Tổng tiền:</div>
-                <div className="fw-bold text-danger">{result.total.toLocaleString('vi-VN')} đ</div>
+                <div className="fw-bold text-danger">{result.totalAmount?.toLocaleString('vi-VN')} đ</div>
               </div>
             </div>
 
             <div className="bg-light p-4 rounded-3">
-              <h6 className="fw-bold mb-4">Hành trình đơn hàng</h6>
+              <h6 className="fw-bold mb-4">Chi tiết trạng thái</h6>
               <div className="timeline position-relative ps-4" style={{ borderLeft: '2px solid #e9ecef' }}>
-                {result.updates.map((up, idx) => (
-                  <div className="timeline-item position-relative mb-4" key={idx}>
+                <div className="timeline-item position-relative mb-4">
+                  <div className="position-absolute rounded-circle border border-2 border-white" 
+                       style={{ width: '14px', height: '14px', background: '#e30019', left: '-32px', top: '4px' }}></div>
+                  <div className="fw-bold small text-danger">Hiện tại</div>
+                  <div className="text-dark mt-1">Trạng thái: <strong>{getStatusLabel(result.status)}</strong></div>
+                </div>
+                {result.paymentStatus === 'COMPLETED' && (
+                  <div className="timeline-item position-relative mb-4">
                     <div className="position-absolute rounded-circle border border-2 border-white" 
-                         style={{ 
-                           width: '14px', height: '14px', 
-                           background: idx === 0 ? '#e30019' : '#adb5bd', 
-                           left: '-32px', top: '4px' 
-                         }}></div>
-                    <div className="fw-bold small" style={{ color: idx === 0 ? '#e30019' : '#6c757d' }}>{up.time}</div>
-                    <div className="text-dark mt-1">{up.msg}</div>
+                         style={{ width: '14px', height: '14px', background: '#28a745', left: '-32px', top: '4px' }}></div>
+                    <div className="text-success small fw-bold">Thanh toán</div>
+                    <div className="text-dark mt-1">Đã hoàn tất thanh toán qua {result.paymentMethod}</div>
                   </div>
-                ))}
+                )}
+                <div className="timeline-item position-relative">
+                   <div className="position-absolute rounded-circle border border-2 border-white" 
+                        style={{ width: '14px', height: '14px', background: '#adb5bd', left: '-32px', top: '4px' }}></div>
+                   <div className="text-secondary small fw-bold">{new Date(result.orderDate).toLocaleTimeString('vi-VN')} {new Date(result.orderDate).toLocaleDateString('vi-VN')}</div>
+                   <div className="text-dark mt-1">Đơn hàng đã được khởi tạo trên hệ thống.</div>
+                </div>
               </div>
             </div>
             

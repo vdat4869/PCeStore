@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Sidebar({ isCollapsed, isMobileShow }) {
   const location = useLocation();
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const getNavLinkClass = (path) => {
     return `nav-link ${location.pathname === path ? 'active' : ''}`;
@@ -13,6 +14,7 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
   const handleLogout = (e) => {
     e.preventDefault();
     logout();
+    navigate('/login');
   };
 
   return (

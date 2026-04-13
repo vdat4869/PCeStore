@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -255,14 +258,47 @@ export default function Register() {
             </div>
 
             {/* Google OAuth */}
-            <button
-              type="button"
-              className="btn btn-outline-secondary w-100 py-2 rounded-3 fw-medium"
-              onClick={() => alert('Google OAuth — sẽ tích hợp trong Phase Integration')}
-            >
-              <img src="https://www.google.com/favicon.ico" alt="Google" width="18" className="me-2" />
-              Đăng ký bằng Google
-            </button>
+            <div className="d-flex justify-content-center">
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  setLoading(true);
+                  setError('');
+                  try {
+                    const response = await fetch('http://localhost:8080/api/auth/google-login', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ idToken: credentialResponse.credential })
+                    });
+                    
+                    if (response.ok) {
+                      const data = await response.json();
+                      login(data.accessToken, data.role, { id: data.userId }, data.refreshToken);
+                      
+                      if (data.role === 'ADMIN') {
+                        window.location.href = '/admin';
+                      } else if (data.role === 'EMPLOYEE') {
+                        window.location.href = '/employee';
+                      } else {
+                        window.location.href = '/';
+                      }
+                    } else {
+                      setError('Đăng ký/Đăng nhập Google thất bại từ máy chủ.');
+                    }
+                  } catch (err) {
+                    setError('Lỗi kết nối khi tích hợp Google.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onError={() => {
+                  setError('Lỗi khi xác thực tài khoản Google.');
+                }}
+                useOneTap
+                theme="outline"
+                width="100%"
+                text="continue_with"
+              />
+            </div>
 
             {/* Link đăng nhập */}
             <div className="text-center mt-4 pt-2 border-top">

@@ -88,7 +88,7 @@ export default function Home() {
         {/* Category Tabs */}
         <div className="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2 overflow-auto">
           <ul className="nav nav-pills flex-nowrap">
-            {categories.slice(0, 5).map(cat => (
+            {categories.slice(0, 10).map(cat => (
               <li className="nav-item" key={cat.id}>
                 <button
                   className={`nav-link fw-bold me-2 text-nowrap ${activeTab === cat.id ? 'bg-danger text-white' : 'text-dark hover-danger'}`}

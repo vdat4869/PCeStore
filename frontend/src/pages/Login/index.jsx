@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ export default function Login() {
   const { login } = useAuth();
 
   const handleProcessLoginSuccess = (data) => {
-    login(data.accessToken, data.role, { email }, data.refreshToken);
+    login(data.accessToken, data.role, { email, id: data.userId }, data.refreshToken);
     setError('');
     if (data.role === 'ADMIN') {
       window.location.href = '/admin';
@@ -169,6 +170,45 @@ export default function Login() {
             <button type="submit" className="btn btn-primary w-100 py-2 rounded-3 fw-medium">
               {isMfaStep ? 'Xác minh Authenticator' : 'Đăng nhập'}
             </button>
+
+            {!isMfaStep && (
+              <>
+                <div className="d-flex align-items-center my-4">
+                  <hr className="flex-grow-1" />
+                  <span className="mx-3 text-muted small">hoặc</span>
+                  <hr className="flex-grow-1" />
+                </div>
+
+                <div className="d-flex justify-content-center">
+                  <GoogleLogin
+                    onSuccess={async (credentialResponse) => {
+                      try {
+                        const response = await fetch('http://localhost:8080/api/auth/google-login', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ idToken: credentialResponse.credential })
+                        });
+                        
+                        if (response.ok) {
+                          const data = await response.json();
+                          handleProcessLoginSuccess(data);
+                        } else {
+                          setError('Đăng nhập Google thất bại từ máy chủ.');
+                        }
+                      } catch (err) {
+                        setError('Lỗi kết nối khi đăng nhập Google.');
+                      }
+                    }}
+                    onError={() => {
+                      setError('Đăng nhập Google thất bại.');
+                    }}
+                    useOneTap
+                    theme="outline"
+                    width="100%"
+                  />
+                </div>
+              </>
+            )}
 
             {!isMfaStep ? (
               <div className="text-center mt-4 pt-2 border-top">

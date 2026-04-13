@@ -21,6 +21,7 @@ function EmployeeApp() {
         <Route path="orders" element={<Orders />} />
         <Route path="orders/:id" element={<OrderDetail />} />
         <Route path="products" element={<Inventory />} />
+        <Route path="inventory" element={<Inventory />} />
         <Route path="inventory-history" element={<InventoryHistory />} />
         <Route path="complaints" element={<Complaints />} />
         <Route path="reviews" element={<ReviewsMan />} />
