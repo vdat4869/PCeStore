@@ -41,8 +41,8 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showDiscount, setShowDiscount] = useState(false);
-  const [discountCode, setDiscountCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountCode, setDiscountCode] = useState(stateData.discountCode || '');
+  const [discountPercent, setDiscountPercent] = useState(stateData.discountPercent || 0);
 
   const [provinces, setProvinces] = useState([]);
   const [districts, setDistricts] = useState([]);

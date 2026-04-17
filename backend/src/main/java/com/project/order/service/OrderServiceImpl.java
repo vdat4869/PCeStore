@@ -18,8 +18,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +32,27 @@ public class OrderServiceImpl implements OrderService {
     private final ShippingService shippingService;
     private final com.project.payment.repository.PaymentRepository paymentRepository;
     private final InventoryService inventoryService;
+
+    /**
+     * Danh sách mã giảm giá hợp lệ (giá trị = tỷ lệ phần trăm giảm, ví dụ 0.18 = 18%).
+     * Phải đồng bộ với frontend/src/utils/discounts.js
+     */
+    private static final Map<String, BigDecimal> DISCOUNT_CODES = Map.ofEntries(
+        Map.entry("KHOGABAMI",       new BigDecimal("0.18")),
+        Map.entry("RAUMANIAN",       new BigDecimal("0.36")),
+        Map.entry("CHUATAYDAU",      new BigDecimal("0.50")),
+        Map.entry("TEAFROMHAND",     new BigDecimal("0.75")),
+        Map.entry("PRISONNOW",       new BigDecimal("0.90")),
+        Map.entry("BANMOITRAINGHIEM",new BigDecimal("0.99")),
+        Map.entry("LGTV",            new BigDecimal("0.10")),
+        Map.entry("LO",              new BigDecimal("0.29"))
+    );
+
+    /** Trả về tỷ lệ giảm giá (0 nếu mã không hợp lệ/null). */
+    private BigDecimal resolveDiscountRate(String code) {
+        if (code == null || code.isBlank()) return BigDecimal.ZERO;
+        return DISCOUNT_CODES.getOrDefault(code.trim().toUpperCase(), BigDecimal.ZERO);
+    }
 
 
     @Override
@@ -47,7 +70,7 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("error.order.empty_items");
         }
 
-        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal subtotal = BigDecimal.ZERO;
 
         for (OrderItemRequestDTO itemDto : requestDTO.getItems()) {
             Product product = productRepository.findById(itemDto.getProductId())
@@ -65,10 +88,16 @@ public class OrderServiceImpl implements OrderService {
                     .build();
 
             order.addOrderItem(orderItem);
-            total = total.add(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(itemDto.getQuantity())));
+            subtotal = subtotal.add(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(itemDto.getQuantity())));
         }
 
-        order.setTotalAmount(total);
+        // Áp dụng mã giảm giá (nếu có)
+        BigDecimal discountRate = resolveDiscountRate(requestDTO.getDiscountCode());
+        BigDecimal discountAmount = subtotal.multiply(discountRate).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal discountedSubtotal = subtotal.subtract(discountAmount);
+
+        // Đặt tạm để lưu (sẽ được cập nhật sau khi có phí ship)
+        order.setTotalAmount(discountedSubtotal);
 
         // 1. Lưu Order trước để lấy ID dùng cho referenceId và Shipping
         Order savedOrder = orderRepository.saveAndFlush(order);
@@ -82,18 +111,18 @@ public class OrderServiceImpl implements OrderService {
             ));
         }
         
-        // 2. Tạo thông tin Shipping dựa trên Order đã có ID
+        // 3. Tạo thông tin Shipping dựa trên Order đã có ID
         Shipping shipping = shippingService.createShippingForOrder(savedOrder, requestDTO.getShippingAddress());
         
-        // Cập nhật lại tổng tiền bao gồm phí ship
-        BigDecimal finalTotal = total.add(shipping.getShippingCost());
+        // Cập nhật lại tổng tiền = (subtotal - discount) + phí ship
+        BigDecimal finalTotal = discountedSubtotal.add(shipping.getShippingCost());
         savedOrder.setTotalAmount(finalTotal);
         
-        // 3. Thiết lập quan hệ 2 chiều
+        // 4. Thiết lập quan hệ 2 chiều
         savedOrder.setShipping(shipping);
         shipping.setOrder(savedOrder);
 
-        // 4. Lưu lại toàn bộ (Cascade sẽ lưu Shipping)
+        // 5. Lưu lại toàn bộ (Cascade sẽ lưu Shipping)
         return orderRepository.save(savedOrder);
     }
 
