@@ -1,14 +1,16 @@
 package com.project.cart.dto;
 
+import java.math.BigDecimal;
+
 public class CartItemResponse {
     private Long id;
     private Long productId;
     private String productName;
     private String imageUrl;
-    private Double price;
+    private BigDecimal price;
     private int quantity;
 
-    public CartItemResponse(Long id, Long productId, String productName, String imageUrl, Double price, int quantity) {
+    public CartItemResponse(Long id, Long productId, String productName, String imageUrl, BigDecimal price, int quantity) {
         this.id = id;
         this.productId = productId;
         this.productName = productName;
@@ -29,8 +31,8 @@ public class CartItemResponse {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }

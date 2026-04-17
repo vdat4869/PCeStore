@@ -1,10 +1,11 @@
 package com.project.product.dto;
 
 
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import java.math.BigDecimal;
 
 public class ProductRequest {
     @NotBlank(message = "{validation.product.name.empty}")
@@ -13,8 +14,8 @@ public class ProductRequest {
     private String description;
 
     @NotNull(message = "{validation.product.price.empty}")
-    @Positive(message = "{validation.product.price.invalid}")
-    private Double price;
+    @DecimalMin(value = "0.01", message = "{validation.product.price.invalid}")
+    private BigDecimal price;
 
     @PositiveOrZero(message = "{validation.product.stock.invalid}")
     private Integer stock;
@@ -30,7 +31,7 @@ public class ProductRequest {
     // --- Constructors ---
     public ProductRequest() {}
 
-    public ProductRequest(String name, String description, Double price, Integer stock, Long categoryId, String brand, String imageUrl) {
+    public ProductRequest(String name, String description, BigDecimal price, Integer stock, Long categoryId, String brand, String imageUrl) {
         this.name = name;
         this.description = description;
         this.price = price;
@@ -47,8 +48,8 @@ public class ProductRequest {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }
@@ -70,7 +71,7 @@ public class ProductRequest {
     public static class ProductRequestBuilder {
         private String name;
         private String description;
-        private Double price;
+        private BigDecimal price;
         private Integer stock;
         private Long categoryId;
         private String brand;
@@ -78,7 +79,7 @@ public class ProductRequest {
 
         public ProductRequestBuilder name(String name) { this.name = name; return this; }
         public ProductRequestBuilder description(String description) { this.description = description; return this; }
-        public ProductRequestBuilder price(Double price) { this.price = price; return this; }
+        public ProductRequestBuilder price(BigDecimal price) { this.price = price; return this; }
         public ProductRequestBuilder stock(Integer stock) { this.stock = stock; return this; }
         public ProductRequestBuilder categoryId(Long categoryId) { this.categoryId = categoryId; return this; }
         public ProductRequestBuilder brand(String brand) { this.brand = brand; return this; }

@@ -5,12 +5,14 @@ import com.project.product.dto.ProductResponse;
 import com.project.product.service.ProductService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/products")
@@ -22,25 +24,25 @@ public class ProductController {
         this.productService = productService;
     }
 
-    // Cho phép tất cả xem danh sách sản phẩm (Pagination)
+    /**
+     * Lấy danh sách / tìm kiếm / lọc sản phẩm trong một endpoint thống nhất.
+     * Hỗ trợ sorting qua query param: ?sort=price,asc  hoặc  ?sort=name,desc
+     * Hỗ trợ filter kết hợp: keyword + categoryId + minPrice + maxPrice cùng lúc.
+     */
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice) {
-        
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ProductResponse> products;
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice) {
 
-        if (keyword != null && !keyword.isEmpty()) {
-            products = productService.searchProducts(keyword, pageable);
-        } else if (categoryId != null) {
-            products = productService.getProductsByCategory(categoryId, pageable);
-        } else if (minPrice != null && maxPrice != null) {
-            products = productService.getProductsByPriceRange(minPrice, maxPrice, pageable);
+        boolean hasAnyFilter = keyword != null || categoryId != null || minPrice != null || maxPrice != null;
+
+        Page<ProductResponse> products;
+        if (hasAnyFilter) {
+            // Dùng filterProducts kết hợp linh hoạt — 1 query duy nhất
+            products = productService.filterProducts(keyword, categoryId, minPrice, maxPrice, pageable);
         } else {
             products = productService.getAllProducts(pageable);
         }
@@ -48,7 +50,7 @@ public class ProductController {
         return ResponseEntity.ok(products);
     }
 
-    // Cho phép tất cả xem chi tiết
+    // Cho phép tất cả xem chi tiết sản phẩm
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
@@ -64,7 +66,9 @@ public class ProductController {
     // Yêu cầu quyền ADMIN
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductRequest request) {
+    public ResponseEntity<ProductResponse> updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductRequest request) {
         return ResponseEntity.ok(productService.updateProduct(id, request));
     }
 
@@ -73,6 +77,14 @@ public class ProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Khôi phục sản phẩm đã xóa mềm — yêu cầu quyền ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/{id}/restore")
+    public ResponseEntity<Void> restoreProduct(@PathVariable Long id) {
+        productService.restoreProduct(id);
         return ResponseEntity.noContent().build();
     }
 }

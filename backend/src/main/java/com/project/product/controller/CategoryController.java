@@ -1,8 +1,12 @@
 package com.project.product.controller;
 
-import com.project.product.entity.Category;
-import com.project.product.repository.CategoryRepository;
+import com.project.product.dto.CategoryRequest;
+import com.project.product.dto.CategoryResponse;
+import com.project.product.service.CategoryService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,39 +15,39 @@ import java.util.List;
 @RequestMapping("/api/categories")
 public class CategoryController {
 
-    private final CategoryRepository categoryRepository;
+    private final CategoryService categoryService;
 
-    public CategoryController(CategoryRepository categoryRepository) {
-        this.categoryRepository = categoryRepository;
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
     }
 
+    // Tất cả user có thể xem danh mục
     @GetMapping
-    public ResponseEntity<List<Category>> getAllCategories() {
-        return ResponseEntity.ok(categoryRepository.findAll());
+    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+        return ResponseEntity.ok(categoryService.getAllCategories());
     }
 
+    // Yêu cầu quyền ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Category> createCategory(@org.springframework.web.bind.annotation.RequestBody Category category) {
-        return ResponseEntity.ok(categoryRepository.save(category));
+    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
+        return new ResponseEntity<>(categoryService.createCategory(request), HttpStatus.CREATED);
     }
 
+    // Yêu cầu quyền ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @org.springframework.web.bind.annotation.RequestBody Category category) {
-        Category existing = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        existing.setName(category.getName());
-        return ResponseEntity.ok(categoryRepository.save(existing));
+    public ResponseEntity<CategoryResponse> updateCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody CategoryRequest request) {
+        return ResponseEntity.ok(categoryService.updateCategory(id, request));
     }
 
+    // Yêu cầu quyền ADMIN
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        category.setDeleted(true);
-        categoryRepository.save(category);
-        return ResponseEntity.ok().build();
+        categoryService.deleteCategory(id);
+        return ResponseEntity.noContent().build();
     }
 }

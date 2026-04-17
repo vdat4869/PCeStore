@@ -4,12 +4,14 @@ import com.project.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 @Entity
 @Table(name = "products", indexes = {
     @Index(name = "idx_product_name", columnList = "name"),
-    @Index(name = "idx_product_category", columnList = "category_id")
+    @Index(name = "idx_product_category", columnList = "category_id"),
+    @Index(name = "idx_product_price", columnList = "price")
 })
 @SQLRestriction("is_deleted = false")
 public class Product extends BaseEntity {
@@ -24,8 +26,8 @@ public class Product extends BaseEntity {
     @Column(length = 2000)
     private String description;
 
-    @Column(nullable = false)
-    private Double price;
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal price;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -47,7 +49,7 @@ public class Product extends BaseEntity {
      * java:S107: Constructor has 8 parameters, which is greater than 7 authorized.
      */
     @SuppressWarnings("java:S107")
-    public Product(Long id, String name, String description, Double price, Category category, String brand, String imageUrl, Long version) {
+    public Product(Long id, String name, String description, BigDecimal price, Category category, String brand, String imageUrl, Long version) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -82,11 +84,11 @@ public class Product extends BaseEntity {
         this.description = description;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
@@ -143,7 +145,7 @@ public class Product extends BaseEntity {
         private Long id;
         private String name;
         private String description;
-        private Double price;
+        private BigDecimal price;
         private Category category;
         private String brand;
         private String imageUrl;
@@ -164,7 +166,7 @@ public class Product extends BaseEntity {
             return this;
         }
 
-        public ProductBuilder price(Double price) {
+        public ProductBuilder price(BigDecimal price) {
             this.price = price;
             return this;
         }

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Repository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -35,5 +37,12 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     // Tìm kiếm thông tin kho bất kể trạng thái sản phẩm bị xóa mềm hay chưa (Dùng cho Admin)
     @Query(value = "SELECT * FROM inventories WHERE product_id = :productId", nativeQuery = true)
     Optional<Inventory> findByProductIdIncludingDeleted(@Param("productId") Long productId);
+
+    // Batch load tồn kho cho nhiều sản phẩm cùng lúc — tránh N+1 query khi dùng trong mapToResponse
+    List<Inventory> findAllByProductIdIn(Collection<Long> productIds);
+
+    // Tìm product_id chưa có inventory — dùng cho syncMissingInventories() tránh full-table scan
+    @Query("SELECT p.id FROM Product p WHERE p.id NOT IN (SELECT i.productId FROM Inventory i)")
+    List<Long> findProductIdsWithNoInventory();
 }
 

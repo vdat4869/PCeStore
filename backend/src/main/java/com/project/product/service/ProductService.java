@@ -4,15 +4,19 @@ import com.project.product.dto.ProductRequest;
 import com.project.product.dto.ProductResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.math.BigDecimal;
 
 public interface ProductService {
     Page<ProductResponse> getAllProducts(Pageable pageable);
-    
-    Page<ProductResponse> searchProducts(String name, Pageable pageable);
-    
+
+    Page<ProductResponse> searchProducts(String keyword, Pageable pageable);
+
     Page<ProductResponse> getProductsByCategory(Long categoryId, Pageable pageable);
-    
-    Page<ProductResponse> getProductsByPriceRange(Double minPrice, Double maxPrice, Pageable pageable);
+
+    Page<ProductResponse> getProductsByPriceRange(BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
+
+    /** Filter kết hợp linh hoạt: keyword + categoryId + khoảng giá. */
+    Page<ProductResponse> filterProducts(String keyword, Long categoryId, BigDecimal minPrice, BigDecimal maxPrice, Pageable pageable);
 
     ProductResponse getProductById(Long id);
 

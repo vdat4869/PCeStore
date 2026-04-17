@@ -84,11 +84,11 @@ public class OrderServiceImpl implements OrderService {
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
                     .quantity(itemDto.getQuantity())
-                    .price(BigDecimal.valueOf(product.getPrice()))
+                    .price(product.getPrice())
                     .build();
 
             order.addOrderItem(orderItem);
-            subtotal = subtotal.add(BigDecimal.valueOf(product.getPrice()).multiply(BigDecimal.valueOf(itemDto.getQuantity())));
+            subtotal = subtotal.add(product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())));
         }
 
         // Áp dụng mã giảm giá (nếu có)

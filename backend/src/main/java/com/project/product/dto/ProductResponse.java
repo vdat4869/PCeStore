@@ -1,13 +1,14 @@
 package com.project.product.dto;
 
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class ProductResponse {
     private Long id;
     private String name;
     private String description;
-    private Double price;
+    private BigDecimal price;
     private Integer stock;
     private Long categoryId;
     private String categoryName;
@@ -24,7 +25,7 @@ public class ProductResponse {
      * java:S107: Constructor has 11 parameters, which is greater than 7 authorized.
      */
     @SuppressWarnings("java:S107")
-    public ProductResponse(Long id, String name, String description, Double price, Integer stock, Long categoryId, 
+    public ProductResponse(Long id, String name, String description, BigDecimal price, Integer stock, Long categoryId, 
                            String categoryName, String brand, String imageUrl, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -49,8 +50,8 @@ public class ProductResponse {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public Double getPrice() { return price; }
-    public void setPrice(Double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }
@@ -82,7 +83,7 @@ public class ProductResponse {
         private Long id;
         private String name;
         private String description;
-        private Double price;
+        private BigDecimal price;
         private Integer stock;
         private Long categoryId;
         private String categoryName;
@@ -94,7 +95,7 @@ public class ProductResponse {
         public ProductResponseBuilder id(Long id) { this.id = id; return this; }
         public ProductResponseBuilder name(String name) { this.name = name; return this; }
         public ProductResponseBuilder description(String description) { this.description = description; return this; }
-        public ProductResponseBuilder price(Double price) { this.price = price; return this; }
+        public ProductResponseBuilder price(BigDecimal price) { this.price = price; return this; }
         public ProductResponseBuilder stock(Integer stock) { this.stock = stock; return this; }
         public ProductResponseBuilder categoryId(Long categoryId) { this.categoryId = categoryId; return this; }
         public ProductResponseBuilder categoryName(String categoryName) { this.categoryName = categoryName; return this; }
