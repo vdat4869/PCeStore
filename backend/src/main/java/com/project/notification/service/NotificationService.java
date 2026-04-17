@@ -79,6 +79,16 @@ public class NotificationService {
     }
 
     @Transactional
+    public void sendPasswordChangeOtp(User user, String otpCode, Locale locale) {
+        sendIfEnabled(user, NotificationType.PASSWORD_RESET, () -> {
+            String content = messageSource.getMessage("notification.pwd_change_otp.content", null, locale);
+            Notification notif = new Notification(user, NotificationType.PASSWORD_RESET, content);
+            notif = notificationRepository.save(notif);
+            emailService.sendPasswordChangeOtpEmail(user.getEmail(), otpCode, locale, notif.getId());
+        });
+    }
+
+    @Transactional
     public void sendOrderConfirmation(User user, String orderId, String totalAmount, Locale locale) {
         sendIfEnabled(user, NotificationType.ORDER_CONFIRMATION, () -> {
             String content = messageSource.getMessage("notification.order_confirm.content", new Object[]{orderId}, locale);

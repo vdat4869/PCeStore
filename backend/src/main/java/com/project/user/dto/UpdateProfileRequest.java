@@ -6,7 +6,7 @@ public class UpdateProfileRequest {
 
     private String fullName;
 
-    // @Pattern(regexp = "^0[35789]\\d{8}$", message = "{validation.phone.invalid}")
+    @Pattern(regexp = "^0[35789]\\d{8}$", message = "{validation.phone.invalid}")
     private String phone;
 
     private String avatarUrl;

@@ -63,13 +63,23 @@ public class UserController {
         return ResponseEntity.ok("/uploads/avatars/" + fileName);
     }
 
-    // Đổi mật khẩu
+    // Bước 1: Yêu cầu đổi mật khẩu → gửi OTP qua email xác thực
     @PutMapping("/change-password")
     public ResponseEntity<String> changePassword(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody ChangePasswordRequest request) {
         
         userService.changePassword(userDetails.getUser(), request);
+        return ResponseEntity.ok(translate("success.user.password_otp_sent"));
+    }
+
+    // Bước 2: Xác nhận OTP để hoàn tất đổi mật khẩu
+    @PostMapping("/change-password/confirm")
+    public ResponseEntity<String> confirmPasswordChange(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody com.project.user.dto.ConfirmPasswordChangeRequest request) {
+        
+        userService.confirmPasswordChange(userDetails.getUser(), request.getOtpCode());
         return ResponseEntity.ok(translate("success.user.password_changed"));
     }
 
@@ -117,6 +127,27 @@ public class UserController {
         
         addressService.deleteAddress(userDetails.getUser(), id);
         return ResponseEntity.ok(translate("success.address.deleted"));
+    }
+
+    // Xem danh sách session đang hoạt động (các thiết bị đã đăng nhập)
+    @GetMapping("/sessions")
+    public ResponseEntity<java.util.List<com.project.user.dto.SessionResponse>> getActiveSessions(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(userService.getActiveSessions(userDetails.getUser()));
+    }
+
+    // Thu hồi toàn bộ session (đăng xuất khỏi tất cả thiết bị trừ phiên hiện tại)
+    @DeleteMapping("/sessions")
+    public ResponseEntity<String> revokeAllSessions(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        userService.revokeAllSessions(userDetails.getUser());
+        return ResponseEntity.ok(translate("success.user.sessions_revoked"));
+    }
+
+    // Xem lịch sử đăng nhập (tối đa 50 bản ghi gần nhất)
+    @GetMapping("/login-history")
+    public ResponseEntity<java.util.List<com.project.user.dto.LoginLogResponse>> getLoginHistory(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(userService.getLoginHistory(userDetails.getUser()));
     }
 
     // Người dùng tự vô hiệu hóa tài khoản

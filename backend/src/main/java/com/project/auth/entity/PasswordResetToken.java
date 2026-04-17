@@ -16,6 +16,7 @@ public class PasswordResetToken {
 
     @ManyToOne(targetEntity = User.class, fetch = FetchType.LAZY)
     @JoinColumn(nullable = false, name = "user_id")
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private User user;
 
     @Column(nullable = false)

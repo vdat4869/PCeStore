@@ -15,6 +15,7 @@ public class EmailChangeToken extends BaseEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private User user;
 
     @Column(name = "new_email", nullable = false)

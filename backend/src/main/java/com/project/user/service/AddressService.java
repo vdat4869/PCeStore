@@ -17,6 +17,11 @@ import java.util.List;
 public class AddressService {
 
     private static final String ADDRESS_NOT_FOUND_MSG = "error.address.not_found";
+    private static final int MAX_ADDRESSES_PER_USER = 10;
+    private static final String AUDIT_ADDRESS_ADDED = "Address added: ";
+    private static final String AUDIT_ADDRESS_UPDATED = "Address updated, ID: ";
+    private static final String AUDIT_ADDRESS_DEFAULT = "Default address set, ID: ";
+    private static final String AUDIT_ADDRESS_DELETED = "Address deleted, ID: ";
 
     private final AddressRepository addressRepository;
     private final com.project.user.repository.UserAuditLogRepository auditLogRepository;
@@ -51,6 +56,11 @@ public class AddressService {
 
         List<Address> existingAddresses = addressRepository.findByUser(user);
 
+        // Giới hạn tối đa số địa chỉ cho mỗi user
+        if (existingAddresses.size() >= MAX_ADDRESSES_PER_USER) {
+            throw new IllegalArgumentException("error.address.limit_exceeded");
+        }
+
         // Nếu đây là địa chỉ đầu tiên, tự động set làm mặc định bất chấp cờ
         boolean isDefault = Boolean.TRUE.equals(request.getIsDefault());
         
@@ -72,8 +82,8 @@ public class AddressService {
         addressRepository.save(newAddr);
 
         // Log hành động
-        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.ADD_ADDRESS, 
-            "Thêm địa chỉ mới: " + newAddr.getStreet(), null));
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.ADD_ADDRESS,
+            AUDIT_ADDRESS_ADDED + newAddr.getStreet(), null));
 
         return new AddressResponse(
                 newAddr.getId(),
@@ -122,8 +132,8 @@ public class AddressService {
         addressRepository.save(address);
 
         // Log hành động
-        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.UPDATE_ADDRESS, 
-            "Cập nhật địa chỉ ID: " + addressId, null));
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.UPDATE_ADDRESS,
+            AUDIT_ADDRESS_UPDATED + addressId, null));
 
         return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), address.getIsDefault());
     }
@@ -150,8 +160,8 @@ public class AddressService {
         addressRepository.save(address);
 
         // Log hành động
-        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.SET_DEFAULT_ADDRESS, 
-            "Thiết lập địa chỉ mặc định ID: " + addressId, null));
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.SET_DEFAULT_ADDRESS,
+            AUDIT_ADDRESS_DEFAULT + addressId, null));
 
         return new AddressResponse(address.getId(), address.getStreet(), address.getCity(), address.getDistrict(), true);
     }
@@ -173,8 +183,8 @@ public class AddressService {
         addressRepository.save(address);
 
         // Log hành động
-        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.DELETE_ADDRESS, 
-            "Xóa địa chỉ ID: " + addressId, null));
+        auditLogRepository.save(new com.project.user.entity.UserAuditLog(user, com.project.user.entity.UserAction.DELETE_ADDRESS,
+            AUDIT_ADDRESS_DELETED + addressId, null));
     }
 
     // Khôi phục địa chỉ (Restore) - Chỉ dành cho Admin hoặc chủ sở hữu

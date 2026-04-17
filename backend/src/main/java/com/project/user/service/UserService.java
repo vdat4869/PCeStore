@@ -24,31 +24,49 @@ import jakarta.persistence.PersistenceContext;
 @Service
 public class UserService {
 
+    private static final String AUDIT_PROFILE_UPDATED = "Profile updated for: ";
+    private static final String AUDIT_PASSWORD_OTP_SENT = "Password change OTP requested";
+    private static final String AUDIT_PASSWORD_CHANGED = "Password changed successfully";
+    private static final String AUDIT_AVATAR_UPDATED = "Avatar updated: ";
+    private static final String AUDIT_DEACTIVATED = "User self-deactivated";
+    private static final String AUDIT_EMAIL_CHANGE_REQUESTED = "Email change requested to: ";
+    private static final String AUDIT_EMAIL_CHANGED = "Email changed from: ";
+    private static final String ERROR_SELF_DELETE = "error.admin.denied_self_delete";
+
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserAuditLogRepository auditLogRepository;
     private final com.project.user.repository.EmailChangeTokenRepository emailChangeTokenRepository;
+    private final com.project.user.repository.PasswordChangeTokenRepository passwordChangeTokenRepository;
     private final com.project.notification.service.NotificationService notificationService;
     private final com.project.common.service.FileStorageService fileStorageService;
+    private final com.project.auth.repository.RefreshTokenRepository refreshTokenRepository;
+    private final com.project.auth.repository.LoginLogRepository loginLogRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
 
-    public UserService(UserRepository userRepository, 
-                       UserProfileRepository userProfileRepository, 
+    public UserService(UserRepository userRepository,
+                       UserProfileRepository userProfileRepository,
                        PasswordEncoder passwordEncoder,
                        UserAuditLogRepository auditLogRepository,
                        com.project.user.repository.EmailChangeTokenRepository emailChangeTokenRepository,
+                       com.project.user.repository.PasswordChangeTokenRepository passwordChangeTokenRepository,
                        com.project.notification.service.NotificationService notificationService,
-                       com.project.common.service.FileStorageService fileStorageService) {
+                       com.project.common.service.FileStorageService fileStorageService,
+                       com.project.auth.repository.RefreshTokenRepository refreshTokenRepository,
+                       com.project.auth.repository.LoginLogRepository loginLogRepository) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogRepository = auditLogRepository;
         this.emailChangeTokenRepository = emailChangeTokenRepository;
+        this.passwordChangeTokenRepository = passwordChangeTokenRepository;
         this.notificationService = notificationService;
         this.fileStorageService = fileStorageService;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.loginLogRepository = loginLogRepository;
     }
 
     // --- User Self-Management ---
@@ -88,7 +106,7 @@ public class UserService {
         }
 
         userProfileRepository.save(profile);
-        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Cập nhật hồ sơ từ " + user.getEmail(), null));
+        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, AUDIT_PROFILE_UPDATED + user.getEmail(), null));
 
         return new UserProfileResponse(
                 profile.getId(),
@@ -99,7 +117,12 @@ public class UserService {
         );
     }
 
-    public void changePassword(User user, ChangePasswordRequest request) {
+    /**
+     * Bước 1: Xác thực mật khẩu cũ, tạo OTP và gửi qua email.
+     * Mật khẩu chưa được thay đổi cho đến khi xác nhận OTP ở bước 2.
+     */
+    @Transactional
+    public void changePassword(User user, com.project.user.dto.ChangePasswordRequest request) {
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new IllegalArgumentException("error.user.old_password_incorrect");
         }
@@ -107,16 +130,83 @@ public class UserService {
             throw new IllegalArgumentException("error.user.new_password_same");
         }
 
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        // Xóa token cũ nếu đang tồn tại (tránh rác DB)
+        passwordChangeTokenRepository.deleteByUser(user);
+
+        // Tạo OTP 6 chữ số
+        String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+        String encodedNewPassword = passwordEncoder.encode(request.getNewPassword());
+
+        com.project.user.entity.PasswordChangeToken token = new com.project.user.entity.PasswordChangeToken(
+            user, encodedNewPassword, otp, java.time.LocalDateTime.now().plusMinutes(10)
+        );
+        passwordChangeTokenRepository.save(token);
+
+        // Gửi OTP qua email
+        notificationService.sendPasswordChangeOtp(user, otp, org.springframework.context.i18n.LocaleContextHolder.getLocale());
+        auditLogRepository.save(new UserAuditLog(user, UserAction.CHANGE_PASSWORD, AUDIT_PASSWORD_OTP_SENT, null));
+    }
+
+    /**
+     * Bước 2: Xác nhận OTP, áp dụng mật khẩu mới vào tài khoản.
+     */
+    @Transactional
+    public void confirmPasswordChange(User user, String otpCode) {
+        com.project.user.entity.PasswordChangeToken token = passwordChangeTokenRepository
+            .findByUserAndOtpCode(user, otpCode)
+            .orElseThrow(() -> new IllegalArgumentException("error.user.otp_invalid"));
+
+        if (token.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
+            passwordChangeTokenRepository.delete(token);
+            throw new IllegalArgumentException("error.user.otp_expired");
+        }
+
+        // Áp dụng mật khẩu mới
+        user.setPassword(token.getEncodedNewPassword());
         userRepository.save(user);
-        auditLogRepository.save(new UserAuditLog(user, UserAction.CHANGE_PASSWORD, "Đã đổi mật khẩu", null));
+        passwordChangeTokenRepository.delete(token);
+        auditLogRepository.save(new UserAuditLog(user, UserAction.CHANGE_PASSWORD, AUDIT_PASSWORD_CHANGED, null));
     }
 
     @Transactional
     public void deactivateAccount(User user) {
         user.setDeleted(true);
         userRepository.save(user);
-        auditLogRepository.save(new UserAuditLog(user, UserAction.ACCOUNT_DEACTIVATED, "Người dùng tự hủy tài khoản", null));
+        auditLogRepository.save(new UserAuditLog(user, UserAction.ACCOUNT_DEACTIVATED, AUDIT_DEACTIVATED, null));
+    }
+
+    // --- User Session & Login History ---
+
+    /**
+     * Trả danh sách các session đang hoạt động (Refresh Token).
+     * Mỗi session tương ứng 1 thiết bị đã đăng nhập.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.project.user.dto.SessionResponse> getActiveSessions(User user) {
+        return refreshTokenRepository.findAllByUser(user).stream()
+            .map(rt -> new com.project.user.dto.SessionResponse(rt.getId(), rt.getUser().getCreatedAt(), rt.getExpiryDate()))
+            .toList();
+    }
+
+    /**
+     * Thu hồi toàn bộ session (buộc đăng xuất khỏi tất cả thiết bị).
+     */
+    @Transactional
+    public void revokeAllSessions(User user) {
+        refreshTokenRepository.deleteByUser(user);
+        auditLogRepository.save(new UserAuditLog(user, UserAction.ACCOUNT_DEACTIVATED, "All sessions revoked", null));
+    }
+
+    /**
+     * Trả lịch sử đăng nhập gần nhất của user (tối đa 50 bản ghi).
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<com.project.user.dto.LoginLogResponse> getLoginHistory(User user) {
+        return loginLogRepository.findByEmailOrderByCreatedAtDesc(user.getEmail()).stream()
+            .limit(50)
+            .map(log -> new com.project.user.dto.LoginLogResponse(
+                log.getId(), log.getIpAddress(), log.getStatus(), log.getReason(), log.getCreatedAt()))
+            .toList();
     }
 
     // --- Admin Management ---
@@ -166,35 +256,32 @@ public class UserService {
             throw new org.springframework.security.access.AccessDeniedException("error.user.denied_delete");
         }
         if (currentUser.getId().equals(targetUserId)) {
-            throw new IllegalArgumentException("Không thể tự xóa chính mình bằng quyền Admin");
+            throw new IllegalArgumentException(ERROR_SELF_DELETE);
         }
         User targetUser = userRepository.findByIdIncludingDeleted(targetUserId)
                 .orElseThrow(() -> new IllegalArgumentException("error.auth.user_not_found"));
-        
+
         Long uId = targetUser.getId();
 
-        // 1. Dọn dẹp dữ liệu ràng buộc
-        entityManager.createQuery("DELETE FROM Notification n WHERE n.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM NotificationPreference np WHERE np.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM Address a WHERE a.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM RefreshToken r WHERE r.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM EmailVerificationToken e WHERE e.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM PasswordResetToken p WHERE p.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM EmailChangeToken ect WHERE ect.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM UserAuditLog u WHERE u.user.id = :uid").setParameter("uid", uId).executeUpdate();
-        entityManager.createQuery("DELETE FROM LoginLog l WHERE l.email = :email").setParameter("email", targetUser.getEmail()).executeUpdate();
-        entityManager.createQuery("DELETE FROM Review r WHERE r.user.id = :uid").setParameter("uid", uId).executeUpdate();
+        // 1. Xóa LoginLog theo email (không có FK → phải xóa thủ công)
+        entityManager.createQuery("DELETE FROM LoginLog l WHERE l.email = :email")
+            .setParameter("email", targetUser.getEmail()).executeUpdate();
 
-        // 2. Xóa Orders theo cơ chế cascade (để tự động xóa OrderItem, Shipping, Payment)
-        java.util.List<?> orders = entityManager.createQuery("SELECT o FROM Order o WHERE o.userId = :uid").setParameter("uid", uId).getResultList();
+        // 2. Xóa Orders (cascade xóa OrderItem, Shipping, Payment qua JPA orphanRemoval)
+        java.util.List<?> orders = entityManager.createQuery("SELECT o FROM Order o WHERE o.userId = :uid")
+            .setParameter("uid", uId).getResultList();
         for (Object o : orders) {
             entityManager.remove(o);
         }
+        entityManager.flush();
 
-        // 3. Xóa profile tham chiếu
-        userProfileRepository.findByUser(targetUser).ifPresent(p -> userProfileRepository.delete(p));
-        
-        // 4. Cuối cùng xoá User
+        // 3. Xóa UserProfile tham chiếu (không có @OnDelete CASCADE vì dùng soft-delete)
+        userProfileRepository.findByUser(targetUser).ifPresent(userProfileRepository::delete);
+
+        // 4. Cuối cùng xóa User — DB CASCADE tự xóa:
+        //    RefreshToken, Address, EmailVerificationToken, PasswordResetToken,
+        //    EmailChangeToken, UserAuditLog, PasswordChangeToken,
+        //    Notification, NotificationPreference (qua @OnDelete CASCADE trên các entity).
         userRepository.delete(targetUser);
     }
 
@@ -229,13 +316,13 @@ public class UserService {
             throw new IllegalArgumentException("error.auth.email_used");
         }
         emailChangeTokenRepository.deleteByUser(user);
-        String token = java.util.UUID.randomUUID().toString();
+        String token2 = java.util.UUID.randomUUID().toString();
         com.project.user.entity.EmailChangeToken emailToken = new com.project.user.entity.EmailChangeToken(
-            user, newEmail, token, java.time.LocalDateTime.now().plusHours(24)
+            user, newEmail, token2, java.time.LocalDateTime.now().plusHours(24)
         );
         emailChangeTokenRepository.save(emailToken);
-        notificationService.sendEmailChangeVerification(user, newEmail, token, org.springframework.context.i18n.LocaleContextHolder.getLocale());
-        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Yêu cầu đổi email sang: " + newEmail, null));
+        notificationService.sendEmailChangeVerification(user, newEmail, token2, org.springframework.context.i18n.LocaleContextHolder.getLocale());
+        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, AUDIT_EMAIL_CHANGE_REQUESTED + newEmail, null));
     }
 
     @Transactional
@@ -251,7 +338,7 @@ public class UserService {
         user.setEmail(emailToken.getNewEmail());
         userRepository.save(user);
         emailChangeTokenRepository.delete(emailToken);
-        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Đổi email xong: " + oldEmail + " -> " + user.getEmail(), null));
+        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, AUDIT_EMAIL_CHANGED + oldEmail + " -> " + user.getEmail(), null));
     }
 
     @Transactional
@@ -264,7 +351,7 @@ public class UserService {
         String fileName = fileStorageService.storeAvatar(file);
         profile.setAvatarUrl(fileName);
         userProfileRepository.save(profile);
-        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, "Cập nhật ảnh đại diện mơi: " + fileName, null));
+        auditLogRepository.save(new UserAuditLog(user, UserAction.UPDATE_PROFILE, AUDIT_AVATAR_UPDATED + fileName, null));
         return fileName;
     }
 

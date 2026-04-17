@@ -6,9 +6,10 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
-@Table(name = "user_profiles", indexes = {
-    @Index(name = "idx_profile_user", columnList = "user_id")
-})
+@Table(name = "user_profiles",
+    indexes = { @Index(name = "idx_profile_user", columnList = "user_id") },
+    uniqueConstraints = { @UniqueConstraint(name = "uk_profile_user_id", columnNames = "user_id") }
+)
 @SQLRestriction("is_deleted = false")
 public class UserProfile extends BaseEntity {
 

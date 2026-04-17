@@ -14,6 +14,7 @@ public class RefreshToken {
     // Phân quyền cho một User có thể đăng nhập đa thiết bị (nhiều Session/Refresh Token)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     private User user;
 
     @Column(nullable = false, unique = true)

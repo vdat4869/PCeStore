@@ -217,6 +217,38 @@ public class EmailService {
             "Gửi mail xác nhận đổi Email thất bại hoàn toàn tới: " + toEmail, e);
     }
 
+    @Async
+    @Retryable(retryFor = {NotificationException.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    public void sendPasswordChangeOtpEmail(String toEmail, String otpCode, Locale locale, Long notifId) {
+        try {
+            String subject = messageSource.getMessage("email.pwd_change_otp.subject", null, locale);
+            String body = messageSource.getMessage("email.pwd_change_otp.body", new Object[]{otpCode}, locale);
+            String html = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 32px; border-radius: 8px; background: #f9f9f9;\">"
+                    + "<h2 style=\"color: #e53935;\">🔐 Xác nhận đổi mật khẩu</h2>"
+                    + "<p>Chúng tôi nhận được yêu cầu đổi mật khẩu từ tài khoản của bạn.</p>"
+                    + "<p>Mã OTP xác nhận của bạn là:</p>"
+                    + "<div style=\"font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #e53935; text-align: center; padding: 16px; background: #fff; border-radius: 8px; border: 2px dashed #e53935;\">"
+                    + otpCode
+                    + "</div>"
+                    + "<p style=\"margin-top: 16px;\">Mã này có hiệu lực trong <strong>10 phút</strong>. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này.</p>"
+                    + "<hr style=\"margin-top: 24px;\"/>"
+                    + "<p style=\"font-size: 12px; color: #999;\">PCeStore - Hệ thống gửi tự động, vui lòng không trả lời email này.</p>"
+                    + "</div>";
+            sendHtmlMail(toEmail, subject, html);
+            notificationService.markAsSent(notifId);
+        } catch (MailException | MessagingException e) {
+            throw new NotificationException("Lỗi gửi OTP đổi mật khẩu (Notif: " + notifId + ")", e);
+        }
+    }
+
+    @Recover
+    public void recoverPasswordChangeOtpEmail(NotificationException e, String toEmail, String otpCode, Locale locale, Long notifId) {
+        logger.error("[{}] Cạn kiệt lần thử gửi OTP đổi mật khẩu tới: {}", LOG_TAG_NOTIFICATION, toEmail);
+        notificationService.markAsFailed(notifId);
+        alertService.createAlert(LOG_TAG_NOTIFICATION, com.project.common.entity.SystemLogSeverity.CRITICAL,
+            "Gửi OTP đổi mật khẩu thất bại hoàn toàn tới: " + toEmail, e);
+    }
+
     public void sendRawEmailSync(String toEmail, String subject, String htmlContent) {
         try {
             sendHtmlMail(toEmail, subject, htmlContent);
