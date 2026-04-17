@@ -122,16 +122,21 @@ public class UserRegistrationService {
             if (currentUser != null && currentUser.getStatus() == UserStatus.ACTIVE) {
                 logger.info("Xác thực Email (Concurrent-success): {}", user.getEmail());
             } else {
-                // Đây là trường hợp hiếm gặp, có thể do User đã bị xóa
-                throw new IllegalStateException("Lỗi tranh chấp dữ liệu khi xác thực Email.");
+                // [FIX] Dùng i18n key thay vì chuỗi hardcode tiếng Việt
+                throw new IllegalStateException("error.auth.concurrent_update");
             }
         }
+
 
         // 6. Xoá token sau khi xác thực thành công (Sử dụng Modifying Query cho an toàn tuyệt đối)
         emailTokenRepository.deleteByToken(token);
         logger.info("Xác thực Email và xoá Token thành công: {}", user.getEmail());
     }
 
+    /**
+     * [FIX] Thêm @Retryable để @Recover phía dưới thực sự được gọi khi retry cạn kiệt.
+     */
+    @Retryable(retryFor = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional
     public void resendVerificationEmail(String email) {
         User user = userRepository.findByEmail(email)

@@ -22,17 +22,20 @@ public class PasswordService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final NotificationService notificationService;
     private final com.project.common.service.SystemAlertService alertService;
+    private final TokenManagementService tokenManagementService;
 
-    public PasswordService(UserRepository userRepository, 
-                           PasswordResetTokenRepository passwordResetTokenRepository, 
-                           NotificationService notificationService, 
+    public PasswordService(UserRepository userRepository,
+                           PasswordResetTokenRepository passwordResetTokenRepository,
+                           NotificationService notificationService,
                            PasswordEncoder passwordEncoder,
-                           com.project.common.service.SystemAlertService alertService) {
+                           com.project.common.service.SystemAlertService alertService,
+                           TokenManagementService tokenManagementService) {
         this.userRepository = userRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.notificationService = notificationService;
         this.passwordEncoder = passwordEncoder;
         this.alertService = alertService;
+        this.tokenManagementService = tokenManagementService;
     }
 
     @Transactional
@@ -71,8 +74,20 @@ public class PasswordService {
         }
 
         User user = resetToken.getUser();
+
+        // [FIX] Kiểm tra mật khẩu mới không được trùng mật khẩu hiện tại
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("error.user.new_password_same");
+        }
+
         user.setPassword(passwordEncoder.encode(newPassword));
+
+        // Tăng tokenVersion — JWT cũ sẽ bị từ chối tại JwtAuthenticationFilter
+        user.setTokenVersion(user.getTokenVersion() + 1);
         userRepository.save(user);
+
+        // Xoá toàn bộ Refresh Token hiện tại — buộc đăng nhập lại tất cả thiết bị
+        tokenManagementService.deleteRefreshTokensForUser(user.getId());
 
         passwordResetTokenRepository.delete(resetToken);
     }

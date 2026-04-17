@@ -31,13 +31,16 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final RateLimitFilter rateLimitFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
             UserDetailsService userDetailsService,
-            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            RateLimitFilter rateLimitFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userDetailsService = userDetailsService;
         this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     // Cấu hình Pipeline bảo vệ cho hệ thống
@@ -68,7 +71,10 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authenticationProvider(authenticationProvider())
-            // Kích hoạt JWT filter ưu tiên trước UsernamePasswordAuthenticationFilter
+            // Rate Limit chạy trước JWT — cả hai reference đến UsernamePasswordAuthenticationFilter
+            // vì custom filter không có registered order trong Spring Security
+            // (thứ tự thực thi: rateLimitFilter → jwtAuthFilter → UsernamePasswordFilter)
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

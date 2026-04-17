@@ -1,5 +1,6 @@
 package com.project.auth.service;
 
+import com.project.auth.repository.JwtBlacklistRepository;
 import com.project.auth.repository.RefreshTokenRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -15,17 +16,28 @@ public class TokenCleanupScheduler {
     private static final Logger logger = LoggerFactory.getLogger(TokenCleanupScheduler.class);
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtBlacklistRepository jwtBlacklistRepository;
 
-    public TokenCleanupScheduler(RefreshTokenRepository refreshTokenRepository) {
+    public TokenCleanupScheduler(RefreshTokenRepository refreshTokenRepository,
+                                 JwtBlacklistRepository jwtBlacklistRepository) {
         this.refreshTokenRepository = refreshTokenRepository;
+        this.jwtBlacklistRepository = jwtBlacklistRepository;
     }
 
-    // Cron = "Giây Phút Lần_trong_giờ Ngày Tháng Năm". 
-    // Dưới đây cấu hình chạy MỖI NGÀY lúc 00:00:00 NỬA ĐÊM
+    /**
+     * Cron = mỗi ngày lúc 00:00:00.
+     * Dọn sạch Refresh Token hết hạn và JWT Blacklist entries hết hạn.
+     */
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void scheduleExpiredTokenCleanup() {
-        int deleted = refreshTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
-        logger.info("[CRON CPU] Giải phóng hoàn thành {} refresh token hết hạn ra khỏi CSDL.", deleted);
+        LocalDateTime now = LocalDateTime.now();
+
+        int deletedRefresh = refreshTokenRepository.deleteByExpiryDateBefore(now);
+        logger.info("[CRON] Giải phóng {} refresh token hết hạn.", deletedRefresh);
+
+        // [MỚI] Dọn JWT blacklist entries hết hạn — không còn cần thiết trong DB
+        int deletedBlacklist = jwtBlacklistRepository.deleteByExpiresAtBefore(now);
+        logger.info("[CRON] Giải phóng {} JWT blacklist entry hết hạn.", deletedBlacklist);
     }
 }

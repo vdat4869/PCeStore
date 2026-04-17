@@ -16,14 +16,12 @@ spring:
   # Cấu hình JPA / Hibernate
   jpa:
     open-in-view: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update # Tự động tạo hoặc cập nhật cấu trúc database dựa theo Entity
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
 
   # Cấu hình Spring Mail
   mail:
@@ -38,14 +36,8 @@ spring:
           starttls:
             enable: true
 
-  # Cấu hình Cache cho Rate Limiting
-  cache:
-    type: caffeine
-    cache-names:
-      - login_buckets
-      - emailTemplates
-    caffeine:
-      spec: expireAfterWrite=1h,maximumSize=10000
+  # Cache được cấu hình qua CacheConfig.java (mỗi cache có TTL riêng)
+  # Không đặt spring.cache ở đây để tránh xung đột với registerCustomCache()
 
 # Cấu hình JWT cho Token từ file .env
 application:
@@ -76,17 +68,10 @@ sepay:
   secret-key: ${SEPAY_SECRET_KEY:sandbox_secret}
   api-token: ${SEPAY_API_TOKEN:}
 
-# --- Cấu hình Rate Limiting ---
+# --- Cấu hình Rate Limiting (Bucket4j) ---
+# Note: Rate limiting thực tế được xử lý bởi RateLimitFilter.java + RateLimitService.java
+# Cấu hình dưới đây chỉ giữ lại cho tương thích với bucket4j-spring-boot-starter auto-config
 bucket4j:
-  enabled: true
-  filters:
-    - cache-name: login_buckets
-      url: /api/auth/login
-      http-response-body: "{\"error\": \"Too Many Requests\", \"message\": \"Quá nhiều yêu cầu đăng nhập. Vui lòng thử lại sau 1 phút.\"}"
-      rate-limits:
-        - bandwidths:
-            - capacity: 5
-              time: 1
-              unit: minutes
+  enabled: false
 
 

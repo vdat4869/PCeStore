@@ -54,7 +54,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         String ipAddress = IpAddressUtil.getClientIpAddress(httpRequest);
         AuthResponse response = authenticationService.login(request, ipAddress);
-        
+
         if (response.isMfaRequired()) {
             return ResponseEntity.accepted().body(response);
         }
@@ -82,6 +82,16 @@ public class AuthController {
         return ResponseEntity.ok("success.auth.mfa_enabled");
     }
 
+    /**
+     * [MỚI] Vô hiệu hóa xác thực hai yếu tố sau khi xác nhận bằng OTP hiện tại.
+     */
+    @PostMapping("/mfa/disable")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> disableMfa(Principal principal, @Valid @RequestBody VerifyMfaRequest request) {
+        authenticationService.disableMfa(principal.getName(), request.getCode());
+        return ResponseEntity.ok("success.auth.mfa_disabled");
+    }
+
     @PostMapping("/google-login")
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleLoginRequest request, HttpServletRequest httpRequest) {
         String ipAddress = IpAddressUtil.getClientIpAddress(httpRequest);
@@ -96,18 +106,28 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request, Principal principal) {
-        // Invalidate JWT (Blacklist)
+        // Vô hiệu hóa JWT hiện tại (Blacklist)
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && !authHeader.isEmpty()) {
             tokenManagementService.invalidateToken(authHeader);
         }
-        
-        // Delete Refresh Tokens
+
+        // Xóa Refresh Token của thiết bị hiện tại
         if (principal != null) {
             tokenManagementService.deleteRefreshTokensByEmail(principal.getName());
         }
-        
+
         return ResponseEntity.ok("success.auth.logout");
+    }
+
+    /**
+     * [MỚI] Đăng xuất khỏi TẤT CẢ thiết bị — xóa toàn bộ refresh token.
+     */
+    @PostMapping("/logout-all")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> logoutAll(Principal principal) {
+        tokenManagementService.logoutAllDevices(principal.getName());
+        return ResponseEntity.ok("success.auth.logout_all");
     }
 
     @PostMapping("/forgot-password")

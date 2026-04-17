@@ -29,8 +29,9 @@ public class DatabaseSchemaAdjustment {
             jdbcTemplate.execute("ALTER TABLE shipping DROP CONSTRAINT IF EXISTS shipping_status_check");
             jdbcTemplate.execute("ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_status_check");
             
+            
         } catch (Exception e) {
-            log.warn("Không thể xóa bỏ ràng buộc (có thể đã được xóa trước đó): {}", e.getMessage());
+            log.debug("Bỏ qua lỗi xoá constraint (thường do constraint không tồn tại): {}", e.getMessage());
         }
     }
 }

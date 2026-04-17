@@ -1,10 +1,13 @@
 package com.project.common.security;
 
+import com.project.auth.repository.UserRepository;
 import com.project.auth.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,8 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-
-
+import java.util.Objects;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -24,47 +26,63 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final com.project.auth.service.JwtBlacklistService blacklistService;
+    private final UserRepository userRepository;
+    private final CacheManager cacheManager;
 
-    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService,
-                                   com.project.auth.service.JwtBlacklistService blacklistService) {
+    private static final String TOKEN_VERSION_CACHE = "tokenVersion";
+
+    public JwtAuthenticationFilter(JwtService jwtService,
+                                   UserDetailsService userDetailsService,
+                                   com.project.auth.service.JwtBlacklistService blacklistService,
+                                   UserRepository userRepository,
+                                   CacheManager cacheManager) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.blacklistService = blacklistService;
+        this.userRepository = userRepository;
+        this.cacheManager = cacheManager;
     }
 
-    // Xử lý bộ lọc JWT cho mọi Request
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-        
+
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
 
-        // Nếu request không có Authorization Header hoặc không bắt đầu với "Bearer ", chuyển qua filter tiếp theo
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Bỏ qua chữ "Bearer " (7 ký tự)
         jwt = authHeader.substring(7);
         try {
-            // Kiểm tra xem token có trong danh sách đen không
+            // Kiểm tra JWT có trong blacklist không (logout)
             if (blacklistService.isBlacklisted(jwt)) {
                 throw new io.jsonwebtoken.JwtException("error.auth.token_blacklisted");
             }
 
             userEmail = jwtService.extractUsername(jwt);
-            
-            // Nếu context chưa có thông tin xác thực, xác nhận user & đẩy vào trong Context
+
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                
+
                 if (jwtService.isTokenValid(jwt, userDetails)) {
+                    // [FIX] Kiểm tra tokenVersion với cache L1 để tránh DB call mỗi request
+                    int jwtTokenVersion = jwtService.extractTokenVersion(jwt);
+                    int userTokenVersion = getCachedTokenVersion(userEmail);
+
+                    if (jwtTokenVersion < userTokenVersion) {
+                        // JWT bị thu hồi — đổi mật khẩu đã xảy ra sau khi JWT được cấp
+                        SecurityContextHolder.clearContext();
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -75,10 +93,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Nếu Token lỗi (hết hạn, sai...), xóa context để coi là khách và tiếp tục luồng filter
             SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Lấy tokenVersion của user từ Caffeine cache (L1) trước, fallback DB (L2).
+     * Cache TTL = 5 phút — đủ nhanh và đủ an toàn (window thu hồi tối đa 5 phút).
+     */
+    private int getCachedTokenVersion(String email) {
+        Cache cache = cacheManager.getCache(TOKEN_VERSION_CACHE);
+        if (cache != null) {
+            Cache.ValueWrapper cached = cache.get(email);
+            if (cached != null) {
+                return Objects.requireNonNullElse((Integer) cached.get(), 0);
+            }
+        }
+
+        // Cache miss → truy vấn DB và warm cache
+        int version = userRepository.findByEmail(email)
+                .map(com.project.auth.entity.User::getTokenVersion)
+                .orElse(0);
+
+        if (cache != null) {
+            cache.put(email, version);
+        }
+        return version;
     }
 }

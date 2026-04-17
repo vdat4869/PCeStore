@@ -61,6 +61,10 @@ public class User extends BaseEntity {
     @JsonIgnore
     private String mfaSecret;
 
+    // Phiên bản token — tăng lên để thu hồi toàn bộ JWT cũ (ví dụ sau khi đổi mật khẩu)
+    @Column(name = "token_version", nullable = false, columnDefinition = "integer default 0")
+    private int tokenVersion = 0;
+
     // Default constructor (bắt buộc bởi JPA)
     public User() {
     }
@@ -74,6 +78,7 @@ public class User extends BaseEntity {
         this.authProvider = AuthProvider.LOCAL;
         this.failedAttempts = 0;
         this.accountNonLocked = true;
+        this.tokenVersion = 0;
     }
 
     // --- Getters and Setters ---
@@ -188,5 +193,13 @@ public class User extends BaseEntity {
 
     public void setMfaSecret(String mfaSecret) {
         this.mfaSecret = mfaSecret;
+    }
+
+    public int getTokenVersion() {
+        return tokenVersion;
+    }
+
+    public void setTokenVersion(int tokenVersion) {
+        this.tokenVersion = tokenVersion;
     }
 }

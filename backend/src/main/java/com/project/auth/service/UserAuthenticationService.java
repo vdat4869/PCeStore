@@ -2,6 +2,7 @@ package com.project.auth.service;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.project.auth.dto.AuthMapper;
 import com.project.auth.dto.AuthResponse;
 import com.project.auth.dto.LoginRequest;
 import com.project.auth.dto.MfaSetupResponse;
@@ -15,6 +16,8 @@ import com.project.auth.entity.User;
 import com.project.auth.entity.UserRole;
 import com.project.auth.entity.UserStatus;
 import com.project.auth.repository.UserRepository;
+import com.project.common.security.CircuitBreakerService;
+import com.project.common.security.LoginAttemptService;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.springframework.retry.annotation.Backoff;
@@ -39,26 +42,30 @@ import java.util.UUID;
 public class UserAuthenticationService {
 
     private static final String ERROR_USER_NOT_FOUND = "error.auth.user_not_found";
+    private static final String GOOGLE_SERVICE_NAME = "Google-OAuth2";
 
     private final UserRepository userRepository;
     private final AuthenticationManager authenticationManager;
     private final TokenManagementService tokenManagementService;
-    private final com.project.common.security.LoginAttemptService loginAttemptService;
+    private final LoginAttemptService loginAttemptService;         // [FIX] Import tường minh
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final PasswordEncoder passwordEncoder;
+    private final CircuitBreakerService circuitBreaker;           // [MỚI] Circuit Breaker
 
-    public UserAuthenticationService(UserRepository userRepository, 
-                                     AuthenticationManager authenticationManager, 
-                                     TokenManagementService tokenManagementService, 
-                                     com.project.common.security.LoginAttemptService loginAttemptService, 
-                                     GoogleIdTokenVerifier googleIdTokenVerifier, 
-                                     PasswordEncoder passwordEncoder) {
+    public UserAuthenticationService(UserRepository userRepository,
+                                     AuthenticationManager authenticationManager,
+                                     TokenManagementService tokenManagementService,
+                                     LoginAttemptService loginAttemptService,
+                                     GoogleIdTokenVerifier googleIdTokenVerifier,
+                                     PasswordEncoder passwordEncoder,
+                                     CircuitBreakerService circuitBreaker) {
         this.userRepository = userRepository;
         this.authenticationManager = authenticationManager;
         this.tokenManagementService = tokenManagementService;
         this.loginAttemptService = loginAttemptService;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
         this.passwordEncoder = passwordEncoder;
+        this.circuitBreaker = circuitBreaker;
     }
 
     @Retryable(retryFor = {SQLException.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000))
@@ -83,19 +90,16 @@ public class UserAuthenticationService {
             throw new DisabledException("error.auth.disabled");
         }
 
-        // Nếu MFA được kích hoạt, ta không trả về token ngay mà yêu cầu bước 2
+        // Nếu MFA được kích hoạt, yêu cầu bước 2 — chưa phát token
         if (user.isMfaEnabled()) {
-             AuthResponse response = new AuthResponse();
-             response.setMfaRequired(true);
-             return response;
+            return AuthMapper.toMfaRequiredResponse();
         }
 
         loginAttemptService.loginSucceeded(email, ipAddress);
 
         String jwtToken = tokenManagementService.generateAccessToken(user);
         RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
-
-        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name(), user.getId());
+        return AuthMapper.toAuthResponse(user, jwtToken, refreshToken);
     }
 
     @Transactional
@@ -119,21 +123,20 @@ public class UserAuthenticationService {
 
         String jwtToken = tokenManagementService.generateAccessToken(user);
         RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
-
-        return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name(), user.getId());
+        return AuthMapper.toAuthResponse(user, jwtToken, refreshToken);
     }
 
     @Transactional
     public MfaSetupResponse generateMfaSecret(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
-        
+
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         final GoogleAuthenticatorKey key = gAuth.createCredentials();
-        
+
         user.setMfaSecret(key.getKey());
         userRepository.save(user);
-        
+
         String otpauthUri = String.format("otpauth://totp/PCeStore:%s?secret=%s&issuer=PCeStore", email, key.getKey());
         String qrCodeBase64 = generateQrCodeBase64(otpauthUri);
 
@@ -144,13 +147,13 @@ public class UserAuthenticationService {
         try {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             BitMatrix bitMatrix = qrCodeWriter.encode(content, BarcodeFormat.QR_CODE, 200, 200);
-            
+
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             MatrixToImageWriter.writeToStream(bitMatrix, "PNG", outputStream);
-            
+
             return Base64.getEncoder().encodeToString(outputStream.toByteArray());
         } catch (Exception e) {
-            throw new RuntimeException("Could not generate QR code", e);
+            throw new RuntimeException("error.auth.qr_generation_failed", e);
         }
     }
 
@@ -158,7 +161,7 @@ public class UserAuthenticationService {
     public void enableMfa(String email, int code) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
-        
+
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         if (gAuth.authorize(user.getMfaSecret(), code)) {
             user.setMfaEnabled(true);
@@ -169,10 +172,39 @@ public class UserAuthenticationService {
     }
 
     @Transactional
+    public void disableMfa(String email, int code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(ERROR_USER_NOT_FOUND));
+
+        if (!user.isMfaEnabled()) {
+            throw new IllegalArgumentException("error.auth.mfa_not_enabled");
+        }
+
+        GoogleAuthenticator gAuth = new GoogleAuthenticator();
+        if (gAuth.authorize(user.getMfaSecret(), code)) {
+            user.setMfaEnabled(false);
+            user.setMfaSecret(null);
+            userRepository.save(user);
+        } else {
+            throw new BadCredentialsException("error.auth.mfa_disabled_fail");
+        }
+    }
+
+    /**
+     * [MỚI] Google Login với Circuit Breaker bảo vệ.
+     * Nếu Google API liên tục lỗi → Circuit mở, từ chối request ngay với 503.
+     */
+    @Transactional
     public AuthResponse googleLogin(String idTokenString, String ipAddress) {
+        // Circuit Breaker: kiểm tra trước khi gọi Google API
+        if (!circuitBreaker.allowRequest(GOOGLE_SERVICE_NAME)) {
+            throw new IllegalStateException("error.auth.google_unavailable");
+        }
+
         try {
             GoogleIdToken idToken = googleIdTokenVerifier.verify(idTokenString);
             if (idToken == null) {
+                circuitBreaker.recordFailure(GOOGLE_SERVICE_NAME);
                 throw new IllegalArgumentException("error.auth.google_invalid");
             }
 
@@ -180,20 +212,24 @@ public class UserAuthenticationService {
             String email = payload.getEmail();
 
             User user = userRepository.findByEmail(email).orElseGet(() -> {
-                User newUser = new User(email, passwordEncoder.encode(UUID.randomUUID().toString()), UserRole.CUSTOMER, UserStatus.ACTIVE);
+                User newUser = new User(email, passwordEncoder.encode(UUID.randomUUID().toString()),
+                        UserRole.CUSTOMER, UserStatus.ACTIVE);
                 newUser.setAuthProvider(AuthProvider.GOOGLE);
                 newUser.setFullName((String) payload.get("name"));
                 return userRepository.save(newUser);
             });
 
+            // Gọi thành công → báo Circuit Breaker reset
+            circuitBreaker.recordSuccess(GOOGLE_SERVICE_NAME);
             loginAttemptService.loginSucceeded(email, ipAddress);
 
             String jwtToken = tokenManagementService.generateAccessToken(user);
             RefreshToken refreshToken = tokenManagementService.createRefreshToken(user.getId());
+            return AuthMapper.toAuthResponse(user, jwtToken, refreshToken);
 
-            return new AuthResponse(jwtToken, refreshToken.getToken(), user.getRole().name(), user.getId());
-
-        } catch (GeneralSecurityException | IOException | IllegalArgumentException e) {
+        } catch (GeneralSecurityException | IOException e) {
+            // Lỗi mạng/TLS với Google → ghi nhận failure cho Circuit Breaker
+            circuitBreaker.recordFailure(GOOGLE_SERVICE_NAME);
             loginAttemptService.logLoginAudit("UNKNOWN_GOOGLE", ipAddress, false, "error.auth.google_failed");
             throw new IllegalArgumentException("error.auth.google_failed", e);
         }

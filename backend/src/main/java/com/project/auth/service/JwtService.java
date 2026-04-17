@@ -3,6 +3,7 @@ package com.project.auth.service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -34,6 +35,13 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    // Trích xuất tokenVersion để kiểm tra JWT có bị thu hồi không
+    public int extractTokenVersion(String token) {
+        Claims claims = extractAllClaims(token);
+        Object version = claims.get("tokenVersion");
+        return (version instanceof Integer) ? (Integer) version : 0;
+    }
+
     // Khởi tạo token cho UserDetails không có extra claims
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
@@ -42,6 +50,13 @@ public class JwtService {
     // Khởi tạo token cho UserDetails kèm extra claims
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
+    }
+
+    // Tạo token kèm tokenVersion (dùng sau khi đổi mật khẩu — invalidate JWT cũ)
+    public String generateTokenWithVersion(UserDetails userDetails, int tokenVersion) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("tokenVersion", tokenVersion);
+        return buildToken(claims, userDetails, jwtExpiration);
     }
 
     private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
@@ -76,9 +91,9 @@ public class JwtService {
                 .getBody();
     }
 
-    // Lấy khoá sinh secret bằng HMAC SHA form
+    // [FIX] Dùng BASE64 decode thay vì getBytes() để đảm bảo entropy đủ cho HS256
     private Key getSignInKey() {
-        byte[] keyBytes = secretKey.getBytes();
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
