@@ -2,7 +2,6 @@ package com.project.product.job;
 
 import com.project.inventory.entity.Inventory;
 import com.project.inventory.repository.InventoryRepository;
-import com.project.product.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -20,12 +19,9 @@ public class ProductInventorySyncJob {
 
     private static final Logger log = LoggerFactory.getLogger(ProductInventorySyncJob.class);
 
-    private final ProductRepository productRepository;
     private final InventoryRepository inventoryRepository;
 
-    public ProductInventorySyncJob(ProductRepository productRepository,
-                                   InventoryRepository inventoryRepository) {
-        this.productRepository = productRepository;
+    public ProductInventorySyncJob(InventoryRepository inventoryRepository) {
         this.inventoryRepository = inventoryRepository;
     }
 

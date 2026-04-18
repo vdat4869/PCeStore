@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "inventory_history", indexes = {
-    @Index(name = "idx_history_product", columnList = "product_id")
+    @Index(name = "idx_history_product", columnList = "product_id"),
+    @Index(name = "uk_reference_type", columnList = "reference_id, type", unique = true)
 })
 public class InventoryHistory {
 
@@ -24,7 +25,7 @@ public class InventoryHistory {
     @Column(nullable = false)
     private Integer changeAmount;
 
-    @Column(name = "reference_id", unique = true)
+    @Column(name = "reference_id")
     private String referenceId;
 
     @Enumerated(EnumType.STRING)
@@ -32,6 +33,8 @@ public class InventoryHistory {
     private HistoryType type;
 
     private String reason;
+
+    private LocalDateTime expireAt;
 
     @CreationTimestamp
     @Column(updatable = false)
@@ -50,12 +53,13 @@ public class InventoryHistory {
     // --- Constructors ---
     public InventoryHistory() {}
 
-    public InventoryHistory(Long productId, Integer changeAmount, HistoryType type, String reason, String referenceId) {
+    public InventoryHistory(Long productId, Integer changeAmount, HistoryType type, String reason, String referenceId, LocalDateTime expireAt) {
         this.productId = productId;
         this.changeAmount = changeAmount;
         this.type = type;
         this.reason = reason;
         this.referenceId = referenceId;
+        this.expireAt = expireAt;
     }
 
     // --- Getters and Setters ---
@@ -77,6 +81,9 @@ public class InventoryHistory {
     public String getReferenceId() { return referenceId; }
     public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
 
+    public LocalDateTime getExpireAt() { return expireAt; }
+    public void setExpireAt(LocalDateTime expireAt) { this.expireAt = expireAt; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
@@ -91,15 +98,17 @@ public class InventoryHistory {
         private HistoryType type;
         private String reason;
         private String referenceId;
+        private LocalDateTime expireAt;
 
         public InventoryHistoryBuilder productId(Long productId) { this.productId = productId; return this; }
         public InventoryHistoryBuilder changeAmount(Integer changeAmount) { this.changeAmount = changeAmount; return this; }
         public InventoryHistoryBuilder type(HistoryType type) { this.type = type; return this; }
         public InventoryHistoryBuilder reason(String reason) { this.reason = reason; return this; }
         public InventoryHistoryBuilder referenceId(String referenceId) { this.referenceId = referenceId; return this; }
+        public InventoryHistoryBuilder expireAt(LocalDateTime expireAt) { this.expireAt = expireAt; return this; }
 
         public InventoryHistory build() {
-            return new InventoryHistory(productId, changeAmount, type, reason, referenceId);
+            return new InventoryHistory(productId, changeAmount, type, reason, referenceId, expireAt);
         }
     }
 }

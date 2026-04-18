@@ -1,16 +1,19 @@
 package com.project.inventory.service;
 
+import com.project.inventory.dto.InventoryHistoryResponse;
 import com.project.inventory.dto.InventoryRequest;
 import com.project.inventory.dto.InventoryResponse;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 /**
  * Interface định nghĩa các nghiệp vụ quản lý tồn kho.
  */
 public interface InventoryService {
-    
+
     /**
      * Lấy trạng thái kho hiện tại của một sản phẩm.
      */
@@ -37,9 +40,20 @@ public interface InventoryService {
     InventoryResponse reserveStock(InventoryRequest request);
 
     /**
+     * Giữ hàng hàng loạt cho nhiều sản phẩm (ví dụ: giỏ hàng).
+     * Đảm bảo tính nguyên tử (Atomic).
+     */
+    List<InventoryResponse> reserveStockBulk(List<InventoryRequest> requests);
+
+    /**
      * Xác nhận đơn hàng (Trừ quantity và trừ reserved).
      */
     InventoryResponse confirmStock(InventoryRequest request);
+
+    /**
+     * Xác nhận đơn hàng hàng loạt.
+     */
+    List<InventoryResponse> confirmStockBulk(List<InventoryRequest> requests);
 
     /**
      * Huỷ giữ hàng (Trừ reserved).
@@ -47,8 +61,12 @@ public interface InventoryService {
     InventoryResponse cancelReservation(InventoryRequest request);
 
     /**
+     * Huỷ giữ hàng hàng loạt.
+     */
+    List<InventoryResponse> cancelReservationBulk(List<InventoryRequest> requests);
+
+    /**
      * Lấy lịch sử biến động kho của sản phẩm.
      */
-    Page<com.project.inventory.entity.InventoryHistory> getHistory(Long productId, Pageable pageable);
+    Page<InventoryHistoryResponse> getHistory(Long productId, Pageable pageable);
 }
-

@@ -222,7 +222,6 @@ public class EmailService {
     public void sendPasswordChangeOtpEmail(String toEmail, String otpCode, Locale locale, Long notifId) {
         try {
             String subject = messageSource.getMessage("email.pwd_change_otp.subject", null, locale);
-            String body = messageSource.getMessage("email.pwd_change_otp.body", new Object[]{otpCode}, locale);
             String html = "<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 32px; border-radius: 8px; background: #f9f9f9;\">"
                     + "<h2 style=\"color: #e53935;\">🔐 Xác nhận đổi mật khẩu</h2>"
                     + "<p>Chúng tôi nhận được yêu cầu đổi mật khẩu từ tài khoản của bạn.</p>"

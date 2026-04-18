@@ -1,5 +1,7 @@
 package com.project.inventory.repository;
 
+import org.springframework.data.jpa.repository.Modifying;
+
 import com.project.inventory.entity.Inventory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -44,5 +46,23 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     // Tìm product_id chưa có inventory — dùng cho syncMissingInventories() tránh full-table scan
     @Query("SELECT p.id FROM Product p WHERE p.id NOT IN (SELECT i.productId FROM Inventory i)")
     List<Long> findProductIdsWithNoInventory();
+
+    /**
+     * Chỉ lấy các bản ghi có lỗi logic:
+     * - reserved < 0 (âm tuyệt đối)
+     * - reserved > quantity (vượt quá tổng)
+     * Dùng cho InventorySyncJob thay thế findAll() để tránh full-table scan và OOM.
+     */
+    @Query("SELECT i FROM Inventory i WHERE i.reserved < 0 OR i.reserved > i.quantity")
+    List<Inventory> findAllWithInconsistentData();
+
+    /**
+     * Khởi tạo bản ghi kho trống một cách an toàn.
+     * Sử dụng ON CONFLICT DO NOTHING để chống lỗi DuplicateKeyException khi nhiều request cùng xử lý 1 sản phẩm mới.
+     */
+    @Modifying
+    @Query(value = "INSERT INTO inventories (product_id, quantity, reserved, is_deleted, created_at, updated_at) " +
+                   "VALUES (:productId, 0, 0, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON CONFLICT (product_id) DO NOTHING", nativeQuery = true)
+    void initInventorySafe(@Param("productId") Long productId);
 }
 

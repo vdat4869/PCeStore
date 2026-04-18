@@ -12,7 +12,7 @@ public class InventoryRequest {
     private Long productId;
 
     @NotNull(message = "{validation.inventory.quantity.empty}")
-    @Min(value = 0, message = "{validation.inventory.quantity.min}")
+    @Min(value = 1, message = "{validation.inventory.quantity.min}")
     private Integer quantity;
 
     private String referenceId; // Idempotency key (ví dụ: orderId)

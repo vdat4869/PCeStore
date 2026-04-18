@@ -40,4 +40,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @org.springframework.transaction.annotation.Transactional
     @Query("UPDATE User u SET u.status = :status, u.version = u.version + 1 WHERE u.id = :id AND u.version = :version")
     int updateStatusByIdAndVersion(@Param("id") Long id, @Param("status") com.project.auth.entity.UserStatus status, @Param("version") Integer version);
+
+    // Tìm kiếm người dùng theo Role
+    java.util.List<User> findByRole(com.project.auth.entity.UserRole role);
 }

@@ -5,7 +5,6 @@ import com.project.auth.entity.UserRole;
 import com.project.auth.entity.UserStatus;
 import com.project.auth.repository.UserRepository;
 import com.project.user.dto.AdminUserResponse;
-import com.project.user.dto.ChangePasswordRequest;
 import com.project.user.dto.UpdateProfileRequest;
 import com.project.user.dto.UserProfileResponse;
 import com.project.user.entity.UserProfile;

@@ -36,6 +36,9 @@ spring:
           starttls:
             enable: true
 
+inventory:
+  low-stock-threshold: ${INVENTORY_LOW_STOCK_THRESHOLD:10}
+
   # Cache được cấu hình qua CacheConfig.java (mỗi cache có TTL riêng)
   # Không đặt spring.cache ở đây để tránh xung đột với registerCustomCache()
 

@@ -1,7 +1,6 @@
 package com.project.order.controller;
 
 import com.project.order.service.DashboardService;
-import com.project.order.entity.Order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +21,6 @@ import java.util.stream.Collectors;
 public class DashboardController {
 
     private final DashboardService dashboardService;
-    private final OrderController orderController; // Để dùng mapOrderToResponse
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {

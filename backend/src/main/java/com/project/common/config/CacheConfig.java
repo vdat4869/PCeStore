@@ -50,6 +50,13 @@ public class CacheConfig {
                         .maximumSize(20000)
                         .build());
 
+        // Cache thông tin tồn kho: 10 phút - cân bằng giữa hiệu năng và tính thời gian thực
+        cacheManager.registerCustomCache("inventory",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(10, TimeUnit.MINUTES)
+                        .maximumSize(5000)
+                        .build());
+
         return cacheManager;
     }
 }

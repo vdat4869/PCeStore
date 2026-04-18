@@ -73,7 +73,10 @@ public class RateLimitService {
 
     private Bucket getBucket(Cache<String, Bucket> cache, String key, long capacity, Duration refillPeriod) {
         return cache.get(key, k -> {
-            Bandwidth limit = Bandwidth.classic(capacity, Refill.greedy(capacity, refillPeriod));
+            Bandwidth limit = Bandwidth.builder()
+                    .capacity(capacity)
+                    .refillGreedy(capacity, refillPeriod)
+                    .build();
             return Bucket.builder().addLimit(limit).build();
         });
     }

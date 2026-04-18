@@ -154,6 +154,22 @@ public class NotificationService {
     }
 
     @Transactional
+    public void sendNotificationToAdmins(String subject, String content) {
+        java.util.List<User> admins = userRepository.findByRole(com.project.auth.entity.UserRole.ADMIN);
+        
+        for (User admin : admins) {
+            sendIfEnabled(admin, NotificationType.SYSTEM_ALERT, () -> {
+                Notification notif = new Notification(admin, NotificationType.SYSTEM_ALERT, content);
+                notif = notificationRepository.save(notif);
+                emailService.sendRawEmailSync(admin.getEmail(), subject, content);
+                notif.setStatus(com.project.notification.entity.NotificationStatus.SENT);
+                notif.setSentAt(LocalDateTime.now());
+                notificationRepository.save(notif);
+            });
+        }
+    }
+
+    @Transactional
     public void broadcast(String subject, String content, NotificationType type) {
         // Lấy tất cả User đang hoạt động
         java.util.List<User> activeUsers = userRepository.findAll();
