@@ -109,6 +109,15 @@ public class InventoryServiceImpl implements InventoryService {
                 .orElseGet(() -> emptyStockResponse(productId));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, Integer> getStockBulk(java.util.List<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) return java.util.Collections.emptyMap();
+        return inventoryRepository.findAllByProductIdIn(productIds)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(com.project.inventory.entity.Inventory::getProductId, com.project.inventory.entity.Inventory::getQuantity));
+    }
+
     // -------------------------------------------------------------------------
     // API: Ghi (Sản phẩm đơn)
     // -------------------------------------------------------------------------

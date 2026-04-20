@@ -20,6 +20,11 @@ public interface InventoryService {
     InventoryResponse getStock(Long productId);
 
     /**
+     * Lấy danh sách tồn kho của nhiều sản phẩm cùng lúc (Batch Fetching).
+     */
+    java.util.Map<Long, Integer> getStockBulk(java.util.List<Long> productIds);
+
+    /**
      * Cập nhật (set) số lượng tồn kho mới. Thường dùng cho ADMIN.
      */
     InventoryResponse updateStock(InventoryRequest request);

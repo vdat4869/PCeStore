@@ -57,6 +57,13 @@ public class CacheConfig {
                         .maximumSize(5000)
                         .build());
 
+        // Cache cho API xem chi tiết Product - giải quyết triệt để nút thắt cổ chai
+        cacheManager.registerCustomCache("products",
+                Caffeine.newBuilder()
+                        .expireAfterWrite(15, TimeUnit.MINUTES)
+                        .maximumSize(10000)
+                        .build());
+
         return cacheManager;
     }
 }

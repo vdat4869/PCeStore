@@ -8,7 +8,11 @@ import com.project.product.repository.CategoryRepository;
 import com.project.product.repository.ProductRepository;
 import com.project.common.exception.ResourceNotFoundException;
 import com.project.product.event.ProductCreatedEvent;
+import com.project.inventory.service.InventoryService;
 import com.project.inventory.entity.Inventory;
+import com.project.inventory.repository.InventoryRepository;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import com.project.inventory.repository.InventoryRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.MessageSource;
@@ -31,17 +35,20 @@ public class ProductServiceImpl implements ProductService {
     private final MessageSource messageSource;
     private final ApplicationEventPublisher eventPublisher;
     private final InventoryRepository inventoryRepository;
+    private final InventoryService inventoryService;
 
     public ProductServiceImpl(ProductRepository productRepository,
                               CategoryRepository categoryRepository,
                               MessageSource messageSource,
                               ApplicationEventPublisher eventPublisher,
-                              InventoryRepository inventoryRepository) {
+                              InventoryRepository inventoryRepository,
+                              InventoryService inventoryService) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.messageSource = messageSource;
         this.eventPublisher = eventPublisher;
         this.inventoryRepository = inventoryRepository;
+        this.inventoryService = inventoryService;
     }
 
     private String getMessage(String key, Object... args) {
@@ -100,11 +107,11 @@ public class ProductServiceImpl implements ProductService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "#id")
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
-        Integer stock = inventoryRepository.findByProductId(product.getId())
-                .map(Inventory::getQuantity).orElse(0);
+        Integer stock = inventoryService.getStock(product.getId()).getQuantity();
         return mapToResponse(product, stock);
     }
 
@@ -140,6 +147,7 @@ public class ProductServiceImpl implements ProductService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public ProductResponse updateProduct(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
@@ -156,8 +164,7 @@ public class ProductServiceImpl implements ProductService {
         product.setImageUrl(request.getImageUrl());
 
         Product updatedProduct = productRepository.save(product);
-        Integer currentStock = inventoryRepository.findByProductId(updatedProduct.getId())
-                .map(Inventory::getQuantity).orElse(0);
+        Integer currentStock = inventoryService.getStock(updatedProduct.getId()).getQuantity();
         return mapToResponse(updatedProduct, currentStock);
     }
 
@@ -166,6 +173,7 @@ public class ProductServiceImpl implements ProductService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
@@ -184,6 +192,7 @@ public class ProductServiceImpl implements ProductService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "products", key = "#id")
     public void restoreProduct(Long id) {
         Product product = productRepository.findByIdIncludingDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException(getMessage("error.product.not_found", id)));
@@ -212,9 +221,7 @@ public class ProductServiceImpl implements ProductService {
                 .map(Product::getId)
                 .toList();
 
-        Map<Long, Integer> stockMap = inventoryRepository.findAllByProductIdIn(productIds)
-                .stream()
-                .collect(Collectors.toMap(Inventory::getProductId, Inventory::getQuantity));
+        Map<Long, Integer> stockMap = inventoryService.getStockBulk(productIds);
 
         return page.map(product -> mapToResponse(product, stockMap.getOrDefault(product.getId(), 0)));
     }
