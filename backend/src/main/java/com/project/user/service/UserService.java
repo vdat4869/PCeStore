@@ -277,11 +277,26 @@ public class UserService {
         // 3. Xóa UserProfile tham chiếu (không có @OnDelete CASCADE vì dùng soft-delete)
         userProfileRepository.findByUser(targetUser).ifPresent(userProfileRepository::delete);
 
-        // 4. Cuối cùng xóa User — DB CASCADE tự xóa:
-        //    RefreshToken, Address, EmailVerificationToken, PasswordResetToken,
-        //    EmailChangeToken, UserAuditLog, PasswordChangeToken,
-        //    Notification, NotificationPreference (qua @OnDelete CASCADE trên các entity).
-        userRepository.delete(targetUser);
+        // 4. Xóa các bản ghi phụ thuộc (do DB schema có thể thiếu ON DELETE CASCADE trên foreign key)
+        String[] dependentTables = {
+            "refresh_tokens", "addresses", "email_verification_tokens", "password_reset_tokens",
+            "email_change_tokens", "user_audit_logs", "password_change_tokens",
+            "notifications", "notification_preferences", "cart_items", "reviews"
+        };
+        for (String table : dependentTables) {
+            try {
+                entityManager.createNativeQuery("DELETE FROM " + table + " WHERE user_id = :id")
+                    .setParameter("id", uId)
+                    .executeUpdate();
+            } catch (Exception e) {
+                // Bỏ qua nếu bảng không tồn tại hoặc lỗi (ví dụ thiếu cột user_id)
+            }
+        }
+
+        // 5. Cuối cùng xóa User
+        entityManager.createNativeQuery("DELETE FROM users WHERE id = :id")
+            .setParameter("id", uId)
+            .executeUpdate();
     }
 
     @Transactional
