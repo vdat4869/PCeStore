@@ -99,6 +99,9 @@ public class ProductServiceImpl implements ProductService {
     public Page<ProductResponse> filterProducts(String keyword, Long categoryId,
                                                 BigDecimal minPrice, BigDecimal maxPrice,
                                                 Pageable pageable) {
+        if (keyword == null) {
+            keyword = "";
+        }
         return mapPageToResponse(productRepository.filterProducts(keyword, categoryId, minPrice, maxPrice, pageable));
     }
 
