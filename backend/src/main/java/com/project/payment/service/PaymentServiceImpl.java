@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -41,6 +43,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderService orderService;
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String PAYMENT_NOT_FOUND_MSG = "Payment not found";
+    private static final String DEFAULT_FRONTEND_URL = "https://pc-e-store.vercel.app";
+    private static final Pattern INVOICE_ORDER_PATTERN = Pattern.compile("^INV-(\\d+)(?:-.+)?$");
+    private static final Pattern CUSTOMER_ORDER_PATTERN = Pattern.compile("^CUST-(\\d+)$");
 
     @Autowired
     public PaymentServiceImpl(PaymentRepository paymentRepository, @Lazy OrderService orderService) {
@@ -140,9 +145,9 @@ public class PaymentServiceImpl implements PaymentService {
         
         fields.put("customer_id", "CUST-" + payment.getOrderId());
         fields.put("payment_method", "BANK_TRANSFER");
-        fields.put("success_url", frontendUrl + "/?status=success");
-        fields.put("error_url", frontendUrl + "/?status=error");
-        fields.put("cancel_url", frontendUrl + "/?status=cancel");
+        fields.put("success_url", buildFrontendUrl("/order-success/" + payment.getOrderId() + "?status=success"));
+        fields.put("error_url", buildFrontendUrl("/payment/" + payment.getOrderId() + "?status=error"));
+        fields.put("cancel_url", buildFrontendUrl("/checkout?status=cancel"));
 
         String signature = SecurityUtils.generateSePaySignature(fields, secretKey);
         fields.put("signature", signature);
@@ -154,27 +159,38 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     @Retryable(retryFor = Exception.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     public void processSePayIpn(SePayIpnRequest request) {
-        if ("ORDER_PAID".equals(request.getNotificationType()) && request.getOrder() != null) {
-            String invoiceNumber = request.getOrder().getOrderInvoiceNumber();
-            if (invoiceNumber != null && invoiceNumber.startsWith("INV-")) {
-                String[] parts = invoiceNumber.split("-");
-                if (parts.length >= 2) {
-                    Long orderId = Long.valueOf(parts[1]);
-
-                    paymentRepository.findByOrderId(orderId).ifPresent(payment -> {
-                        if (payment.getStatus() == PaymentStatus.PENDING) {
-                            payment.setStatus(PaymentStatus.COMPLETED);
-                            if (request.getTransaction() != null) {
-                                payment.setTransactionId(request.getTransaction().getTransactionId());
-                            }
-                            payment.setPaymentDate(LocalDateTime.now());
-                            paymentRepository.save(payment);
-                            orderService.updateOrderStatus(orderId, OrderStatus.PAID);
-                        }
-                    });
-                }
-            }
+        if (request == null || !"ORDER_PAID".equals(request.getNotificationType())) {
+            log.info("Ignoring SePay IPN with notification_type={}",
+                    request != null ? request.getNotificationType() : null);
+            return;
         }
+
+        Long orderId = resolveOrderId(request);
+        if (orderId == null) {
+            log.warn("Unable to resolve local order ID from SePay IPN payload");
+            return;
+        }
+
+        paymentRepository.findByOrderId(orderId).ifPresentOrElse(payment -> {
+            if (payment.getStatus() != PaymentStatus.PENDING) {
+                log.info("Ignoring SePay IPN because order #{} payment is already {}", orderId, payment.getStatus());
+                return;
+            }
+
+            BigDecimal paidAmount = resolvePaidAmount(request);
+            if (paidAmount != null && paidAmount.compareTo(payment.getAmount()) < 0) {
+                log.warn("Ignoring SePay IPN for order #{} because paid amount {} is less than expected {}",
+                        orderId, paidAmount, payment.getAmount());
+                return;
+            }
+
+            payment.setStatus(PaymentStatus.COMPLETED);
+            payment.setTransactionId(resolveTransactionId(request.getTransaction()));
+            payment.setPaymentDate(LocalDateTime.now());
+            paymentRepository.save(payment);
+            orderService.updateOrderStatus(orderId, OrderStatus.PAID);
+            log.info("SePay IPN marked order #{} as PAID", orderId);
+        }, () -> log.warn("SePay IPN resolved order #{} but no payment record was found", orderId));
     }
 
     @Override
@@ -274,5 +290,75 @@ public class PaymentServiceImpl implements PaymentService {
             log.error("Error extracting order ID from content '{}': {}", content, e.getMessage());
         }
         return null;
+    }
+
+    private String buildFrontendUrl(String path) {
+        String baseUrl = (frontendUrl == null || frontendUrl.isBlank()) ? DEFAULT_FRONTEND_URL : frontendUrl.trim();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        return baseUrl + path;
+    }
+
+    private Long resolveOrderId(SePayIpnRequest request) {
+        if (request.getOrder() != null) {
+            Long orderId = parsePattern(request.getOrder().getOrderInvoiceNumber(), INVOICE_ORDER_PATTERN);
+            if (orderId != null) {
+                return orderId;
+            }
+        }
+
+        if (request.getCustomer() != null) {
+            return parsePattern(request.getCustomer().getCustomerId(), CUSTOMER_ORDER_PATTERN);
+        }
+
+        return null;
+    }
+
+    private Long parsePattern(String value, Pattern pattern) {
+        if (value == null) {
+            return null;
+        }
+
+        Matcher matcher = pattern.matcher(value.trim());
+        if (!matcher.matches()) {
+            return null;
+        }
+
+        try {
+            return Long.valueOf(matcher.group(1));
+        } catch (NumberFormatException ex) {
+            log.warn("Unable to parse order ID from value '{}'", value);
+            return null;
+        }
+    }
+
+    private BigDecimal resolvePaidAmount(SePayIpnRequest request) {
+        if (request.getTransaction() != null && request.getTransaction().getTransactionAmount() != null) {
+            return parseAmount(request.getTransaction().getTransactionAmount());
+        }
+        if (request.getOrder() != null && request.getOrder().getOrderAmount() != null) {
+            return parseAmount(request.getOrder().getOrderAmount());
+        }
+        return null;
+    }
+
+    private BigDecimal parseAmount(String amount) {
+        try {
+            return new BigDecimal(amount.trim());
+        } catch (RuntimeException ex) {
+            log.warn("Unable to parse SePay amount '{}'", amount);
+            return null;
+        }
+    }
+
+    private String resolveTransactionId(SePayIpnRequest.TransactionData transaction) {
+        if (transaction == null) {
+            return null;
+        }
+        if (transaction.getTransactionId() != null && !transaction.getTransactionId().isBlank()) {
+            return transaction.getTransactionId();
+        }
+        return transaction.getId();
     }
 }

@@ -22,6 +22,12 @@ spring:
           auth: false
           starttls:
             enable: false
+  cache:
+    type: caffeine
+    cache-names:
+      - login_buckets
+    caffeine:
+      spec: expireAfterWrite=1h,maximumSize=10000
 
 application:
   security:
@@ -35,14 +41,6 @@ custom:
   security:
     google:
       client-id: mock-google-client-id
-
-spring:
-  cache:
-    type: caffeine
-    cache-names:
-      - login_buckets
-    caffeine:
-      spec: expireAfterWrite=1h,maximumSize=10000
 
 bucket4j:
   enabled: true

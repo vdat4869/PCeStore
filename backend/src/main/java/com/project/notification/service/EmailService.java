@@ -33,7 +33,7 @@ public class EmailService {
     @Value("${custom.mail.from:noreply@pcestore.com}")
     private String fromEmail;
 
-    @Value("${custom.frontend.url:http://localhost:3000}")
+    @Value("${custom.frontend.url:https://pc-e-store.vercel.app}")
     private String frontendUrl;
 
     private final MessageSource messageSource;

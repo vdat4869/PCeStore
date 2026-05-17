@@ -13,6 +13,8 @@ public class SePayIpnRequest {
 
     private TransactionData transaction;
 
+    private CustomerData customer;
+
     public SePayIpnRequest() {
         // Required for JSON deserialization
     }
@@ -47,6 +49,14 @@ public class SePayIpnRequest {
 
     public void setTransaction(TransactionData transaction) {
         this.transaction = transaction;
+    }
+
+    public CustomerData getCustomer() {
+        return customer;
+    }
+
+    public void setCustomer(CustomerData customer) {
+        this.customer = customer;
     }
 
     public static class OrderData {
@@ -199,6 +209,33 @@ public class SePayIpnRequest {
 
         public void setTransactionCurrency(String transactionCurrency) {
             this.transactionCurrency = transactionCurrency;
+        }
+    }
+
+    public static class CustomerData {
+        private String id;
+
+        @JsonProperty("customer_id")
+        private String customerId;
+
+        public CustomerData() {
+            // Required for JSON deserialization
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getCustomerId() {
+            return customerId;
+        }
+
+        public void setCustomerId(String customerId) {
+            this.customerId = customerId;
         }
     }
 }
