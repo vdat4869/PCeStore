@@ -53,15 +53,16 @@ public class PaymentController {
      */
     @PostMapping("/ipn")
     public ResponseEntity<Map<String, Boolean>> processSePayIpn(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-Secret-Key", required = false) String receivedSecretKey,
             @RequestBody SePayIpnRequest ipnRequest) {
-        
-        // Security validation for IPN
-        if (authHeader == null || !authHeader.equals("Bearer " + secretKey)) {
+
+        // Xác thực X-Secret-Key theo tài liệu SePay IPN
+        if (receivedSecretKey == null || !receivedSecretKey.equals(secretKey)) {
             return ResponseEntity.status(403).body(Map.of("success", false));
         }
 
         paymentService.processSePayIpn(ipnRequest);
+        // SePay yêu cầu HTTP 200 để xác nhận nhận IPN thành công
         return ResponseEntity.ok(Map.of("success", true));
     }
 
