@@ -11,8 +11,7 @@ RUN mvn clean package -DskipTests
 # Run stage
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
-# Copy file .env vào để lấy cấu hình
-COPY .env .
+# (Cấu hình môi trường sẽ được nạp trực tiếp trên Render)
 # Copy file chạy .jar từ build stage
 COPY --from=build /app/target/*.jar app.jar
 
