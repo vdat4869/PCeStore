@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('userToken');
       if (token) {
-        await fetch('http://localhost:8080/api/auth/logout', {
+        await fetch('https://pcestore.onrender.com/api/auth/logout', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     
     if (token) {
       setIsLoggedIn(true);
-      fetch('http://localhost:8080/api/users/profile', {
+      fetch('https://pcestore.onrender.com/api/users/profile', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       .then(res => res.ok ? res.json() : (logout(), null))

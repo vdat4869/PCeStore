@@ -10,5 +10,5 @@ export const formatImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith('http')) return path;
   // Giả sử Backend chạy ở localhost:8080
-  return `http://localhost:8080${path.startsWith('/') ? '' : '/'}${path}`;
+  return `https://pcestore.onrender.com${path.startsWith('/') ? '' : '/'}${path}`;
 };

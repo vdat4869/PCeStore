@@ -89,7 +89,7 @@ export default function ProfileEmp() {
                 </div>
                 <div className="card-body p-4">
                    <div className="d-flex align-items-center gap-3 mb-4">
-                      <img src={user?.avatarUrl ? `http://localhost:8080${user.avatarUrl}` : "https://ui-avatars.com/api/?name=" + (profile.fullName || 'NV') + "&background=random"} alt="Avatar" className="rounded-circle" style={{width: 72, height: 72, objectFit: 'cover'}} />
+                      <img src={user?.avatarUrl ? `https://pcestore.onrender.com${user.avatarUrl}` : "https://ui-avatars.com/api/?name=" + (profile.fullName || 'NV') + "&background=random"} alt="Avatar" className="rounded-circle" style={{width: 72, height: 72, objectFit: 'cover'}} />
                       <div>
                          <label className="btn btn-sm btn-outline-primary mb-1">
                             Đổi ảnh đại diện

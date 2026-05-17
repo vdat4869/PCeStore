@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Cấu hình Axios cơ bản để gọi API tới Backend
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api', // Chỉnh sửa URL Backend tại đây
+  baseURL: 'https://pcestore.onrender.com/api', // Chỉnh sửa URL Backend tại đây
   headers: {
     'Content-Type': 'application/json',
   },
@@ -65,7 +65,7 @@ apiClient.interceptors.response.use(
 
       try {
         const payload = { token: refreshToken };
-        const response = await axios.post('http://localhost:8080/api/auth/refresh-token', payload, {
+        const response = await axios.post('https://pcestore.onrender.com/api/auth/refresh-token', payload, {
           headers: { 'Content-Type': 'application/json' }
         });
         

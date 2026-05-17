@@ -35,7 +35,7 @@ export default function Login() {
     try {
       if (isMfaStep) {
         // Step 2: Verify MFA
-        const response = await fetch('http://localhost:8080/api/auth/mfa/verify-login', {
+        const response = await fetch('https://pcestore.onrender.com/api/auth/mfa/verify-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, code: parseInt(mfaCode, 10) })
@@ -51,7 +51,7 @@ export default function Login() {
       }
 
       // Step 1: Default Login
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const response = await fetch('https://pcestore.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -183,7 +183,7 @@ export default function Login() {
                   <GoogleLogin
                     onSuccess={async (credentialResponse) => {
                       try {
-                        const response = await fetch('http://localhost:8080/api/auth/google-login', {
+                        const response = await fetch('https://pcestore.onrender.com/api/auth/google-login', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ idToken: credentialResponse.credential })
