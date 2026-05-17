@@ -86,7 +86,7 @@ export default function AdminProfile() {
              <div className="card shadow-sm border-0 text-center p-4">
                 <div className="mb-3 position-relative d-inline-block mx-auto">
                     <img 
-                      src={formatImageUrl(user?.avatarUrl) || "/src/admin/assets/images/avatar/avatar-1.jpg"} 
+                      src={formatImageUrl(user?.avatarUrl) || "/avatar/avatar-1.jpg"} 
                       alt="Admin" 
                       className="rounded-circle shadow-sm object-fit-cover" 
                       style={{ width: '120px', height: '120px', border: '4px solid #f8f9fa' }}

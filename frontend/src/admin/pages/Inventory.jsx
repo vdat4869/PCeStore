@@ -126,7 +126,7 @@ export default function Inventory() {
                   <tr key={p.id}>
                     <td className="px-4">
                        <div className="d-flex align-items-center">
-                          <img src={p.imageUrl || "/src/admin/assets/images/default-product.png"} className="rounded me-3 border" style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
+                          <img src={p.imageUrl || "/default-product.png"} className="rounded me-3 border" style={{ width: '40px', height: '40px', objectFit: 'cover' }} />
                           <div>
                              <div className="fw-bold text-dark small">{p.name}</div>
                              <small className="text-muted">SKU: #{p.id}</small>

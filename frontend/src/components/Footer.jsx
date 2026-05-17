@@ -6,7 +6,7 @@ const Footer = () => {
       <div className="container">
         <div className="row">
           <div className="col-md-4 mb-4">
-            <img src="/src/admin/assets/images/logo-estore-removebg-preview.png" alt="Logo" height="45" className="mb-3" />
+            <img src="/logo-estore-removebg-preview.png" alt="Logo" height="45" className="mb-3" />
             <p className="small text-muted">
               Hệ thống bán lẻ linh kiện PC chính hãng lớn nhất. Cung cấp máy tính chơi game, máy tính văn phòng, Laptop, Workstation với giá thành và ưu đãi tốt nhất.
             </p>

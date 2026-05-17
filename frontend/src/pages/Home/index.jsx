@@ -112,7 +112,7 @@ export default function Home() {
                  <div className="card h-100 product-card position-relative overflow-hidden bg-white border shadow-sm transition-all hover-shadow" style={{ borderRadius: 6, transition: 'all 0.3s' }}>
                    <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>HOT</span>
                    <div className="text-center p-3 bg-white position-relative">
-                    <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '160px', objectFit: 'contain' }} />
+                    <img src={p.imageUrl || '/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '160px', objectFit: 'contain' }} />
                   </div>
                    <div className="card-body p-3 d-flex flex-column">
                       <h6 className="fw-medium mb-2 text-truncate-2" style={{ height: '40px', fontSize: '14px', lineHeight: '1.4' }}>{p.name}</h6>
@@ -143,7 +143,7 @@ export default function Home() {
                  <div className="card h-100 product-card position-relative overflow-hidden bg-white border shadow-sm transition-all hover-shadow" style={{ borderRadius: 6, transition: 'all 0.3s' }}>
                    <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>MỚI</span>
                    <div className="text-center p-3 bg-white position-relative">
-                    <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '160px', objectFit: 'contain' }} />
+                    <img src={p.imageUrl || '/default-product.png'} className="img-fluid" alt={p.name} style={{ height: '160px', objectFit: 'contain' }} />
                   </div>
                    <div className="card-body p-3 d-flex flex-column">
                       <h6 className="fw-medium mb-2 text-truncate-2" style={{ height: '40px', fontSize: '14px', lineHeight: '1.4' }}>{p.name}</h6>

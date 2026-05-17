@@ -14,7 +14,7 @@ const PAGE_DATA = {
           <li><strong>Tặng Màn Hình:</strong> Tặng kèm màn hình 24 inch khi mua PC Gaming cấu hình cao.</li>
           <li><strong>Voucher Khủng:</strong> Thu thập mã để giảm tiếp 5% (tối đa 500.000đ) cho linh kiện lẻ.</li>
         </ul>
-        <img src="/src/admin/assets/images/default-product.png" alt="Khuyen Mai" className="img-fluid rounded mb-4" style={{ height: '300px', width: '100%', objectFit: 'cover', backgroundColor: '#f8f9fa' }} />
+        <img src="/default-product.png" alt="Khuyen Mai" className="img-fluid rounded mb-4" style={{ height: '300px', width: '100%', objectFit: 'cover', backgroundColor: '#f8f9fa' }} />
         <p className="text-muted fst-italic">*Lưu ý: CTKM có thể kết thúc sớm nếu hết quà tặng. Vui lòng liên hệ Hotline 1900 0243 để biết thêm chi tiết.</p>
       </>
     )

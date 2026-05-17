@@ -36,7 +36,7 @@ export default function EmployeeTopbar({ toggleSidebar, toggleMobileSidebar, isS
         </div>
         <div className="dropdown">
            <a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <img src={formatImageUrl(user?.avatarUrl) || "/src/admin/assets/images/avatar/avatar-1.jpg"} alt="" className="avatar avatar-sm rounded-circle shadow-sm" style={{ border: '2px solid #fff' }} />
+              <img src={formatImageUrl(user?.avatarUrl) || "/avatar/avatar-1.jpg"} alt="" className="avatar avatar-sm rounded-circle shadow-sm" style={{ border: '2px solid #fff' }} />
            </a>
            <ul className="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
               <li><Link className="dropdown-item py-2" to="/employee/profile"><i className="bi bi-person me-2"></i>Thông tin hồ sơ</Link></li>

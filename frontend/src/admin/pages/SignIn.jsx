@@ -8,7 +8,7 @@ export default function SignIn() {
         <div className="card-body p-5">
           <div className="text-center mb-3">
             <Link to="/admin" className="mb-4 d-inline-block">
-              <img src="/src/admin/assets/images/logo-estore.png" alt="PC eStore Logo" style={{ height: '40px', objectFit: 'contain' }} />
+              <img src="/logo-estore.png" alt="PC eStore Logo" style={{ height: '40px', objectFit: 'contain' }} />
             </Link>
             <h1 className="card-title mb-5 h5">Sign in to your account</h1>
           </div>

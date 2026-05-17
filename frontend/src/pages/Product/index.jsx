@@ -363,7 +363,7 @@ export default function Product() {
                        <div className="card h-100 product-card border shadow-sm position-relative overflow-hidden transition-all hover-shadow" style={{ borderRadius: 6 }}>
                          <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>HOT</span>
                          <div className="text-center p-3 bg-white position-relative">
-                           <img src={product.imageUrl || '/src/admin/assets/images/default-product.png'} alt="" className="img-fluid" style={{ height: '160px', objectFit: 'contain' }} />
+                           <img src={product.imageUrl || '/default-product.png'} alt="" className="img-fluid" style={{ height: '160px', objectFit: 'contain' }} />
                          </div>
                          <div className="card-body p-3 d-flex flex-column" style={{ minHeight: '150px' }}>
                             <h6 className="fw-bold mb-2 text-truncate-2" style={{ fontSize: '13.5px', lineHeight: '1.5', color: '#333', minHeight: '42px', overflow: 'hidden' }}>

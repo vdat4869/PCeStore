@@ -199,7 +199,7 @@ export default function BuildPC() {
                           <div className="col-12 col-md-6" key={p.id}>
                              <div className="card h-100 border-0 shadow-sm">
                                 <div className="card-body p-3 d-flex align-items-center gap-3">
-                                   <img src={p.imageUrl || '/src/admin/assets/images/default-product.png'} style={{ width: 60, height: 60, objectFit: 'contain' }} alt=""/>
+                                   <img src={p.imageUrl || '/default-product.png'} style={{ width: 60, height: 60, objectFit: 'contain' }} alt=""/>
                                    <div className="flex-grow-1">
                                       <div className="fw-medium text-dark small text-truncate-2" style={{ lineHeight: 1.4, height: 40, marginBottom: '4px' }}>{p.name}</div>
                                       <div className="text-danger fw-bold">{formatCurrency(p.price)}</div>

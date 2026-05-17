@@ -8,7 +8,7 @@ export default function NotFound() {
         <div className="text-center">
           <div className="mb-4">
             <Link to="/admin" className="d-inline-block mb-4">
-              <img src="/src/admin/assets/images/logo-estore.png" alt="PC eStore Logo" style={{ height: '40px', objectFit: 'contain' }} />
+              <img src="/logo-estore.png" alt="PC eStore Logo" style={{ height: '40px', objectFit: 'contain' }} />
             </Link>
           </div>
 

@@ -9,9 +9,9 @@ import apiClient from '../../services/api';
 // DỮ LIỆU MẪU — Sẽ nhận từ Cart qua state/context
 // ============================================================
 const MOCK_CHECKOUT_ITEMS = [
-  { productId: 1, name: 'CPU Intel Core i5-12400F', price: 3290000, quantity: 1, imageUrl: '/src/admin/assets/images/product-1.png' },
-  { productId: 2, name: 'VGA NVIDIA GeForce RTX 3060 12GB', price: 7490000, quantity: 1, imageUrl: '/src/admin/assets/images/product-2.png' },
-  { productId: 3, name: 'RAM Corsair Vengeance 16GB DDR4 3200MHz', price: 890000, quantity: 2, imageUrl: '/src/admin/assets/images/product-3.png' },
+  { productId: 1, name: 'CPU Intel Core i5-12400F', price: 3290000, quantity: 1, imageUrl: '/product-1.png' },
+  { productId: 2, name: 'VGA NVIDIA GeForce RTX 3060 12GB', price: 7490000, quantity: 1, imageUrl: '/product-2.png' },
+  { productId: 3, name: 'RAM Corsair Vengeance 16GB DDR4 3200MHz', price: 890000, quantity: 2, imageUrl: '/product-3.png' },
 ];
 
 const PAYMENT_METHODS = [

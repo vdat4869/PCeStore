@@ -73,7 +73,7 @@ const Header = ({ minimal = false }) => {
             {/* Logo */}
             <div className="col-12 col-md-3 mb-3 mb-md-0 text-center text-md-start">
               <Link to="/">
-                <img src="/src/admin/assets/images/logo-estore-removebg-preview.png" alt="PCeStore Logo" style={{ height: '45px', objectFit: 'contain' }} />
+                <img src="/logo-estore-removebg-preview.png" alt="PCeStore Logo" style={{ height: '45px', objectFit: 'contain' }} />
               </Link>
             </div>
             

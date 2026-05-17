@@ -21,7 +21,7 @@ export default function EmployeeSidebar({ isCollapsed, isMobileShow }) {
     <aside id="sidebar" className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileShow ? 'mobile-show' : ''}`}>
       <div className="logo-area">
         <Link to="/employee" className="d-inline-flex">
-          <img src="/src/admin/assets/images/logo-estore.png" alt="PC eStore Logo" style={{ height: '36px', objectFit: 'contain' }} />
+          <img src="/logo-estore.png" alt="PC eStore Logo" style={{ height: '36px', objectFit: 'contain' }} />
         </Link>
         <div className="ms-2 badge bg-info text-dark small">Employee</div>
       </div>
