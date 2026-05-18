@@ -1,6 +1,28 @@
 {
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-secret-key"
+        }
+      ],
+      "destination": "https://pcestore.onrender.com/api/v1/payments/ipn"
+    },
+    {
+      "source": "/api/sepay/ipn",
+      "destination": "https://pcestore.onrender.com/api/v1/payments/ipn"
+    },
+    {
+      "source": "/api/sepay/ipn/",
+      "destination": "https://pcestore.onrender.com/api/v1/payments/ipn"
+    },
+    {
+      "source": "/api/v1/payments/ipn/",
+      "destination": "https://pcestore.onrender.com/api/v1/payments/ipn"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://pcestore.onrender.com/api/:path*"
     },
