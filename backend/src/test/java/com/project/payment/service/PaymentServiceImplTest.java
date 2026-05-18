@@ -64,6 +64,25 @@ class PaymentServiceImplTest {
     }
 
     @Test
+    void initiateSePayCheckoutIgnoresLocalhostFrontendUrl() {
+        ReflectionTestUtils.setField(paymentService, "frontendUrl", "http://localhost:3000");
+        Payment payment = Payment.builder()
+                .id(7L)
+                .orderId(42L)
+                .amount(new BigDecimal("100000"))
+                .paymentMethod("BANK_TRANSFER")
+                .status(PaymentStatus.PENDING)
+                .build();
+        when(paymentRepository.findById(7L)).thenReturn(Optional.of(payment));
+
+        Map<String, String> fields = paymentService.initiateSePayCheckout(7L);
+
+        assertEquals("https://pc-e-store.vercel.app/order-success/42?status=success", fields.get("success_url"));
+        assertEquals("https://pc-e-store.vercel.app/payment/42?status=error", fields.get("error_url"));
+        assertEquals("https://pc-e-store.vercel.app/checkout?status=cancel", fields.get("cancel_url"));
+    }
+
+    @Test
     void processSePayIpnMarksPaymentAndOrderPaid() {
         Payment payment = Payment.builder()
                 .id(7L)

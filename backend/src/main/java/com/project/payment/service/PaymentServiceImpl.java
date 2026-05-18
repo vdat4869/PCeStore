@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -293,11 +294,26 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private String buildFrontendUrl(String path) {
-        String baseUrl = (frontendUrl == null || frontendUrl.isBlank()) ? DEFAULT_FRONTEND_URL : frontendUrl.trim();
+        String baseUrl = resolvePublicFrontendUrl();
         if (baseUrl.endsWith("/")) {
             baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
         return baseUrl + path;
+    }
+
+    private String resolvePublicFrontendUrl() {
+        if (frontendUrl == null || frontendUrl.isBlank()) {
+            return DEFAULT_FRONTEND_URL;
+        }
+
+        String configuredUrl = frontendUrl.trim();
+        String lowerUrl = configuredUrl.toLowerCase(Locale.ROOT);
+        if (lowerUrl.contains("localhost") || lowerUrl.contains("127.0.0.1") || lowerUrl.contains("0.0.0.0")) {
+            log.warn("Ignoring non-public frontend URL '{}' for SePay return URLs", configuredUrl);
+            return DEFAULT_FRONTEND_URL;
+        }
+
+        return configuredUrl;
     }
 
     private Long resolveOrderId(SePayIpnRequest request) {

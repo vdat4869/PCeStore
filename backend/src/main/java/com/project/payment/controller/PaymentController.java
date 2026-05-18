@@ -25,8 +25,8 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
-    @Value("${sepay.secret-key}")
-    private String secretKey;
+    @Value("${sepay.ipn-secret-key}")
+    private String ipnSecretKey;
 
     /**
      * Creates a new payment record for an order.
@@ -57,7 +57,7 @@ public class PaymentController {
             @RequestBody SePayIpnRequest ipnRequest) {
 
         // Xác thực X-Secret-Key theo tài liệu SePay IPN
-        if (receivedSecretKey == null || !receivedSecretKey.equals(secretKey)) {
+        if (receivedSecretKey == null || !receivedSecretKey.equals(ipnSecretKey)) {
             return ResponseEntity.status(403).body(Map.of("success", false));
         }
 
