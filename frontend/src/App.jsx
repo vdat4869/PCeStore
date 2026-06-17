@@ -32,7 +32,7 @@ const MainLayout = () => {
   return (
     <>
       <Header />
-      <main className="flex-grow-1 bg-light pt-4" style={{ minHeight: '60vh' }}>
+      <main className="flex-grow-1 storefront-main pt-4" style={{ minHeight: '60vh' }}>
         <Outlet />
       </main>
       <Footer />

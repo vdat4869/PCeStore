@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { formatCurrency } from '../../utils';
 import { useCart } from '../../context/CartContext';
 import apiClient from '../../services/api';
+import StoreProductCard from '../../components/StoreProductCard';
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -72,6 +73,19 @@ export default function ProductDetail() {
     navigate('/cart');
   };
 
+  const handleAddRelatedToCart = (item) => {
+    addToCart({
+      productId: item.id,
+      productName: item.name,
+      price: item.price,
+      image: item.imageUrl,
+      imageUrl: item.imageUrl,
+      quantity: 1,
+    });
+    setToast(`Đã thêm "${item.name}" vào giỏ hàng!`);
+    setTimeout(() => setToast(null), 2500);
+  };
+
   if (loading) return <div className="text-center p-5 mt-5"><div className="spinner-border text-danger"></div></div>;
 
   if (!product) {
@@ -96,7 +110,7 @@ export default function ProductDetail() {
           <i className="bi bi-cart-check me-2 text-success"></i>{toast}
         </div>
       )}
-      <div className="container pb-5">
+      <div className="container pb-5 store-detail-page">
       {/* ============================================================ */}
       {/* BREADCRUMB */}
       {/* ============================================================ */}
@@ -124,7 +138,7 @@ export default function ProductDetail() {
       {/* ============================================================ */}
       <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-4">
-          <div className="row">
+          <div className="row g-4">
             {/* === CỘT TRÁI: Hình ảnh === */}
             <div className="col-lg-5 mb-4 mb-lg-0">
               <div className="bg-light rounded-3 p-4 text-center position-relative" style={{ minHeight: '350px' }}>
@@ -434,24 +448,10 @@ export default function ProductDetail() {
           <h4 className="fw-bold mb-3">
             <i className="bi bi-collection text-danger me-2"></i>Sản phẩm liên quan
           </h4>
-          <div className="row">
+          <div className="row g-3 row-cols-1 row-cols-sm-2 row-cols-lg-5">
             {relatedProducts.map(rp => (
-               <div className="mb-3" key={rp.id} style={{ width: '20%', flex: '0 0 20%' }}>
-                 <Link to={`/products/${rp.id}`} className="text-decoration-none text-dark">
-                   <div className="card h-100 product-card position-relative overflow-hidden bg-white border shadow-sm transition-all hover-shadow" style={{ borderRadius: 6, transition: 'all 0.3s' }}>
-                     <span className="position-absolute badge bg-danger" style={{ top: 10, right: 10, zIndex: 2 }}>HOT</span>
-                     <div className="text-center p-3 bg-white position-relative">
-                      <img src={rp.imageUrl || '/default-product.png'} className="img-fluid" alt={rp.name} style={{ height: '160px', objectFit: 'contain' }} />
-                    </div>
-                     <div className="card-body p-3 d-flex flex-column">
-                        <h6 className="fw-medium mb-2 text-truncate-2" style={{ height: '40px', fontSize: '14px', lineHeight: '1.4' }}>{rp.name}</h6>
-                        <div className="text-danger fw-bold fs-6 mb-2">{formatCurrency(rp.price)}</div>
-                        <div className="d-flex flex-wrap gap-1 mt-auto">
-                           <span className="badge bg-light text-secondary border fw-normal"><i className="bi bi-cpu me-1"></i>{rp.brand}</span>
-                        </div>
-                     </div>
-                   </div>
-                 </Link>
+               <div className="col" key={rp.id}>
+                 <StoreProductCard product={rp} onAddToCart={handleAddRelatedToCart} sectionLabel="Lien quan" />
                </div>
             ))}
           </div>

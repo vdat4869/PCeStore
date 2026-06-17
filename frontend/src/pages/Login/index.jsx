@@ -8,6 +8,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [mascotLook, setMascotLook] = useState({ x: 0, y: 0 });
+  const [mascotMood, setMascotMood] = useState('neutral');
   
   // States for MFA
   const [isMfaStep, setIsMfaStep] = useState(false);
@@ -19,13 +21,17 @@ export default function Login() {
   const handleProcessLoginSuccess = (data) => {
     login(data.accessToken, data.role, { email, id: data.userId }, data.refreshToken);
     setError('');
-    if (data.role === 'ADMIN') {
-      window.location.href = '/admin';
-    } else if (data.role === 'EMPLOYEE') {
-      window.location.href = '/employee';
-    } else {
-      window.location.href = '/';
-    }
+    setMascotMood('happy');
+
+    setTimeout(() => {
+      if (data.role === 'ADMIN') {
+        window.location.href = '/admin';
+      } else if (data.role === 'EMPLOYEE') {
+        window.location.href = '/employee';
+      } else {
+        window.location.href = '/';
+      }
+    }, 750);
   };
 
   const handleLogin = async (e) => {
@@ -34,6 +40,12 @@ export default function Login() {
 
     try {
       if (isMfaStep) {
+        if (mfaCode.length !== 6) {
+          setMascotMood('sad');
+          setError('Vui long nhap ma OTP gom 6 so.');
+          return;
+        }
+
         // Step 2: Verify MFA
         const response = await fetch('https://pcestore.onrender.com/api/auth/mfa/verify-login', {
           method: 'POST',
@@ -45,8 +57,15 @@ export default function Login() {
           const data = await response.json();
           handleProcessLoginSuccess(data);
         } else {
+          setMascotMood('sad');
           setError('Mã xác thực không hợp lệ hoặc đã hết hạn.');
         }
+        return;
+      }
+
+      if (!email.trim() || !password.trim()) {
+        setMascotMood('sad');
+        setError('Vui long nhap day du email va mat khau.');
         return;
       }
 
@@ -63,22 +82,69 @@ export default function Login() {
         if (data.mfaRequired) {
           setIsMfaStep(true);
           setError('');
+          setMascotMood('neutral');
         } else {
           handleProcessLoginSuccess(data);
         }
       } else {
+        setMascotMood('sad');
         setError('Email hoặc mật khẩu không chính xác!');
       }
     } catch (err) {
       console.error(err);
+      setMascotMood('sad');
       setError('Lỗi kết nối tới máy chủ. Vui lòng kiểm tra Backend có đang chạy không!');
     }
   };
 
+  const resetMascotMood = () => {
+    if (mascotMood !== 'neutral') {
+      setMascotMood('neutral');
+    }
+  };
+
+  const handleMascotMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width / 2) / (rect.width / 2);
+    const y = (e.clientY - rect.top - rect.height / 2) / (rect.height / 2);
+
+    setMascotLook({
+      x: Math.max(-1, Math.min(1, x)) * 8,
+      y: Math.max(-1, Math.min(1, y)) * 5,
+    });
+  };
+
   return (
     <div className="container py-5 d-flex justify-content-center align-items-center" style={{ minHeight: '60vh' }}>
-      <div className="card shadow-lg border-0 rounded-4" style={{ width: '100%', maxWidth: '400px' }}>
+      <div
+        className={`card shadow-lg border-0 rounded-4 login-card-animated is-${mascotMood}`}
+        style={{ width: '100%', maxWidth: '400px', '--look-x': `${mascotLook.x}px`, '--look-y': `${mascotLook.y}px` }}
+        onMouseMove={handleMascotMouseMove}
+        onMouseLeave={() => setMascotLook({ x: 0, y: 0 })}
+      >
         <div className="card-body p-5">
+          <div className="login-mascot-wrap" aria-hidden="true">
+            <div className="login-mascot">
+              <span className="login-mascot__antenna"></span>
+              <div className="login-mascot__screen">
+                <span className="login-mascot__eye"><span></span></span>
+                <span className="login-mascot__eye"><span></span></span>
+                <span className="login-mascot__cheek login-mascot__cheek--left"></span>
+                <span className="login-mascot__cheek login-mascot__cheek--right"></span>
+                <span className="login-mascot__smile"></span>
+                <span className="login-mascot__shine"></span>
+                <span className="login-mascot__drop login-mascot__drop--one"></span>
+                <span className="login-mascot__drop login-mascot__drop--two"></span>
+                <span className="login-mascot__drop login-mascot__drop--three"></span>
+              </div>
+              <span className="login-mascot__arm login-mascot__arm--left"></span>
+              <span className="login-mascot__arm login-mascot__arm--right"></span>
+              <div className="login-mascot__base">
+                <span></span>
+              </div>
+            </div>
+          </div>
+
           <div className="text-center mb-4">
             <h2 className="fw-bold mb-1" style={{ color: '#2b3452' }}>{isMfaStep ? 'Xác thực 2 bước' : 'Đăng nhập'}</h2>
             <p className="text-muted small">
@@ -93,7 +159,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} noValidate>
             {!isMfaStep ? (
               <>
                 <div className="mb-3">
@@ -108,7 +174,7 @@ export default function Login() {
                       id="email"
                       placeholder="Nhập Email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => { setEmail(e.target.value); resetMascotMood(); }}
                       required
                     />
                   </div>
@@ -126,7 +192,7 @@ export default function Login() {
                       id="password"
                       placeholder="Nhập mật khẩu"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => { setPassword(e.target.value); resetMascotMood(); }}
                       required
                     />
                     <span 
@@ -159,7 +225,7 @@ export default function Login() {
                       placeholder="000000"
                       maxLength="6"
                       value={mfaCode}
-                      onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                      onChange={(e) => { setMfaCode(e.target.value.replace(/\D/g, '')); resetMascotMood(); }}
                       required
                       autoFocus
                     />
@@ -193,13 +259,16 @@ export default function Login() {
                           const data = await response.json();
                           handleProcessLoginSuccess(data);
                         } else {
+                          setMascotMood('sad');
                           setError('Đăng nhập Google thất bại từ máy chủ.');
                         }
                       } catch (err) {
+                        setMascotMood('sad');
                         setError('Lỗi kết nối khi đăng nhập Google.');
                       }
                     }}
                     onError={() => {
+                      setMascotMood('sad');
                       setError('Đăng nhập Google thất bại.');
                     }}
                     useOneTap
