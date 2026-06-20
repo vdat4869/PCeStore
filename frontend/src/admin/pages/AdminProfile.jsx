@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { formatImageUrl } from '../../utils';
+import Swal from 'sweetalert2';
 
 export default function AdminProfile() {
   const { user, updateUserInfo } = useAuth();
@@ -56,15 +57,15 @@ export default function AdminProfile() {
     }
   };
 
-  const handleChangePassword = async (e) => {
+      const handleChangePassword = async (e) => {
       e.preventDefault();
       try {
         await apiClient.put('/users/change-password', { oldPassword, newPassword });
-        alert('Đổi mật khẩu thành công!');
+        Swal.fire({icon: 'success', title: 'Thành công', text: 'Đổi mật khẩu thành công!'});
         setOldPassword('');
         setNewPassword('');
       } catch (err) {
-        alert(err.response?.data?.message || 'Mật khẩu cũ không chính xác!');
+        Swal.fire({icon: 'error', title: 'Lỗi', text: err.response?.data?.message || 'Mật khẩu cũ không chính xác!'});
       }
   };
 

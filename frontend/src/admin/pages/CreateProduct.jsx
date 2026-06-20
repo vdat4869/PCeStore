@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function CreateProduct() {
   const navigate = useNavigate();
@@ -34,10 +35,20 @@ export default function CreateProduct() {
         categoryId: parseInt(formData.categoryId)
       };
       await apiClient.post('/products', payload);
-      alert("Thêm sản phẩm thành công!");
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        text: 'Thêm sản phẩm thành công!',
+        confirmButtonColor: '#3085d6'
+      });
       navigate('/admin/products');
     } catch (err) {
-      alert("Lỗi khi thêm sản phẩm: " + (err.response?.data?.message || err.message));
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: "Lỗi khi thêm sản phẩm: " + (err.response?.data?.message || err.message),
+        confirmButtonColor: '#3085d6'
+      });
     } finally {
       setLoading(false);
     }
@@ -118,13 +129,20 @@ export default function CreateProduct() {
 
                 <div className="mb-3">
                   <label className="form-label fw-bold">Link ảnh Sản phẩm (URL)</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    value={formData.imageUrl}
-                    onChange={e => setFormData({...formData, imageUrl: e.target.value})}
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  <div className="d-flex gap-3 align-items-start">
+                    <input 
+                      type="url" 
+                      className="form-control" 
+                      value={formData.imageUrl}
+                      onChange={e => setFormData({...formData, imageUrl: e.target.value})}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    {formData.imageUrl && (
+                      <div className="border rounded p-1 bg-white shadow-sm" style={{width: '60px', height: '60px', flexShrink: 0}}>
+                        <img src={formData.imageUrl} alt="Preview" className="w-100 h-100 object-fit-contain" onError={(e) => { e.target.style.display = 'none'; }} onLoad={(e) => { e.target.style.display = 'block'; }} />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mb-4">

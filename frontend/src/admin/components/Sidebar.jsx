@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Swal from 'sweetalert2';
 
 export default function Sidebar({ isCollapsed, isMobileShow }) {
   const location = useLocation();
@@ -13,15 +14,28 @@ export default function Sidebar({ isCollapsed, isMobileShow }) {
 
   const handleLogout = (e) => {
     e.preventDefault();
-    logout();
-    navigate('/login');
+    Swal.fire({
+      title: 'Xác nhận đăng xuất?',
+      text: "Bạn có chắc chắn muốn đăng xuất không?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Đăng xuất',
+      cancelButtonText: 'Hủy'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        logout();
+        navigate('/login');
+      }
+    });
   };
 
   return (
     <aside id="sidebar" className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileShow ? 'mobile-show' : ''}`}>
       <div className="logo-area">
         <Link to="/admin" className="d-inline-flex">
-          <img src="/logo-estore.png" alt="PC eStore Logo" style={{ height: '36px', objectFit: 'contain' }} />
+          <img src="/logo-estore.png" alt="PC eStore Logo" style={{ height: '48px', objectFit: 'contain' }} />
         </Link>
       </div>
       <ul className="nav flex-column">

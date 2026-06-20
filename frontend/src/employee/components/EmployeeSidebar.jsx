@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 export default function EmployeeSidebar({ isCollapsed, isMobileShow }) {
   const location = useLocation();
@@ -11,10 +12,23 @@ export default function EmployeeSidebar({ isCollapsed, isMobileShow }) {
 
   const handleLogout = (e) => {
     e.preventDefault();
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('isAdminAuthenticated');
-    navigate('/login');
+    Swal.fire({
+      title: 'Đăng xuất?',
+      text: "Bạn có chắc chắn muốn đăng xuất không?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('isAdminAuthenticated');
+        navigate('/login');
+      }
+    });
   };
 
   return (

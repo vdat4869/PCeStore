@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -28,26 +29,36 @@ export default function Users() {
   const handleRoleChange = async (userId, newRole) => {
     try {
       await apiClient.put(`/admin/users/${userId}/role?role=${newRole}`);
-      alert('Cập nhật quyền thành công!');
+      Swal.fire({icon: 'success', title: 'Thành công', text: 'Cập nhật quyền thành công!', timer: 1500});
       fetchUsers();
     } catch (error) {
       console.error(error);
-      alert('Có lỗi xảy ra khi phân quyền!');
+      Swal.fire({icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi phân quyền!'});
     }
   };
 
   const handleHardDelete = async (userId) => {
-    if (!window.confirm("CẢNH BÁO: Hành động này sẽ xóa vĩnh viễn dữ liệu của người dùng này khỏi cơ sở dữ liệu. Bạn có chắc chắn muốn xóa?")) {
-      return;
-    }
-    try {
-      await apiClient.delete(`/admin/users/${userId}/hard`);
-      alert('Đã xóa vĩnh viễn tài khoản!');
-      fetchUsers();
-    } catch (error) {
-      console.error(error);
-      alert('Lỗi: Bạn không thể xóa tài khoản này!');
-    }
+    Swal.fire({
+      title: 'CẢNH BÁO',
+      text: "Hành động này sẽ xóa vĩnh viễn dữ liệu của người dùng này khỏi cơ sở dữ liệu. Bạn có chắc chắn muốn xóa?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa vĩnh viễn',
+      cancelButtonText: 'Hủy'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await apiClient.delete(`/admin/users/${userId}/hard`);
+          Swal.fire({icon: 'success', title: 'Đã xóa', text: 'Đã xóa vĩnh viễn tài khoản!'});
+          fetchUsers();
+        } catch (error) {
+          console.error(error);
+          Swal.fire({icon: 'error', title: 'Lỗi', text: 'Bạn không thể xóa tài khoản này!'});
+        }
+      }
+    });
   };
 
   const handleStatusChange = async (userId, currentStatus) => {
@@ -57,16 +68,28 @@ export default function Users() {
       fetchUsers();
     } catch (error) {
       console.error(error);
-      alert('Có lỗi xảy ra khi cập nhật trạng thái hoạt động!');
+      Swal.fire({icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi cập nhật trạng thái hoạt động!'});
     }
   };
 
   const handleSoftDelete = async (userId) => {
-    if (!window.confirm("Bạn muốn xóa (vô hiệu hóa tạm thời) tài khoản này?")) return;
-    try {
-      await apiClient.delete(`/admin/users/${userId}`);
-      fetchUsers();
-    } catch (error) { console.error(error); }
+    Swal.fire({
+      title: 'Xác nhận xóa',
+      text: "Bạn muốn xóa (vô hiệu hóa tạm thời) tài khoản này?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await apiClient.delete(`/admin/users/${userId}`);
+          fetchUsers();
+        } catch (error) { console.error(error); }
+      }
+    });
   };
 
   const handleRestore = async (userId) => {

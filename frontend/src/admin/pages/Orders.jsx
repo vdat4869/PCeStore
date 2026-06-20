@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -26,10 +27,20 @@ export default function Orders() {
   const handleUpdateStatus = async (orderId, newStatus) => {
     try {
       await apiClient.put(`/v1/orders/admin/${orderId}/status?status=${newStatus}`);
-      alert(`Đã cập nhật đơn hàng #${orderId} sang trạng thái ${newStatus}`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Cập nhật thành công!',
+        text: `Đã cập nhật đơn hàng #${orderId} sang trạng thái ${newStatus}`,
+        confirmButtonColor: '#3085d6'
+      });
       fetchOrders();
     } catch (err) {
-      alert("Lỗi khi cập nhật: " + (err.response?.data?.message || err.message));
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi khi cập nhật',
+        text: err.response?.data?.message || err.message,
+        confirmButtonColor: '#3085d6'
+      });
     }
   };
 
@@ -68,6 +79,7 @@ export default function Orders() {
             <thead className="bg-light text-muted">
               <tr>
                 <th className="px-4 py-3">Mã đơn</th>
+                <th className="py-3">Khách hàng</th>
                 <th className="py-3">Ngày đặt</th>
                 <th className="py-3 text-end px-4">Tổng tiền</th>
                 <th className="py-3 text-center">Trạng thái</th>
@@ -78,11 +90,25 @@ export default function Orders() {
               {loading ? (
                 <tr><td colSpan="5" className="text-center py-5"><div className="spinner-border spinner-border-sm text-primary"></div> Đang tải...</td></tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan="5" className="text-center py-5 text-muted small">Hệ thống chưa ghi nhận đơn hàng nào</td></tr>
+                <tr>
+                  <td colSpan="6">
+                    <div className="empty-state py-5">
+                      <i className="bi bi-inbox"></i>
+                      <h5 className="text-muted">Hệ thống chưa ghi nhận đơn hàng nào</h5>
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 orders.map(o => (
                   <tr key={o.id}>
                     <td className="px-4 fw-bold text-dark">#{o.id}</td>
+                    <td>
+                       <div className="fw-bold small">{o.customerName || 'Khách vãng lai'}</div>
+                       <div className="text-muted" style={{ fontSize: '11px' }}>
+                          <i className="bi bi-telephone-fill me-1"></i>
+                          {o.customerPhone || o.shipping?.phone || o.shipping?.phoneNumber || 'Chưa cập nhật'}
+                       </div>
+                    </td>
                     <td>
                        <div className="small">{new Date(o.orderDate).toLocaleDateString('vi-VN')}</div>
                        <small className="text-muted" style={{ fontSize: '10px' }}>{new Date(o.orderDate).toLocaleTimeString('vi-VN')}</small>
@@ -94,24 +120,30 @@ export default function Orders() {
                        {getStatusBadge(o.status)}
                     </td>
                     <td className="text-center px-4">
-                      <div className="btn-group shadow-sm">
-                         {o.status === 'PAID' && (
-                           <button onClick={() => handleUpdateStatus(o.id, 'CONFIRMED')} className="btn btn-sm btn-primary">Xác nhận</button>
-                         )}
-                         {o.status === 'CONFIRMED' && (
-                           <button onClick={() => handleUpdateStatus(o.id, 'SHIPPING')} className="btn btn-sm btn-warning">Giao hàng</button>
-                         )}
-                         {o.status === 'SHIPPING' && (
-                           <button onClick={() => handleUpdateStatus(o.id, 'DELIVERED')} className="btn btn-sm btn-info text-white">Xong</button>
-                         )}
-                         {(o.status !== 'DELIVERED' && o.status !== 'CANCELLED') && (
-                            <button onClick={() => handleUpdateStatus(o.id, 'CANCELLED')} className="btn btn-sm btn-outline-danger px-2" title="Hủy đơn">
-                               <i className="bi bi-x-lg"></i>
-                            </button>
-                         )}
+                      <div className="d-flex justify-content-center gap-1">
                          <Link to={`${o.id}`} className="btn btn-sm btn-light border" title="Chi tiết">
                             <i className="bi bi-eye"></i>
                          </Link>
+                         {o.status === 'PAID' && (
+                           <button onClick={() => handleUpdateStatus(o.id, 'CONFIRMED')} className="btn btn-sm btn-primary" title="Xác nhận">
+                             <i className="bi bi-check-circle"></i>
+                           </button>
+                         )}
+                         {o.status === 'CONFIRMED' && (
+                           <button onClick={() => handleUpdateStatus(o.id, 'SHIPPING')} className="btn btn-sm btn-warning text-dark" title="Giao hàng">
+                             <i className="bi bi-truck"></i>
+                           </button>
+                         )}
+                         {o.status === 'SHIPPING' && (
+                           <button onClick={() => handleUpdateStatus(o.id, 'DELIVERED')} className="btn btn-sm btn-success" title="Hoàn thành">
+                             <i className="bi bi-check2-all"></i>
+                           </button>
+                         )}
+                         {(o.status !== 'DELIVERED' && o.status !== 'CANCELLED') && (
+                            <button onClick={() => handleUpdateStatus(o.id, 'CANCELLED')} className="btn btn-sm btn-outline-danger" title="Hủy đơn">
+                               <i className="bi bi-x-circle"></i>
+                            </button>
+                         )}
                       </div>
                     </td>
                   </tr>

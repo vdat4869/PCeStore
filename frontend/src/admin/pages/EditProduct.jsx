@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function EditProduct() {
   const { id } = useParams();
@@ -41,7 +42,7 @@ export default function EditProduct() {
         });
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
-        alert("Không thể tải thông tin sản phẩm!");
+        Swal.fire({icon: 'error', title: 'Lỗi', text: 'Không thể tải thông tin sản phẩm!', confirmButtonColor: '#3085d6'});
         navigate('/admin/products');
       } finally {
         setLoading(false);
@@ -62,10 +63,10 @@ export default function EditProduct() {
         categoryId: parseInt(formData.categoryId)
       };
       await apiClient.put(`/products/${id}`, payload);
-      alert("Cập nhật sản phẩm thành công!");
+      Swal.fire({icon: 'success', title: 'Thành công', text: 'Cập nhật sản phẩm thành công!', confirmButtonColor: '#3085d6'});
       navigate('/admin/products');
     } catch (err) {
-      alert("Lỗi khi cập nhật sản phẩm: " + (err.response?.data?.message || err.message));
+      Swal.fire({icon: 'error', title: 'Lỗi', text: "Lỗi khi cập nhật sản phẩm: " + (err.response?.data?.message || err.message), confirmButtonColor: '#3085d6'});
     } finally {
       setSaving(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function Complaints() {
   const [complaints, setComplaints] = useState([]);
@@ -21,17 +22,25 @@ export default function Complaints() {
   };
 
   const handleProcess = async (id) => {
-    const response = prompt("Nhập kết quả xử lý hỗ trợ khách hàng (VD: Đã hoàn tiền, Đã gọi điện xin lỗi):");
-    if (response) {
-      try {
-        await apiClient.put(`/v1/complaints/${id}/resolve`, { solution: response });
-        alert("Tiếp nhận và xử lý trạng thái thành công!");
-        fetchComplaints(); // Tải lại dữ liệu sau khi sửa
-      } catch (error) {
-        console.error("Lỗi xử lý khiếu nại:", error);
-        alert("Có lỗi xảy ra khi cập nhật trạng thái.");
+    Swal.fire({
+      title: 'Xử lý khiếu nại',
+      input: 'text',
+      inputLabel: 'Nhập kết quả xử lý hỗ trợ khách hàng (VD: Đã hoàn tiền, Đã gọi điện xin lỗi):',
+      showCancelButton: true,
+      confirmButtonText: 'Lưu',
+      cancelButtonText: 'Hủy'
+    }).then(async (result) => {
+      if (result.isConfirmed && result.value) {
+        try {
+          await apiClient.put(`/v1/complaints/${id}/resolve`, { solution: result.value });
+          Swal.fire({icon: 'success', title: 'Thành công', text: 'Tiếp nhận và xử lý trạng thái thành công!'});
+          fetchComplaints(); // Tải lại dữ liệu sau khi sửa
+        } catch (error) {
+          console.error("Lỗi xử lý khiếu nại:", error);
+          Swal.fire({icon: 'error', title: 'Lỗi', text: 'Có lỗi xảy ra khi cập nhật trạng thái.'});
+        }
       }
-    }
+    });
   };
 
   return (

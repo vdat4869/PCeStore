@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([]);
@@ -25,14 +26,26 @@ export default function Reviews() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này?")) return;
-    try {
-      await apiClient.delete(`/reviews/${id}`);
-      alert("Đã xóa đánh giá thành công!");
-      fetchReviews();
-    } catch (err) {
-      alert("Lỗi khi xóa: " + (err.response?.data?.message || err.message));
-    }
+    Swal.fire({
+      title: 'Xóa đánh giá?',
+      text: "Bạn có chắc chắn muốn xóa đánh giá này không?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Đồng ý',
+      cancelButtonText: 'Hủy'
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await apiClient.delete(`/reviews/${id}`);
+          Swal.fire({icon: 'success', title: 'Thành công', text: 'Đã xóa đánh giá thành công!'});
+          fetchReviews();
+        } catch (err) {
+          Swal.fire({icon: 'error', title: 'Lỗi', text: "Lỗi khi xóa: " + (err.response?.data?.message || err.message)});
+        }
+      }
+    });
   };
 
   return (

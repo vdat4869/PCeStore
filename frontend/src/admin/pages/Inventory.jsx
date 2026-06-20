@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function Inventory() {
   const [products, setProducts] = useState([]);
@@ -52,11 +53,11 @@ export default function Inventory() {
       
       // Đợi modal đóng xong rồi mới báo success để tránh kẹt focus
       setTimeout(() => {
-        alert(`Đã cập nhật tồn kho cho #${selectedProduct.id} thành công!`);
+        Swal.fire({icon: 'success', title: 'Thành công', text: `Đã cập nhật tồn kho cho #${selectedProduct.id} thành công!`, confirmButtonColor: '#3085d6'});
         fetchProducts();
       }, 300);
     } catch (err) {
-      alert("Lỗi: " + (err.response?.data?.message || "Không thể cập nhật"));
+      Swal.fire({icon: 'error', title: 'Lỗi', text: err.response?.data?.message || "Không thể cập nhật", confirmButtonColor: '#3085d6'});
     } finally {
       setUpdating(false);
     }
@@ -143,6 +144,15 @@ export default function Inventory() {
                        </div>
                     </td>
                     <td className="text-center">
+                       {isAdmin && (
+                         <Link 
+                           to={`../edit-product/${p.id}`} 
+                           className="btn btn-sm btn-outline-secondary mb-1 me-1"
+                           title="Chỉnh sửa thông tin / giá tiền"
+                         >
+                           <i className="bi bi-pencil-square"></i>
+                         </Link>
+                       )}
                        <button 
                          className="btn btn-sm btn-outline-primary mb-1 me-1"
                          data-bs-toggle="modal" 
@@ -151,20 +161,33 @@ export default function Inventory() {
                             setSelectedProduct(p);
                             setNewQuantity(p.stock);
                          }}
+                         title="Cập nhật tồn kho"
                        >
-                          <i className="bi bi-gear-fill me-1"></i> Kho
+                          <i className="bi bi-box-seam me-1"></i> Kho
                        </button>
                        {isAdmin && (
                          <button 
                            className="btn btn-sm btn-outline-danger mb-1"
                            onClick={async () => {
-                             if (!window.confirm("CẢNH BÁO: Xoá sản phẩm này?")) return;
-                             try {
-                               await apiClient.delete(`/products/${p.id}`);
-                               fetchProducts();
-                             } catch (err) {
-                               alert("Không thể xoá sản phẩm: " + (err.response?.data?.message || err.message));
-                             }
+                             Swal.fire({
+                               title: 'CẢNH BÁO',
+                               text: 'Bạn có chắc chắn muốn xoá sản phẩm này?',
+                               icon: 'warning',
+                               showCancelButton: true,
+                               confirmButtonColor: '#d33',
+                               cancelButtonColor: '#3085d6',
+                               confirmButtonText: 'Đồng ý xóa',
+                               cancelButtonText: 'Hủy'
+                             }).then(async (result) => {
+                               if (result.isConfirmed) {
+                                 try {
+                                   await apiClient.delete(`/products/${p.id}`);
+                                   fetchProducts();
+                                 } catch (err) {
+                                   Swal.fire({icon: 'error', title: 'Lỗi', text: "Không thể xoá sản phẩm: " + (err.response?.data?.message || err.message)});
+                                 }
+                               }
+                             });
                            }}
                          >
                             <i className="bi bi-trash-fill"></i>

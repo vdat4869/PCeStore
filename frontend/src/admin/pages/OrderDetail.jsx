@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 /**
  * Hàm hỗ trợ lấy thông tin hiển thị theo trạng thái.
@@ -56,9 +57,19 @@ export default function OrderDetail() {
       setUpdating(true);
       await apiClient.put(`/v1/orders/admin/${id}/status?status=${newStatus}`);
       await fetchOrderDetail();
-      alert(`Thành công: Trạng thái đơn hàng là ${newStatus}`);
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        text: `Trạng thái đơn hàng là ${newStatus}`,
+        confirmButtonColor: '#3085d6'
+      });
     } catch (err) {
-      alert("Lỗi cập nhật: " + (err.response?.data?.message || err.message));
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi cập nhật',
+        text: err.response?.data?.message || err.message,
+        confirmButtonColor: '#3085d6'
+      });
     } finally {
       setUpdating(false);
     }
@@ -69,9 +80,19 @@ export default function OrderDetail() {
       setUpdating(true);
       await apiClient.post(`/v1/payments/reconcile/${id}`);
       await fetchOrderDetail();
-      alert("Đã hoàn tất kiểm tra đối soát với SePay.");
+      Swal.fire({
+        icon: 'success',
+        title: 'Hoàn tất',
+        text: 'Đã kiểm tra đối soát với SePay.',
+        confirmButtonColor: '#3085d6'
+      });
     } catch (err) {
-      alert("Lỗi đồng bộ: " + (err.response?.data?.message || err.message));
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi đồng bộ',
+        text: err.response?.data?.message || err.message,
+        confirmButtonColor: '#3085d6'
+      });
     } finally {
       setUpdating(false);
     }
@@ -114,16 +135,46 @@ export default function OrderDetail() {
             </ol>
           </nav>
         </div>
-        <div className="ms-auto">
-          <span className={`badge bg-${statusInfo.color} p-2 px-3 rounded-pill shadow-sm text-white`}>
+        <div className="ms-auto d-flex gap-2">
+          <button onClick={() => window.print()} className="btn btn-light border shadow-sm rounded-pill px-3 d-none d-md-flex align-items-center">
+            <i className="bi bi-printer me-1"></i> In Hóa Đơn
+          </button>
+          <span className={`badge bg-${statusInfo.color} p-2 px-3 rounded-pill shadow-sm text-white d-flex align-items-center`}>
             <i className={`bi ${statusInfo.icon} me-1`}></i> {statusInfo.label}
           </span>
         </div>
       </div>
 
-      <div className="row g-4">
+      <div className="row g-4" id="printable-invoice">
         {/* Left Column: Flow Control & Product List */}
         <div className="col-lg-8">
+          {/* Timeline Card */}
+          {order.status !== 'CANCELLED' && (
+            <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '12px' }}>
+              <div className="card-body p-4">
+                <h5 className="card-title fw-bold mb-4">Tiến trình đơn hàng</h5>
+                <div className="d-flex justify-content-between position-relative">
+                  <div className="position-absolute top-50 start-0 w-100 border-top border-2" style={{ zIndex: 0, marginTop: '-2px' }}></div>
+                  {['PENDING', 'PAID', 'CONFIRMED', 'SHIPPING', 'DELIVERED'].map((step, index) => {
+                     const stepConfig = getStatusConfig(step);
+                     const statusList = ['PENDING', 'PAID', 'CONFIRMED', 'SHIPPING', 'DELIVERED'];
+                     const currentIdx = statusList.indexOf(order.status);
+                     const isPast = index <= currentIdx;
+                     const isActive = index === currentIdx;
+                     return (
+                       <div key={step} className="position-relative text-center" style={{ zIndex: 1, width: '80px' }}>
+                         <div className={`rounded-circle d-inline-flex align-items-center justify-content-center mx-auto mb-2 shadow-sm ${isActive ? 'bg-primary text-white border border-3 border-white' : (isPast ? 'bg-success text-white' : 'bg-light text-muted border')}`} style={{ width: '40px', height: '40px' }}>
+                           <i className={`bi ${stepConfig.icon}`}></i>
+                         </div>
+                         <div className={`small fw-bold ${isActive ? 'text-primary' : (isPast ? 'text-success' : 'text-muted')}`} style={{ fontSize: '11px' }}>{stepConfig.label}</div>
+                       </div>
+                     );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Card */}
           <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: '12px' }}>
             <div className="card-body p-4">
@@ -255,6 +306,13 @@ export default function OrderDetail() {
                 <div>
                   <div className="fw-bold fs-6">{order.customerName || 'Khách vãng lai'}</div>
                   <div className="text-secondary small">{order.customerEmail}</div>
+                </div>
+              </div>
+              <div className="mb-3">
+                <div className="text-muted small mb-1">Số điện thoại:</div>
+                <div className="fw-medium text-dark line-height-sm">
+                  <i className="bi bi-telephone-fill text-success me-1"></i>
+                  {order.customerPhone || order.shipping?.phone || order.shipping?.phoneNumber || 'Chưa cập nhật'}
                 </div>
               </div>
               <div className="mb-0">

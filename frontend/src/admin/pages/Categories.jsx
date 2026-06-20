@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
+import Swal from 'sweetalert2';
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
@@ -25,36 +26,100 @@ export default function Categories() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newCatName.trim()) return;
+    if (!newCatName.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Thiếu thông tin',
+        text: 'Vui lòng nhập tên danh mục!',
+        confirmButtonColor: '#3085d6'
+      });
+      return;
+    }
     try {
       await apiClient.post('/categories', { name: newCatName });
       setNewCatName('');
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: 'Đã thêm danh mục mới',
+        confirmButtonColor: '#3085d6',
+        timer: 1500
+      });
       fetchCategories();
     } catch (err) {
-      alert("Lỗi khi thêm danh mục");
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: "Lỗi khi thêm danh mục: " + (err.response?.data?.message || err.message),
+        confirmButtonColor: '#3085d6'
+      });
     }
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!editingCat.name.trim()) return;
+    if (!editingCat.name.trim()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Thiếu thông tin',
+        text: 'Vui lòng nhập tên danh mục!',
+        confirmButtonColor: '#3085d6'
+      });
+      return;
+    }
     try {
       await apiClient.put(`/categories/${editingCat.id}`, { name: editingCat.name });
       setEditingCat(null);
+      Swal.fire({
+        icon: 'success',
+        title: 'Thành công',
+        text: 'Đã cập nhật danh mục',
+        confirmButtonColor: '#3085d6',
+        timer: 1500
+      });
       fetchCategories();
     } catch (err) {
-      alert("Lỗi khi cập nhật");
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: "Lỗi khi cập nhật: " + (err.response?.data?.message || err.message),
+        confirmButtonColor: '#3085d6'
+      });
     }
   };
 
   const handleDelete = async (id) => {
-     if (!window.confirm("Xóa danh mục này có thể ảnh hưởng đến hiển thị sản phẩm. Bạn chắc chứ?")) return;
-     try {
-        await apiClient.delete(`/categories/${id}`);
-        fetchCategories();
-     } catch (err) {
-        alert("Lỗi khi xóa");
-     }
+     Swal.fire({
+       title: 'Xóa danh mục?',
+       text: "Xóa danh mục này có thể ảnh hưởng đến hiển thị sản phẩm. Bạn chắc chứ?",
+       icon: 'warning',
+       showCancelButton: true,
+       confirmButtonColor: '#d33',
+       cancelButtonColor: '#3085d6',
+       confirmButtonText: 'Đồng ý xóa',
+       cancelButtonText: 'Hủy'
+     }).then(async (result) => {
+       if (result.isConfirmed) {
+         try {
+            await apiClient.delete(`/categories/${id}`);
+            Swal.fire({
+              icon: 'success',
+              title: 'Đã xóa',
+              text: 'Danh mục đã được xóa.',
+              confirmButtonColor: '#3085d6',
+              timer: 1500
+            });
+            fetchCategories();
+         } catch (err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Lỗi',
+              text: "Lỗi khi xóa: " + (err.response?.data?.message || err.message),
+              confirmButtonColor: '#3085d6'
+            });
+         }
+       }
+     });
   };
 
   return (
