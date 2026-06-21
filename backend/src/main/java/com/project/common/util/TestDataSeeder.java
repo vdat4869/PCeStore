@@ -7,6 +7,7 @@ import com.project.product.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.Random;
  * Chạy ngay sau khi ứng dụng khởi động thành công.
  */
 @Component
+@Order(2)
 public class TestDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(TestDataSeeder.class);

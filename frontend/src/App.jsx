@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import FloatingContact from './components/FloatingContact';
 import Home from './pages/Home';
 import Product from './pages/Product';
 import ProductDetail from './pages/ProductDetail';
@@ -35,6 +36,7 @@ const MainLayout = () => {
       <main className="flex-grow-1 storefront-main pt-4" style={{ minHeight: '60vh' }}>
         <Outlet />
       </main>
+      <FloatingContact />
       <Footer />
     </>
   );

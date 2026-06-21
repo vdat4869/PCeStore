@@ -52,14 +52,22 @@ const Header = ({ minimal = false }) => {
 
   return (
     <header className="store-header sticky-top">
+      {!minimal && (
+        <div className="store-header__video" aria-hidden="true">
+          <video autoPlay muted loop playsInline>
+            <source src="/top-promo-video.mp4" type="video/mp4" />
+          </video>
+        </div>
+      )}
+
       <div className="store-header__top d-none d-md-block">
         <div className="container d-flex justify-content-between align-items-center">
           <div className="store-header__links">
-            <Link to="/khuyen-mai"><i className="bi bi-gift me-1"></i>Khuyen mai</Link>
-            <Link to="/tra-gop"><i className="bi bi-credit-card me-1"></i>Tra gop</Link>
-            <Link to="/order-tracking"><i className="bi bi-box-seam me-1"></i>Tra cuu don hang</Link>
-            <Link to="/build-pc" className="is-highlight"><i className="bi bi-pc-display me-1"></i>Build PC</Link>
-            <Link to="/bao-hanh"><i className="bi bi-shield-check me-1"></i>Bao hanh</Link>
+            <Link to="/khuyen-mai"><i className="bi bi-gift me-1"></i>Khuyến mãi</Link>
+            <Link to="/tra-gop"><i className="bi bi-credit-card me-1"></i>Trả góp</Link>
+            <Link to="/khuyen-mai"><i className="bi bi-newspaper me-1"></i>Tin khuyến mãi</Link>
+            <Link to="/products?q=thu%20cu%20doi%20moi"><i className="bi bi-arrow-repeat me-1"></i>Thu cũ đổi mới</Link>
+            <Link to="/bao-hanh"><i className="bi bi-shield-check me-1"></i>Bảo hành</Link>
           </div>
           <div className="store-header__hotline">
             <i className="bi bi-telephone-fill me-1"></i> Hotline: 1900 0243
@@ -84,12 +92,12 @@ const Header = ({ minimal = false }) => {
                     type="button"
                     onClick={() => setIsCategoryOpen(!isCategoryOpen)}
                   >
-                    <i className="bi bi-list"></i> Danh muc
+                    <i className="bi bi-list"></i> Danh mục
                   </button>
                   <input
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Ban can tim linh kien nao?"
+                    placeholder="Bạn cần tìm linh kiện nào?"
                   />
                   <button className="store-search__submit" type="submit">
                     <i className="bi bi-search"></i>
@@ -134,26 +142,26 @@ const Header = ({ minimal = false }) => {
                 </form>
               ) : (
                 <div className="store-auth-title">
-                  {window.location.pathname.includes('login') ? 'Dang nhap' :
-                    window.location.pathname.includes('register') || window.location.pathname.includes('signup') ? 'Dang ky' :
-                      window.location.pathname.includes('forgot-password') ? 'Khoi phuc mat khau' : ''}
-                </div>
-              )}
-
-              {!minimal && (
-                <div className="store-hot-keywords">
-                  {['VGA', 'CPU', 'Laptop', 'Man hinh', 'RAM'].map(item => (
-                    <Link key={item} to={`/products?q=${encodeURIComponent(item)}`}>{item}</Link>
-                  ))}
+                  {window.location.pathname.includes('login') ? 'Đăng nhập' :
+                    window.location.pathname.includes('register') || window.location.pathname.includes('signup') ? 'Đăng ký' :
+                      window.location.pathname.includes('forgot-password') ? 'Khôi phục mật khẩu' : ''}
                 </div>
               )}
             </div>
 
             <div className="col-12 col-md-4 d-flex justify-content-center justify-content-md-end align-items-center gap-3">
               {minimal ? (
-                <Link to="/" className="store-link-strong">Can ho tro?</Link>
+                <Link to="/" className="store-link-strong">Cần hỗ trợ?</Link>
               ) : (
-                <>
+                <div className="store-header-actions">
+                  <Link to="/build-pc" className="store-header-action">
+                    <i className="bi bi-pc-display"></i>
+                    <strong>Build<br />PC</strong>
+                  </Link>
+                  <Link to="/order-tracking" className="store-header-action">
+                    <i className="bi bi-box-seam"></i>
+                    <strong>Tra cứu<br />đơn hàng</strong>
+                  </Link>
                   <div className="dropdown" ref={accountRef}>
                     <button
                       className="store-account"
@@ -166,22 +174,22 @@ const Header = ({ minimal = false }) => {
                         <i className="bi bi-person-circle"></i>
                       )}
                       <span>
-                        <small>{isLoggedIn && user?.role !== 'ADMIN' ? 'Xin chao,' : 'Dang nhap/Dang ky'}</small>
-                        <strong>{isLoggedIn && user?.role !== 'ADMIN' ? (user?.name || 'Tai khoan') : 'Tai khoan'}</strong>
+                        <small>{isLoggedIn && user?.role !== 'ADMIN' ? 'Xin chào,' : 'Đăng nhập/Đăng ký'}</small>
+                        <strong>{isLoggedIn && user?.role !== 'ADMIN' ? (user?.name || 'Tài khoản') : 'Tài khoản'}</strong>
                       </span>
                     </button>
                     <ul className={`dropdown-menu dropdown-menu-end shadow border-0 mt-2 ${isAccountOpen ? 'show' : ''}`}>
                       {isLoggedIn && user?.role !== 'ADMIN' ? (
                         <>
-                          <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person me-2"></i>Thong tin ca nhan</Link></li>
-                          <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Don hang cua toi</Link></li>
+                          <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person me-2"></i>Thông tin cá nhân</Link></li>
+                          <li><Link className="dropdown-item py-2" to="/profile" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-seam me-2"></i>Đơn hàng của tôi</Link></li>
                           <li><hr className="dropdown-divider" /></li>
-                          <li><button className="dropdown-item py-2 text-danger" onClick={handleLogout}><i className="bi bi-box-arrow-right me-2"></i>Dang xuat</button></li>
+                          <li><button className="dropdown-item py-2 text-danger" onClick={handleLogout}><i className="bi bi-box-arrow-right me-2"></i>Đăng xuất</button></li>
                         </>
                       ) : (
                         <>
-                          <li><Link className="dropdown-item py-2" to="/login" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-arrow-in-right me-2"></i>Dang nhap</Link></li>
-                          <li><Link className="dropdown-item py-2" to="/signup" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person-plus me-2"></i>Dang ky thanh vien</Link></li>
+                          <li><Link className="dropdown-item py-2" to="/login" onClick={() => setIsAccountOpen(false)}><i className="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</Link></li>
+                          <li><Link className="dropdown-item py-2" to="/signup" onClick={() => setIsAccountOpen(false)}><i className="bi bi-person-plus me-2"></i>Đăng ký thành viên</Link></li>
                         </>
                       )}
                     </ul>
@@ -192,9 +200,9 @@ const Header = ({ minimal = false }) => {
                       <i className="bi bi-cart3"></i>
                       <em>{cartCount}</em>
                     </span>
-                    <strong>Gio hang</strong>
+                    <strong>Giỏ hàng</strong>
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </div>
